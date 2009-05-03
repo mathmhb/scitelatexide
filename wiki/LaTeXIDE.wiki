@@ -2,12 +2,9 @@
 
 = Introduction =
 
-Add your content here.
+SciTE LaTeX IDE is an SciTE based latex editing environment.
 
 
 = Details =
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+Since the early days of my Chinese TeX Suite MiCTeX was being developed, I have been paying my efforts in modifying and configuring SciTE editor in order to make my LaTeX editing more comfortable. In this process I created/modified several latex related lexers (latex/metapost/bibtex/asymptote) and added new functions to the editor (user customizable toolbars, various lua scripts which makes the editor much more like a latex IDE, etc) and also borrowed advanced techniques from diverse sources (latex-gui/SciTE-Ru project etc). Moreover, I also wrote some perl scripts for automatic latex compilation and preview, and compiled them into Windows executables. The final boundle is here: LaTeX IDE. I hope one day it will get to the point as a real IDE for latex editing. 
