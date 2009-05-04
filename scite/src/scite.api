@@ -1,0 +1,500 @@
+assert (v [, message]) error if v nil or false, otherwise returns v
+collectgarbage ([limit]) set threshold to limit KBytes, default 0, may run GC
+dofile (filename) executes as Lua chunk, default stdin, returns value
+error (message [, level]) terminates protected func, never returns, level 1 (default), 2=parent
+_G holds global environment, setfenv changes environments
+getfenv (f) gets env, f can be a function or number (stack level, default=1), 0=global env
+getmetatable (object) returns metatable of given object, otherwise nil
+gcinfo () returns dynamic mem in use (KB), and current GC threshold (KB)
+ipairs (t) returns an iterator function, table t and 0
+loadfile (filename) loads chunk without execution, returns chunk as function, else nil plus error
+loadlib (libname, funcname) links to dynamic library libname, returns funcname as a C function
+loadstring (string [, chunkname]) loads string as chunk, returns chunk as function, else nil plus error
+next (table [, index]) returns next index,value pair, if index=nil (default), returns first index
+pairs (t) returns the next function and table t plus a nil, iterates over all key-value pairs
+pcall (f, arg1, arg2, ...) protected mode call, catches errors, returns status code first (true=success)
+print (e1, e2, ...) prints values to stdout using tostring
+rawequal (v1, v2) non-metamethod v1==v2, returns boolean
+rawget (table, index) non-metamethod get value of table[index], index != nil
+rawset (table, index, value) non-metamethod set value of table[index], index != nil
+require (packagename) loads package, updates _LOADED, returns boolean
+setfenv (f, table) sets env, f can be a function or number (stack level, default=1), 0=global env
+setmetatable (table, metatable) sets metatable, nil to remove metatable
+tonumber (e [, base]) convert to number, returns number, nil if non-convertible, 2<=base<=36
+tostring (e) convert to string, returns string
+type (v) returns type of v as a string
+unpack (list) returns all elements from list
+_VERSION current interpreter version "Lua 5.0"
+xpcall (f, err) pcall function f with new error handler err
+coroutine.create (f) creates coroutine from function f, returns coroutine
+coroutine.resume (co, val1, ...) continues execution of co, returns bool status plus any values
+coroutine.status (co) returns co status: "running", "suspended" or "dead"
+coroutine.wrap (f) creates coroutine with body f, returns function that resumes co
+coroutine.yield (val1, ...) suspend execution of calling coroutine
+string.byte (s [, i]) returns numerical code, nil if index out of range, default i=1
+string.char (i1, i2, ...) returns a string built from 0 or more integers
+string.dump (function) returns binary representation of function, used with loadstring
+string.find (s, pattern [, init [, plain]]) matches pattern in s, returns start,end indices, else nil
+string.len (s) returns string length
+string.lower (s) returns string with letters in lower case
+string.rep (s, n) returns string with n copies of string s
+string.sub (s, i [, j]) returns substring from index i to j of s, default j=-1 (string length)
+string.upper (s) returns string with letters in upper case
+string.format (formatstring, e1, e2, ...) returns formatted string, printf-style
+string.gfind (s, pat) returns iterator function that returns next captures from pattern pat on s
+string.gsub (s, pat, repl [, n]) returns copy of s with pat replaced by repl, and substitutions made
+table.concat (table [, sep [, i [, j]]]) returns concatenated table elements i to j separated by sep
+table.foreach (table, f) executes f(index,value) over all elements of table, returns first non-nil of f
+table.foreachi (table, f) executes f(index,value) in sequential order 1 to n, returns first non-nil of f
+table.getn (table) returns size of table, or n field, or table.setn value, or 1 less first index with nil value
+table.sort (table [, comp]) sorts in-place elements 1 to n, comp(v1,v2) true if v1<v2, default <
+table.insert (table, [pos,] value) insert value at location pos in table, default pos=n+1
+table.remove (table [, pos]) removes element at pos from table, default pos=n
+table.setn (table, n) sets size of table, n field of table if it exists
+math.abs (v) returns absolute value of v
+math.acos (v) returns arc cosine value of v in radians
+math.asin (v) returns arc sine value of v in radians
+math.atan (v) returns arc tangent value of v in radians
+math.atan2 (v1, v2) returns arc tangent value of v1/v2 in radians
+math.ceil (v) returns smallest integer >= v
+math.cos (rad) returns cosine value of angle rad
+math.deg (rad) returns angle in degrees of radians rad
+math.exp (v) returns e^v
+math.floor (v) returns largest integer <= v
+math.log (v) returns natural logarithm of v
+math.log10 (v) returns logarithm 10 of v
+math.mod (v1, v2) returns remainder of v1/v2 which is v1 - iV2 for some integer i
+math.pow (v1, v2) returns v1 raised to the power of v2
+math.rad (deg) returns angle in radians of degrees deg
+math.sin (rad) returns sine value of angle rad 
+math.sqrt (v) returns square root of v
+math.tan (rad) returns tangent value of angle rad  
+math.frexp (v) returns mantissa [0.5,1) and exponent values of v
+math.ldexp (v1, v2) returns v1*2^v2
+math.max (v1, ...) returns maximum in a list of one or more values
+math.min (v1, ...) returns minimum in a list of one or more values
+math.random ([n [, u]]) returns random real [0,1), integer [1,n] or real [1,u] (with n=1)
+math.randomseed (seed) sets seed for pseudo-random number generator
+io.stdin file descriptor for STDIN
+io.stdout file descriptor for STDOUT 
+io.stderr file descriptor for STDERR
+io.close ([file]) closes file, or the default output file
+io.flush () flushes the default output file
+io.input ([file]) opens file in text mode, sets as default input file, or returns current default input file
+io.lines ([filename]) open file in read mode, returns iterator function to return lines, nil ends
+io.open (filename [, mode]) opens file in specified mode "[rawb+]", returns handle or nil
+io.output ([file]) opens file in text mode, sets as default output file, or returns current default output file
+io.read (format1, ...) reads file according to given formats, returns read values or nil
+io.tmpfile () returns a handle for a temporary file, opened in update mode
+io.type (obj) returns "file" if obj is an open file handle, "close file" if closed, or nil if not a file handle
+io.write (value1, ...) writes strings or numbers to file
+file:close () closes file
+file:flush () saves any written data to file
+file:lines () returns iterator function to return lines, nil ends
+file:read (format1, ...) reads file according to given formats, returns read values or nil
+file:seek ([whence] [, offset]) sets file pos, whence="set"|"cur"|"end", defaults "curr",0, returns file pos
+file:write (value1, ...) writes strings or numbers to file
+os.clock () returns CPU time used by program in seconds
+os.date ([format [, time]]) returns a string or table containing date and time, "*t" returns a table
+os.difftime (t2, t1) returns number of seconds from time t1 to time t2
+os.execute (command) executes command using C function system, returns status code
+os.exit ([code]) terminates host program with optional code, default is success code
+os.getenv (varname) returns value of environment variable varname. nil if not defined
+os.remove (filename) deletes file with given name, nil if fails
+os.rename (oldname, newname) renames file oldname to newname, nil if fails
+os.setlocale (locale [, category]) set current locale of program, returns name of new locate or nil
+os.time ([table]) returns current time (usually seconds) or time as represented by table
+os.tmpname () returns a string with a filename for a temporary file (dangerous! tmpfile is better)
+debug.debug () enters interactive debug mode, line with only "cont" terminates
+debug.gethook () returns current hook function, hook mask, hook count
+debug.getinfo (function [, what]) returns table with information about a function
+debug.getlocal (level, local) returns name and value of local variable with index local at stack level
+debug.getupvalue (func, up) returns name and value of upvalue with index up of function func
+debug.setlocal (level, local, value) sets local variable with index local at stack level with value
+debug.setupvalue (func, up, value) sets upvalue with index up of function func with value
+debug.sethook (hook, mask [, count]) sets given function as a hook, mask="[crl]"
+debug.traceback ([message]) returns a string with a traceback of the call stack 
+
+editor:textrange(startPos, endPos) gets the text in the specified range
+editor:findtext(text, [flags], [startPos, [endPos]]) returns the start and end of the first match, or nil if no match
+editor:match(text, [flags], [startPos]) returns a generator that allows you to loop over the matches i.e. for m in editor:match(text, flags) do ... end
+editor:append(text) appends text to the end of the document
+editor:insert(pos, text) inserts text at the specified position
+editor:remove(startPos, endPos) removes the text in the range
+
+output:textrange(startPos, endPos) gets the text in the specified range
+output:findtext(text, [flags], [startPos, [endPos]]) returns the start and end of the first match, or nil if no match
+output:match(text, [flags], [startPos]) returns a generator that allows you to loop over the matches i.e. for m in output:match(text, flags) do ... end
+output:append(text) appends text to the end of the document
+output:insert(pos, text) inserts text at the specified position
+output:remove(startPos, endPos) removes the text in the range
+
+scite.Open(filename) opens a file in a new buffer
+scite.SendEditor(SCI_constant, ...) sends a message to the editor pane
+scite.SendOutput(SCI_constant, ...) sends a message to the output pane
+scite.ConstantName(number) returns the symbolic name of a Scintilla / SciTE constant
+scite.MenuCommand(number) executes a SciTE menu command
+scite.UpdateStatusBar(bool=false) updates SciTE statusbar; bool is bUpdateSlowData
+scite.BufferPath(index) returns path of buffer at index
+scite.SwitchToBuffer(index) switches to buffer specified by index
+
+props
+
+editor:AddRefDocument(int doc)
+editor:AddStyledText(cells)
+editor:AddText(string text)
+editor:Allocate(int bytes)
+editor:AppendText(string text)
+editor:AssignCmdKey(int keymod, int msg)
+editor:AutoCActive() returns: bool
+editor:AutoCCancel()
+editor:AutoCComplete()
+editor:AutoCGetCurrent() returns: int
+editor:AutoCPosStart() returns: int pos
+editor:AutoCSelect(string text)
+editor:AutoCShow(int lenEntered, string itemList)
+editor:AutoCStops(string characterSet)
+editor:BackTab()
+editor:BeginUndoAction()
+editor:BraceBadLight(int pos)
+editor:BraceHighlight(int posStart, int posEnd)
+editor:BraceMatch(int pos) returns: int pos
+editor:CallTipActive() returns: bool
+editor:CallTipCancel()
+editor:CallTipPosStart() returns: int pos
+editor:CallTipSetHlt(int start, int end)
+editor:CallTipShow(int pos, string definition)
+editor:CanPaste() returns: bool
+editor:CanRedo() returns: bool
+editor:CanUndo() returns: bool
+editor:Cancel()
+editor:CharLeft()
+editor:CharLeftExtend()
+editor:CharLeftRectExtend()
+editor:CharRight()
+editor:CharRightExtend()
+editor:CharRightRectExtend()
+editor:ChooseCaretX()
+editor:Clear()
+editor:ClearAll()
+editor:ClearAllCmdKeys()
+editor:ClearCmdKey(int keymod)
+editor:ClearDocumentStyle()
+editor:ClearRegisteredImages()
+editor:ConvertEOLs(int eolMode)
+editor:Copy()
+editor:CopyRange(int posStart, int posEnd)
+editor:CopyText(int length,string text)
+editor:CreateDocument() returns: int
+editor:Cut()
+editor:DelLineLeft()
+editor:DelLineRight()
+editor:DelWordLeft()
+editor:DelWordRight()
+editor:DeleteBack()
+editor:DeleteBackNotLine()
+editor:DocLineFromVisible(int) returns: int
+editor:DocumentEnd()
+editor:DocumentEndExtend()
+editor:DocumentStart()
+editor:DocumentStartExtend()
+editor:EditToggleOvertype()
+editor:EmptyUndoBuffer()
+editor:EncodedFromUTF8(string text) returns: string text
+editor:EndUndoAction()
+editor:EnsureVisible(int line)
+editor:EnsureVisibleEnforcePolicy(int line)
+editor:FindColumn(int, int) returns: int
+editor:FindText(int, findtext) returns: int pos
+editor:FormFeed()
+editor:FormatRange(bool, formatrange) returns: int pos
+editor:GetCurLine() returns: string text
+editor:GetLastChild(int, int) returns: int
+editor:GetLine(int line) returns: string text
+editor:GetLineSelEndPosition(int line) returns: int pos
+editor:GetLineSelStartPosition(int line) returns: int pos
+editor:GetProperty(string text) returns: string text
+editor:GetPropertyExpanded(string text) returns: string text
+editor:GetSelText() returns: string text
+editor:GetStyledText(textrange) returns: int
+editor:GetText() returns: string text
+editor:GetTextRange(textrange) returns: int
+editor:GotoLine(int line)
+editor:GotoPos(int pos)
+editor:GrabFocus()
+editor:HideLines(int lineStart, int lineEnd)
+editor:HideSelection(bool)
+editor:Home()
+editor:HomeDisplay()
+editor:HomeDisplayExtend()
+editor:HomeExtend()
+editor:HomeRectExtend()
+editor:HomeWrap()
+editor:HomeWrapExtend()
+editor:InsertText(int pos, string text) -1 => editor.CurrentPos
+editor:LineCopy()
+editor:LineCut()
+editor:LineDelete()
+editor:LineDown()
+editor:LineDownExtend()
+editor:LineDownRectExtend()
+editor:LineDuplicate()
+editor:LineEnd()
+editor:LineEndDisplay()
+editor:LineEndDisplayExtend()
+editor:LineEndExtend()
+editor:LineEndRectExtend()
+editor:LineEndWrap()
+editor:LineEndWrapExtend()
+editor:LineFromPosition(int pos) returns: int line
+editor:LineLength(int line) returns: int length
+editor:LineScroll(int columns,int lines)
+editor:LineScrollDown()
+editor:LineScrollUp()
+editor:LineTranspose()
+editor:LineUp()
+editor:LineUpExtend()
+editor:LineUpRectExtend()
+editor:LinesJoin()
+editor:LinesSplit(int pixelWidth)
+editor:LoadLexerLibrary(string path)
+editor:LowerCase()
+editor:MarkerAdd(int line, int) returns: int
+editor:MarkerAddSet(int line, int)
+editor:MarkerDefine(int markerNumber, int markerSymbol)
+editor:MarkerDefinePixmap(int markerNumber, string pixmap)
+editor:MarkerDelete(int line, int markerNumber)
+editor:MarkerDeleteAll(int markerNumber)
+editor:MarkerDeleteHandle(int handle)
+editor:MarkerGet(int) returns: int
+editor:MarkerLineFromHandle(int) returns: int
+editor:MarkerNext(int line, int) returns: int
+editor:MarkerPrevious(int line, int) returns: int
+editor:MarkerSetAlpha(int markerNumber, int colour)
+editor:MarkerSetBack(int markerNumber, int colour)
+editor:MarkerSetFore(int markerNumber, int colour)
+editor:MoveCaretInsideView()
+editor:NewLine()
+editor:Null()
+editor:PageDown()
+editor:PageDownExtend()
+editor:PageDownRectExtend()
+editor:PageUp()
+editor:PageUpExtend()
+editor:PageUpRectExtend()
+editor:ParaDown()
+editor:ParaDownExtend()
+editor:ParaUp()
+editor:ParaUpExtend()
+editor:Paste()
+editor:PointXFromPosition(int pos) returns: int
+editor:PointYFromPosition(int pos) returns: int
+editor:PositionAfter(int pos) returns: int pos
+editor:PositionBefore(int pos) returns: int pos
+editor:PositionFromLine(int line) returns: int pos
+editor:PositionFromPoint(int, int) returns: int pos
+editor:PositionFromPointClose(int, int) returns: int pos
+editor:Redo()
+editor:RegisterImage(int type,string xpmData)
+editor:ReleaseDocument(int doc)
+editor:ReplaceSel(string text)
+editor:ReplaceTarget(string text) returns: int
+editor:ReplaceTargetRE(string text) returns: int
+editor:ScrollCaret()
+editor:SearchAnchor()
+editor:SearchInTarget(string text) returns: int
+editor:SearchNext(int, string text) returns: int
+editor:SearchPrev(int, string text) returns: int
+editor:SelectAll()
+editor:SelectionDuplicate()
+editor:SetCharsDefault()
+editor:SetFoldFlags(int flags)
+editor:SetFoldMarginColour(bool useSetting, int colour)
+editor:SetFoldMarginHiColour(bool useSetting, int colour)
+editor:SetLengthForEncode(int)
+editor:SetSavePoint()
+editor:SetSel(int posStart, int posEnd)
+editor:SetSelBack(bool useSetting, int colour)
+editor:SetSelFore(bool useSetting, int colour)
+editor:SetStyling(int length, int mask)
+editor:SetStylingEx(string text)
+editor:SetText(string text)
+editor:SetVisiblePolicy(int visiblePolicy, int visibleSlop)
+editor:SetWhitespaceBack(bool useSetting, int colour)
+editor:SetWhitespaceFore(bool useSetting, int colour)
+editor:SetXCaretPolicy(int caretPolicy, int caretSlop)
+editor:SetYCaretPolicy(int caretPolicy, int caretSlop)
+editor:ShowLines(int lineStart, int lineEnd)
+editor:StartRecord()
+editor:StartStyling(int posStart, int mask)
+editor:StopRecord()
+editor:StutteredPageDown()
+editor:StutteredPageDownExtend()
+editor:StutteredPageUp()
+editor:StutteredPageUpExtend()
+editor:StyleClearAll()
+editor:StyleResetDefault()
+editor:Tab()
+editor:TargetAsUTF8() returns: string text
+editor:TargetFromSelection()
+editor:TextHeight(int) returns: int
+editor:TextWidth(int, string text) returns: int
+editor:ToggleCaretSticky()
+editor:ToggleFold(int line)
+editor:Undo()
+editor:UpperCase()
+editor:UsePopUp(bool allowPopUp)
+editor:UserListShow(int listType, string itemList)
+editor:VCHome()
+editor:VCHomeExtend()
+editor:VCHomeRectExtend()
+editor:VCHomeWrap()
+editor:VCHomeWrapExtend()
+editor:VisibleFromDocLine(int) returns: int
+editor:WordEndPosition(int pos, bool) returns: int
+editor:WordLeft()
+editor:WordLeftEnd()
+editor:WordLeftEndExtend()
+editor:WordLeftExtend()
+editor:WordPartLeft()
+editor:WordPartLeftExtend()
+editor:WordPartRight()
+editor:WordPartRightExtend()
+editor:WordRight()
+editor:WordRightEnd()
+editor:WordRightEndExtend()
+editor:WordRightExtend()
+editor:WordStartPosition(int pos, bool) returns: int
+editor:WrapCount(int) returns: int
+editor:ZoomIn()
+editor:ZoomOut()
+
+editor.Anchor
+editor.AutoCAutoHide
+editor.AutoCCancelAtStart
+editor.AutoCChooseSingle
+editor.AutoCDropRestOfWord
+editor.AutoCFillUps
+editor.AutoCIgnoreCase
+editor.AutoCMaxHeight
+editor.AutoCMaxWidth
+editor.AutoCSeparator
+editor.AutoCTypeSeparator
+editor.BackSpaceUnIndents
+editor.BufferedDraw
+editor.CallTipBack
+editor.CallTipFore
+editor.CallTipForeHlt
+editor.CallTipUseStyle
+editor.CaretFore
+editor.CaretLineBack
+editor.CaretLineBackAlpha
+editor.CaretLineVisible
+editor.CaretPeriod
+editor.CaretSticky
+editor.CaretWidth
+editor.CharAt
+editor.CodePage
+editor.Column
+editor.ControlCharSymbol
+editor.CurrentPos
+editor.Cursor
+editor.DirectFunction
+editor.DirectPointer
+editor.DocPointer
+editor.EOLMode
+editor.EdgeColour
+editor.EdgeColumn
+editor.EdgeMode
+editor.EndAtLastLine
+editor.EndStyled
+editor.FirstVisibleLine
+editor.Focus
+editor.FoldExpanded
+editor.FoldLevel
+editor.FoldParent
+editor.HScrollBar
+editor.HighlightGuide
+editor.HotspotActiveBack
+editor.HotspotActiveFore
+editor.HotspotActiveUnderline
+editor.HotspotSingleLine
+editor.Indent
+editor.IndentationGuides
+editor.IndicFore
+editor.IndicStyle
+editor.KeyWords
+editor.LayoutCache
+editor.Length
+editor.Lexer
+editor.LexerLanguage
+editor.LineCount
+editor.LineEndPosition
+editor.LineIndentPosition
+editor.LineIndentation
+editor.LineState
+editor.LineVisible
+editor.LinesOnScreen
+editor.MarginLeft
+editor.MarginMaskN
+editor.MarginRight
+editor.MarginSensitiveN
+editor.MarginTypeN
+editor.MarginWidthN
+editor.MaxLineState
+editor.ModEventMask
+editor.Modify
+editor.MouseDownCaptures
+editor.MouseDwellTime
+editor.Overtype
+editor.PasteConvertEndings
+editor.PrintColourMode
+editor.PrintMagnification
+editor.PrintWrapMode
+editor.Property
+editor.PropertyInt
+editor.ReadOnly
+editor.ScrollWidth
+editor.SearchFlags
+editor.SelAlpha
+editor.SelectionEnd
+editor.SelectionIsRectangle
+editor.SelectionMode
+editor.SelectionStart
+editor.Status
+editor.StyleAt
+editor.StyleBack
+editor.StyleBits
+editor.StyleBitsNeeded
+editor.StyleBold
+editor.StyleCase
+editor.StyleChangeable
+editor.StyleCharacterSet
+editor.StyleEOLFilled
+editor.StyleFont
+editor.StyleFore
+editor.StyleHotSpot
+editor.StyleItalic
+editor.StyleSize
+editor.StyleUnderline
+editor.StyleVisible
+editor.TabIndents
+editor.TabWidth
+editor.TargetEnd
+editor.TargetStart
+editor.TextLength
+editor.TwoPhaseDraw
+editor.UndoCollection
+editor.UsePalette
+editor.UseTabs
+editor.VScrollBar
+editor.ViewEOL
+editor.ViewWS
+editor.WhitespaceChars
+editor.WordChars
+editor.WrapMode
+editor.WrapStartIndent
+editor.WrapVisualFlags
+editor.WrapVisualFlagsLocation
+editor.XOffset
+editor.Zoom
