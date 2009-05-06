@@ -204,7 +204,7 @@ static void FoldAsyDoc(unsigned int startPos, int length, int initStyle,
 				levelNext--;
 			}
 		}
-		if (style == SCE_ASY_OPERATOR) {
+		if (style == SCE_ASY_BRACKET) {
 			if (ch == '{') {
 				if (levelMinCurrent > levelNext) {
 					levelMinCurrent = levelNext;
