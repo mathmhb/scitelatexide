@@ -89,3 +89,63 @@ function compile_tex_block()
         end
         os.execute(cmd)
 end
+
+-- --------------------------------------------------------------
+
+compiler='SmartTeXer -pdf -view -nonstopmode -source='
+
+props['master.set'] = 0
+props['master.name']=nil
+props['master.dir']=nil
+
+props['command.separator.18.$(file.patterns.latex)']=1
+props['command.name.18.$(file.patterns.latex)']='Set Master File'
+props['command.18.$(file.patterns.latex)']='togglemaster'
+props['command.mode.18.$(file.patterns.latex)']='subsystem:lua,savebefore:yes'
+props['command.shortcut.18.$(file.patterns.latex)']='Alt+8'
+
+props['command.name.19.$(file.patterns.latex)']='Compile Master File'
+props['command.19.$(file.patterns.latex)']='print Currently there is no master file. Needs to set a master file first.'
+props['command.mode.19.$(file.patterns.latex)']='subsystem:lua,savebefore:yes'
+props['command.shortcut.19.$(file.patterns.latex)']='Alt+9'
+
+function togglemaster()
+	if tonumber(props['master.set'])==0 then
+		props['master.set'] = 1
+		props['master.dir']=props['FileDir']
+		props['master.name']=props['FileNameExt']
+		props['command.checked.18.$(file.patterns.latex)']=props['master.set']
+		props['command.19.$(file.patterns.latex)']='$(ComSpec) /c CD /d $(master.dir) && '..compiler..'$(master.name)'
+		props['command.mode.19.$(file.patterns.latex)']='subsystem:console,savebefore:yes'
+		output:append(props['master.dir']..slash..props['master.name']..' set as master file.\n')
+	else
+		props['master.set'] = 0
+		props['master.name']=nil
+		props['master.dir']=nil
+		props['command.checked.18.$(file.patterns.latex)']=props['master.set']
+		props['command.19.$(file.patterns.latex)']='print Currently there is no master file. Needs to set a master file first.'
+		props['command.mode.19.$(file.patterns.latex)']='subsystem:lua,savebefore:yes'
+		output:append('Master file unset successfully.\n')
+	end
+end
+
+--[[
+function compilemaster()
+	if tonumber(props['master.set'])==1 then
+		output:append('Compiling master file '..props['master.name']..'...please wait\n')
+		cmd1=cd_cmd..props['master.dir']
+		cmd2=compiler..props['master.name']
+		cmd=cmd1..' && '..cmd2
+--		scite_execute(cmd)
+		os.execute(cmd)
+--   		p = spawner.new(cmd)
+--   		p:use_shell() 
+--			p:set_output 'trace' 
+--   		p:run()
+		output:append('Compilation finished sucessfully.')
+	else
+		output:append('Currently there is no master file. Needs to set a master file first.')
+	end
+end
+]]--
+

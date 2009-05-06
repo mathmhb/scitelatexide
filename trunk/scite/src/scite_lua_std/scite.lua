@@ -30,10 +30,12 @@ require 'scite_lua_std/abbrev_encdec'
 require 'scite_lua_std/tex_lister'
 require 'scite_lua_std/compile_block'
 
+
 require 'gui'
 --require 'scite_lua_std/SideBar'
 require 'scite_lua_std/GUI-Panel'
 require 'scite_lua_std/edit_colour'
+
 
 require 'scite_lua_std/keys' -- important to load last
 

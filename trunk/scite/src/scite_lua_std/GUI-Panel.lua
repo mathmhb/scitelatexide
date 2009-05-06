@@ -2,6 +2,8 @@
 -- Based on original work of Steve D
 -- Extended substentially by instanton 
 
+local black_background=tonumber(props['scheme.dark'])
+
 local append = table.insert
 local current_path = props['FileDir']
 local ext = props['FileExt']
@@ -12,13 +14,22 @@ local FilesPanel = gui.panel(width)
 local file_list = gui.list(false)
 local dir_list = gui.list(false)
 
+if (black_background==1) then
 	file_list:set_list_colour("#DDDDDD","#000000") 
 	dir_list:set_list_colour("#DDDDDD","#000000")
+else
+	file_list:set_list_colour("#333333","#FFFFFF") 
+	dir_list:set_list_colour("#333333","#FFFFFF")
+end
 
 text_path = gui.memo()
 FilesPanel:add(text_path, "top", 26)
 
+if (black_background==1) then
 	text_path:set_memo_colour("#DDDDDD","#000000") 
+else	
+	text_path:set_memo_colour("#DDDDDD","#FFFFFF") 
+end
 
 local function show_path()
 	local file_mask = '*.*'
@@ -64,9 +75,15 @@ mathematics:add_column(MathName,width-18)
 GreekLetters:add_column(GreekName,width-18)
 environments:add_column(EnvName,width-18)
 
+if (black_background==1) then
 	GreekLetters:set_list_colour("#FF55FF","#000000") 
 	mathematics:set_list_colour("#5555FF","#000000") 
 	environments:set_list_colour("#55FF55","#000000") 
+else
+	GreekLetters:set_list_colour("#FF55FF","#FFFFFF") 
+	mathematics:set_list_colour("#5555FF","#FFFFFF") 
+	environments:set_list_colour("#55FF55","#FFFFFF") 
+end
 
 PalettesPanel:add(GreekLetters,"top",150)
 PalettesPanel:add(mathematics,"top",140)
@@ -105,9 +122,15 @@ local ref = gui.list(true)
 local cite= gui.list(true)
 local subfile = gui.list(true)
 
+if (black_background==1) then
 	ref:set_list_colour("#999999","#000000") 
 	cite:set_list_colour("#999999","#000000") 
 	subfile:set_list_colour("#999999","#000000") 
+else
+	ref:set_list_colour("#999999","#FFFFFF") 
+	cite:set_list_colour("#999999","#FFFFFF") 
+	subfile:set_list_colour("#999999","#FFFFFF") 
+end
 
 local LabelName='Labels'
 LabelName=scite.GetTranslation(LabelName)
