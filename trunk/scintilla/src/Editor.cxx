@@ -121,6 +121,7 @@ Editor::Editor() {
 	originalAnchorPos = 0;
 
 	selType = selStream;
+	multiLineCaret = 0 ;
 	moveExtendsSelection = false;
 	xStartSelect = 0;
 	xEndSelect = 0;
@@ -982,7 +983,7 @@ This way, we favour the displaying of useful information: the begining of lines,
 where most code reside, and the lines after the caret, eg. the body of a function.
 
      |        |       |      |                                            |
-slop | strict | jumps | even | Caret can go to the margin                 | When reaching limitÝ(caret going out of
+slop | strict | jumps | even | Caret can go to the margin                 | When reaching limit?caret going out of
      |        |       |      |                                            | visibility or going into the UZ) display is...
 -----+--------+-------+------+--------------------------------------------+--------------------------------------------------------------
   0  |   0    |   0   |   0  | Yes                                        | moved to put caret on top/on right
@@ -3069,8 +3070,21 @@ void Editor::Paint(Surface *surfaceWindow, PRectangle rcArea) {
 				}
 
 				// Draw the Caret
-				if (lineDoc == lineCaret) {
+				if (!multiLineCaret && (selType == selRectangle)  && (ll->selStart  >0 )) {
+					int edgeX = pdoc->GetColumn(currentPos) * vs.spaceWidth;
+					rcLine.left = edgeX + xStart;
+					rcLine.right = rcLine.left + 1;
+					surface->FillRectangle(rcLine, vs.caretcolour.allocated);
+				} 
+				
+				if (lineDoc == lineCaret || (multiLineCaret && selType == selRectangle)) {
 					int offset = Platform::Minimum(posCaret - rangeLine.start, ll->maxLineLength);
+					if (multiLineCaret && (selType == selRectangle) && (posDrag < 0)) {
+						offset = Platform::Minimum(
+							((xStartSelect < xEndSelect) ? lineIterator.endPos :
+							lineIterator.startPos) - rangeLine.start,
+							ll->maxLineLength);
+					}
 					if (ll->InLine(offset, subLine)) {
 						int xposCaret = ll->positions[offset] - ll->positions[ll->LineStart(subLine)] + xStart;
 
@@ -3446,6 +3460,45 @@ void Editor::AddChar(char ch) {
 // AddCharUTF inserts an array of bytes which may or may not be in UTF-8.
 void Editor::AddCharUTF(char *s, unsigned int len, bool treatAsDBCS) {
 	bool wasSelection = currentPos != anchor;
+	if(wasSelection && selType == selRectangle ) {
+	int startPos;
+	int endPos;
+
+	int c1 = pdoc->GetColumn(currentPos);
+	int c2 = pdoc->GetColumn(anchor);
+	int offset = c1 < c2 ? c1 : c2;
+
+	pdoc->BeginUndoAction();
+	SelectionLineIterator lineIterator(this, false);
+	while (lineIterator.Iterate()) {
+		startPos = lineIterator.startPos;
+		endPos   = lineIterator.endPos;
+		
+		// add space
+		int numAppendSpaces  = offset - pdoc->GetColumn(endPos)  ;
+		if( numAppendSpaces  > 0 ){
+			char *appendSapce =  new char[numAppendSpaces ] ;
+			memset(appendSapce, ' ', numAppendSpaces );
+			pdoc->InsertString(startPos, appendSapce, numAppendSpaces );  
+		}
+		else 
+			numAppendSpaces = 0;
+		
+		unsigned int chars = endPos - startPos;
+		if (0 != chars) {
+			pdoc->DeleteChars(startPos, chars);
+		}
+		if(inOverstrike  &&  (endPos <  pdoc->LineEndPosition(endPos)) && (numAppendSpaces == 0)) {
+			pdoc->DelChar(startPos);
+		} 
+		pdoc->InsertString(startPos+numAppendSpaces, s, len);
+	}
+	anchor += len;
+	currentPos += len;
+	SetRectangularRange();
+	pdoc->EndUndoAction();
+
+	} else {
 	ClearSelection();
 	bool charReplaceAction = false;
 	if (inOverstrike && !wasSelection && !RangeContainsProtected(currentPos, currentPos + 1)) {
@@ -3462,6 +3515,7 @@ void Editor::AddCharUTF(char *s, unsigned int len, bool treatAsDBCS) {
 	}
 	if (charReplaceAction) {
 		pdoc->EndUndoAction();
+		}
 	}
 	// If in wrap mode rewrap current line so EnsureCaretVisible has accurate information
 	if (wrapState != eWrapNone) {
@@ -3633,13 +3687,40 @@ bool Editor::CanPaste() {
 }
 
 void Editor::Clear() {
-	if (currentPos == anchor) {
+	bool wasSelection = currentPos != anchor;
+	if(wasSelection && selType == selRectangle ) {
+		int startPos;
+		int endPos;
+
+		int c1 = pdoc->GetColumn(currentPos);
+		int c2 = pdoc->GetColumn(anchor);
+		int offset = c1 < c2 ? c1 : c2;
+
+		pdoc->BeginUndoAction();
+		SelectionLineIterator lineIterator(this, false);
+		while (lineIterator.Iterate()) {
+			startPos = lineIterator.startPos;
+			endPos   = lineIterator.endPos;
+			
+			if(pdoc->GetColumn(endPos) >= offset){
+				unsigned int chars = endPos - startPos;
+				if (0 != chars) {
+					pdoc->DeleteChars(startPos, chars);
+				} else  if( endPos <  pdoc->LineEndPosition(endPos)  )
+					pdoc->DelChar(startPos);
+			}
+		}
+		SetRectangularRange();
+		pdoc->EndUndoAction();
+
+	} else if (currentPos == anchor) {
 		if (!RangeContainsProtected(currentPos, currentPos + 1)) {
 			DelChar();
 		}
 	} else {
 		ClearSelection();
 	}
+	if( !wasSelection )
 	SetEmptySelection(currentPos);
 }
 
@@ -3676,7 +3757,33 @@ void Editor::DelChar() {
 }
 
 void Editor::DelCharBack(bool allowLineStartDeletion) {
-	if (currentPos == anchor) {
+	bool wasSelection = currentPos != anchor;
+	if(wasSelection && selType == selRectangle ) {
+		int startPos;
+		int endPos;
+
+		int c1 = pdoc->GetColumn(currentPos);
+		int c2 = pdoc->GetColumn(anchor);
+		int offset = c1 < c2 ? c1 : c2;
+
+		pdoc->BeginUndoAction();
+		SelectionLineIterator lineIterator(this, false);
+		while (lineIterator.Iterate()) {
+			startPos = lineIterator.startPos;
+			endPos   = lineIterator.endPos;
+
+			if(pdoc->GetColumn(endPos) >= offset){
+				unsigned int chars = endPos - startPos;
+				if (0 != chars) {
+					pdoc->DeleteChars(startPos, chars);
+				} else
+					pdoc->DelCharBack(startPos);
+			}
+		}
+		SetRectangularRange();
+		pdoc->EndUndoAction();
+
+	} else if (currentPos == anchor) {
 		if (!RangeContainsProtected(currentPos - 1, currentPos)) {
 			int lineCurrentPos = pdoc->LineFromPosition(currentPos);
 			if (allowLineStartDeletion || (pdoc->LineStart(lineCurrentPos) != currentPos)) {

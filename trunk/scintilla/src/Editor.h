@@ -203,6 +203,7 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 	SelectionText drag;
 	enum selTypes { noSel, selStream, selRectangle, selLines };
 	selTypes selType;
+	bool multiLineCaret ; 
 	bool moveExtendsSelection;
 	int xStartSelect;	///< x position of start of rectangular selection
 	int xEndSelect;		///< x position of end of rectangular selection
