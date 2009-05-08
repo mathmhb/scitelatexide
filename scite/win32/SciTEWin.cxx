@@ -23,11 +23,7 @@
 
 #endif
 
-#ifdef STATIC_BUILD
 const char appName[] = "SciTE LaTeX IDE";
-#else
-const char appName[] = "SciTE LaTeX IDE";
-#endif
 
 //!-start-[GetApplicationProps]
 SciTEBase *SciTEBase::GetApplicationInstance() {
