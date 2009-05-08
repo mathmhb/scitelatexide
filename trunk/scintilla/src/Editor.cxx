@@ -3666,7 +3666,7 @@ void Editor::PasteRectangular(int pos, const char *ptr, int len) {
 			// Pad the end of lines with spaces if required
 			currentPos = PositionFromLineX(line, xInsert);
 			if ((XFromPosition(currentPos) < xInsert) && (i + 1 < len)) {
-				for (int i = 0; i < xInsert - XFromPosition(currentPos); i++) {
+				while ( 0 < xInsert - XFromPosition(currentPos) ) { // fixed
 					pdoc->InsertChar(currentPos, ' ');
 					currentPos++;
 				}
