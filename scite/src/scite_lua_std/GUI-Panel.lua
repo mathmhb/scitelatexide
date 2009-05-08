@@ -151,7 +151,7 @@ ListPanel:client(subfile)
 local panel = gui.panel(width)
 local tabs = gui.tabbar(panel)
 
-local FilesPanelName="File"
+local FilesPanelName="Folder"
 FilesPanelName=scite.GetTranslation(FilesPanelName)
 local PalettesPanelName="Palette"
 PalettesPanelName=scite.GetTranslation(PalettesPanelName)
