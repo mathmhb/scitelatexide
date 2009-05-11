@@ -4,7 +4,7 @@ use File::Basename;
 #use File::Copy; 
  
 $progname = "$0"; 
-$version = "V3.6"; 
+$version = "V3.7"; 
 $copyright = "Copyright (C) 2008-2009 Instanton"; 
 
 # On unix systems or the like, change $platform to "other";
@@ -348,52 +348,47 @@ if($jump>$jumpstep)
 {
 	if($platform eq "win")
 	{
-		$mv_cmd="move /y";
+		$mv_cmd="move";
+		$mv_opt="/y";
 	}
 	else
 	{
-		$mv_cmd="mv -f";
+		$mv_cmd="mv";
+		$mv_opt="-f";
 	}
 	@command=("$texbin@cmds[$pointer]", "$filebase"); 
 	if($verbose) {system(@command)} else {$exec=`@command`}; 
 	 
 	mkdir("$file-htmlpage"); 
-	$clean="tidy.bat"; 
-	open(CLEAN,">$clean"); 
-	print CLEAN "$mv_cmd $filebase.html $file-htmlpage\n"; 
-	print CLEAN "$mv_cmd $filebase.css $file-htmlpage\n"; 
-	print CLEAN "$mv_cmd *.png $file-htmlpage\n";  
-	close(CLEAN); 
-	chmod 0755, $clean; 
-	$exec=`$clean`; 
-	unlink $clean; 
-	 
+
+	system("$mv_cmd", "$mv_opt", "$filebase.html", "$file-htmlpage");
+	system("$mv_cmd", "$mv_opt", "$filebase.css", "$file-htmlpage");
+	
+	opendir D, "." or die;
+	while (defined ($pic_file = readdir D)) 
+	{
+		($bn, $sf) = split /\./,$pic_file;
+		if($sf eq "png")
+		{
+			system("$mv_cmd", "$mv_opt", "$pic_file", "$file-htmlpage/");
+		}
+	}
 	@cmdsummary=("$texbin@cmds[$pointer] $file"); 
 } 
 else 
 { 
-	@command=("$texbin$compilecmd");
-	if(!(@modifier[$pointer] eq "")) 
-	{ 
-		@command = (@command, "@modifier[$pointer]");
-	}
-	if(!($modifier2 eq ""))
-	{
-		@command = (@command, $modifier2);
-	}
-	if(!($syncmodifier eq ""))
-	{
-		@command = (@command, $syncmodifier);
-	}
-	@command = (@command, "$file");
+	@command =();
+	@cmd_opt_list=("$texbin$compilecmd", "@modifier[$pointer]", $modifier2, $syncmodifier, "$file");
 
-	
-	$modifier_str=" @modifier[$pointer] $modifier2 $syncmodifier "; 
-	$modifier_str=~ s/\s+/" "/; 
-	$modifier_str=~ s/(")(.*)(")/$2/; 
-	@cmdsummary=("$texbin$compilecmd$modifier_str$file"); 
-	
-	
+	foreach $cmd_part(@cmd_opt_list)
+	{
+		if(!($cmd_part eq ""))
+		{
+			@command = (@command, $cmd_part);
+		}
+	}
+	@cmdsummary=join(" ", @command);
+
 	if($verbose) {system(@command)} else {$exec=`@command`}; 
 
 	if(! $texrunonce) 
@@ -546,11 +541,11 @@ if($preview)
 	} 
 	elsif($jump eq 2*$jumpstep) 
 	{ 
-		if(-e "$file-htmlpage\\$filebase.html") 
+		if(-e "$file-htmlpage/$filebase.html") 
 		{ 
-			@command=($previewcmd,"$file-htmlpage\\$filebase.html"); 
+			@command=($previewcmd,"$file-htmlpage/$filebase.html"); 
 			system(@command); 
-			@cmdsummary=(@cmdsummary,"$previewcmd $file-htmlpage\\$filebase.html"); 
+			@cmdsummary=(@cmdsummary,"$previewcmd $file-htmlpage/$filebase.html"); 
 		} 
 		else 
 		{ 
