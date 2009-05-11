@@ -4,16 +4,20 @@ use File::Basename;
 #use File::Copy; 
  
 $progname = "$0"; 
-$version = "V3.5"; 
+$version = "V3.6"; 
 $copyright = "Copyright (C) 2008-2009 Instanton"; 
- 
+
+# On unix systems or the like, change $platform to "other";
+
+$platform = "win";
+
+
 $istexfile = 0; 
 $need_help=0; 
  
-# these lines are added in version 3.4 
-$plat_win = 1; 
+$syncpdf = 0;
 $is_engine_given=0; 
-$is_previewer_given=0; 
+$is_previewer_given=0;
 # ----------------------------------------- 
  
 @cmd2dvi=("tex","latex","xetex","xelatex","texexec"); 
@@ -52,8 +56,6 @@ Available options:
   [-quiet]		Turn off compiling messages; 
   [--preview|-view]	Preview the output (no effect for xdv format);
   [-synctex]		Enable synctex (works only if -pdf is present);
-  [-platform=...]	Specify running platform. Defaults to "win". Other
-  			values may be given, which are all equivalent to "unix".
   [-engine=...]		Specify compiling engine. Not an necessary option;
   [-previewer=...]	Choose the previewer. Use system default if omitted;
   [-dvi]		Output dvi file. This option is default; 
@@ -84,7 +86,6 @@ EOF
  
 foreach $arg (@ARGV) 
 { 
-#	$arg=~ tr/[A-Z]/[a-z]/; 
 	if(($arg eq "-h") || ($arg eq "--help"))  
 	{ 
 		$need_help=1; 
@@ -153,11 +154,6 @@ foreach $arg (@ARGV)
 	{ 
 		$jump=2*$jumpstep; 
 	}
-	elsif($arg =~/-platform=/)
-	{
-		$platform=~ s/(-platform=)(.+)/$2/;
-		$plat_given = 1;
-	} 
 	elsif($arg =~ /-source=/) 
 	{ 
 		$file="$arg"; 
@@ -169,13 +165,13 @@ foreach $arg (@ARGV)
 	elsif($arg =~ /-engine=/) 
 	{ 
 		$compiler="$arg"; 
-		$compiler =~ s/(-engine=)(.+)/$2/; 
+		$compiler=~ s/(-engine=)(.+)/$2/; 
 		$is_engine_given=1; 
 	} 
 	elsif($arg =~ /-previewer=/) 
 	{ 
 		$previewer="$arg"; 
-		$previewer =~ s/(-previewer=)(.+)/$2/; 
+		$previewer=~ s/(-previewer=)(.+)/$2/; 
 		$is_previewer_given=1; 
 	} 
 	elsif($arg =~ m/\.tex/) 
@@ -192,15 +188,6 @@ foreach $arg (@ARGV)
 	} 
 }
 
-if($plat_win eq 1)
-{
-	$platform ="win";
-}
-else
-{
-# Linux and Mac both uses opening command "open" in contrast to the windows "start".	
-	$platform ="mac";
-}
  
 if((! $istexfile) || $need_help) 
 {  
@@ -385,14 +372,30 @@ if($jump>$jumpstep)
 } 
 else 
 { 
-	@command=("$texbin$compilecmd", "@modifier[$pointer]", $modifier2, $syncmodifier, "$file"); 
-	if($verbose) {system(@command)} else {$exec=`@command`}; 
- 
-	$modifier_str=" @modifier[$pointer] $modifier2 "; 
+	@command=("$texbin$compilecmd");
+	if(!(@modifier[$pointer] eq "")) 
+	{ 
+		@command = (@command, "@modifier[$pointer]");
+	}
+	if(!($modifier2 eq ""))
+	{
+		@command = (@command, $modifier2);
+	}
+	if(!($syncmodifier eq ""))
+	{
+		@command = (@command, $syncmodifier);
+	}
+	@command = (@command, "$file");
+
+	
+	$modifier_str=" @modifier[$pointer] $modifier2 $syncmodifier "; 
 	$modifier_str=~ s/\s+/" "/; 
 	$modifier_str=~ s/(")(.*)(")/$2/; 
 	@cmdsummary=("$texbin$compilecmd$modifier_str$file"); 
- 
+	
+	
+	if($verbose) {system(@command)} else {$exec=`@command`}; 
+
 	if(! $texrunonce) 
 	{ 
 		open(F, "<$filebase.idx"); 
