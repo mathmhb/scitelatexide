@@ -1,4 +1,4 @@
-SmartTeXer: perl script for automatic typesetting
+#summary SmartTeXer: perl script for automatic typesetting
 
 = Introduction =
 
