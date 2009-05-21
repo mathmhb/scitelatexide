@@ -379,6 +379,10 @@ SOURCE=..\..\scintilla\src\LexMySQL.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\scintilla\src\LexNimrod.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\scintilla\src\LexNsis.cxx
 # End Source File
 # Begin Source File
@@ -451,6 +455,10 @@ SOURCE=..\..\scintilla\src\LexSmalltalk.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\scintilla\src\LexSML.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\scintilla\src\LexSorcus.cxx
 # End Source File
 # Begin Source File
@@ -483,7 +491,11 @@ SOURCE=..\..\scintilla\src\LexTCL.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\scintilla\src\LexTeX.cxx
+SOURCE=..\..\scintilla\src\LexLatex.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\scintilla\src\LexBiB.cxx
 # End Source File
 # Begin Source File
 
@@ -596,6 +608,10 @@ SOURCE=..\lua\src\lzio.c
 # Begin Source File
 
 SOURCE=..\src\MultiplexExtension.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\scintilla\src\PerLine.cxx
 # End Source File
 # Begin Source File
 

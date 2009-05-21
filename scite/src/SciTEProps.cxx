@@ -532,8 +532,8 @@ void SciTEBase::ReadAPI(const SString &fileNameForExtension) {
 						fseek(fp, 0, SEEK_END);
 						int len = ftell(fp);
 						fseek(fp, 0, SEEK_SET);
-						fread(buffer + tlen, 1, len, fp);
-						tlen += len;
+						size_t readBytes = fread(buffer + tlen, 1, len, fp);
+						tlen += readBytes;
 						fclose(fp);
 					}
 					apiFileName += strlen(apiFileName) + 1;
@@ -580,6 +580,7 @@ static const char *propertiesToForward[] = {
 	"fold",
 	"fold.at.else",
 	"fold.comment",
+	"fold.comment.nimrod",
 	"fold.comment.yaml",
 	"fold.compact",
 	"fold.directive",
@@ -590,23 +591,27 @@ static const char *propertiesToForward[] = {
 	"fold.perl.package",
 	"fold.perl.pod",
 	"fold.preprocessor",
+	"fold.quotes.nimrod",
 	"fold.quotes.python",
 	"fold.sql.only.begin",
-	"fold.symbols",
 	"fold.verilog.flags",
 	"html.tags.case.sensitive",
-	"lexer.batch.enabledelayedexpansion",
 	"lexer.caml.magic",
 	"lexer.cpp.allow.dollars",
 	"lexer.d.fold.at.else",
-	"lexer.errorlist.findtitle.begin",
-	"lexer.errorlist.findtitle.end",
 	"lexer.errorlist.value.separate",
-	"lexer.forth.no.interpretation",
 	"lexer.metapost.comment.process",
 	"lexer.metapost.interface.default",
 	"lexer.pascal.smart.highlighting",
+	"lexer.props.allow.initial.spaces",
+	"lexer.python.literals.binary",
+	"lexer.python.strings.b",
+	"lexer.python.strings.u",
 	"lexer.sql.backticks.identifier",
+	"lexer.tex.auto.if",
+	"lexer.tex.comment.process",
+	"lexer.tex.interface.default",
+	"lexer.tex.use.keywords",
 	"lexer.xml.allow.scripts",
 	"nsis.ignorecase",
 	"nsis.uservars",
@@ -715,10 +720,9 @@ SString SciTEBase::GetFileNameProperty(const char *name) {
 	        ExtensionFileName().c_str());
 	if (valueForFileName.length() != 0) {
 		return valueForFileName;
-	} /*!else {
+	} else {
 		return props.Get(name);
-	}*/
-	return props.Get(name); //-add-[no_unreachable_code_worning]
+	}
 }
 
 void SciTEBase::ReadProperties() {
@@ -768,37 +772,21 @@ void SciTEBase::ReadProperties() {
 		ReadAPI(fileNameForExtension);
 		apisFileNames = props.GetNewExpand("api.", fileNameForExtension.c_str());
 	}
-
-//!-start-[GetAPIPath]
-	props.Set("APIPath", apisFileNames.c_str());
-//!-end-[GetAPIPath]
-
 	FilePath fileAbbrev = props.GetNewExpand("abbreviations.", fileNameForExtension.c_str()).c_str();
 	if (!fileAbbrev.IsSet())
 		fileAbbrev = GetAbbrevPropertiesFileName();
-//!	if (!pathAbbreviations.SameNameAs(fileAbbrev)) {
-	if (!pathAbbreviations.SameNameAs(fileAbbrev)||(props.GetInt("abbrev.always.update"))) { //!-add-[abbrev.always.update]
+	if (!pathAbbreviations.SameNameAs(fileAbbrev)) {
 		pathAbbreviations = fileAbbrev;
 		ReadAbbrevPropFile();
 	}
 
 	DiscoverEOLSetting();
-//!-start-[GetAbbrevPath]
-	props.Set("AbbrevPath", pathAbbreviations.AsFileSystem());
-//!-end-[GetAbbrevPath]
-
-	if (!props.GetInt("eol.auto")) {
-		SetEol();
-	}
-
-	SendEditor(SCI_SETOVERTYPE, props.GetInt("change.overwrite.enable", 1) + 2); //-add-[ignore_overstrike_change]
 
 	codePage = props.GetInt("code.page");
 	if (CurrentBuffer()->unicodeMode != uni8Bit) {
 		// Override properties file to ensure Unicode displayed.
 		codePage = SC_CP_UTF8;
 	}
-	props.SetInteger("editor.unicode.mode", CurrentBuffer()->unicodeMode + IDM_ENCODING_DEFAULT); //!-add-[EditorUnicodeMode]
 	SendEditor(SCI_SETCODEPAGE, codePage);
 	int outputCodePage = props.GetInt("output.code.page", codePage);
 	SendOutput(SCI_SETCODEPAGE, outputCodePage);
@@ -818,14 +806,17 @@ void SciTEBase::ReadProperties() {
 //!-start-[caret]
 	SString tmp_str;
 	tmp_str=props.GetNewExpand("caret.fore.", fileNameForExtension.c_str());
-	//Записываем в tmp_str параметр caret.fore.$(FilePattern)
-	//Проверяем установлен или нет
+	//Writing caret.fore.$(FilePattern) into tmp_str
+	//And test for existing
 	if(tmp_str.length())
 		SendEditor(SCI_SETCARETFORE,ColourFromString(tmp_str));
 	else
 //!-end-[caret]
 	SendChildren(SCI_SETCARETFORE,
 	           ColourOfProperty(props, "caret.fore", ColourDesired(0, 0, 0)));
+
+	SendChildren(SCI_SETMULTILINECARET, props.GetInt("caret.multi.line"));
+	SendChildren(SCI_SETMULTILINECARETBLINKS, props.GetInt("caret.multi.line.blinks", 1));
 
 	SendEditor(SCI_SETMOUSEDWELLTIME,
 	           props.GetInt("dwell.period", SC_TIME_FOREVER), 0);

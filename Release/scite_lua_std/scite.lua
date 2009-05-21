@@ -32,7 +32,6 @@ require 'scite_lua_std/compile_block'
 
 
 require 'gui'
---require 'scite_lua_std/SideBar'
 require 'scite_lua_std/GUI-Panel'
 require 'scite_lua_std/edit_colour'
 

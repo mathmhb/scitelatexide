@@ -145,6 +145,8 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 	bool verticalScrollBarVisible;
 	bool endAtLastLine;
 	bool caretSticky;
+	bool multiLineCaret;
+	bool multiLineCaretBlinks;
 
 	Surface *pixmapLine;
 	Surface *pixmapSelMargin;
@@ -203,7 +205,6 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 	SelectionText drag;
 	enum selTypes { noSel, selStream, selRectangle, selLines };
 	selTypes selType;
-	bool multiLineCaret ; 
 	bool moveExtendsSelection;
 	int xStartSelect;	///< x position of start of rectangular selection
 	int xEndSelect;		///< x position of end of rectangular selection
@@ -324,6 +325,8 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 		bool drawWrapMark, ColourAllocated wrapColour);
 	void DrawIndicators(Surface *surface, ViewStyle &vsDraw, int line, int xStart,
 		PRectangle rcLine, LineLayout *ll, int subLine, int lineEnd, bool under);
+	void DrawAnnotation(Surface *surface, ViewStyle &vsDraw, int line, int xStart,
+        PRectangle rcLine, LineLayout *ll, int subLine);
 	void DrawLine(Surface *surface, ViewStyle &vsDraw, int line, int lineVisible, int xStart,
 		PRectangle rcLine, LineLayout *ll, int subLine=0);
 	void DrawBlockCaret(Surface *surface, ViewStyle &vsDraw, LineLayout *ll, int subLine, int xStart, int offset, int posCaret, PRectangle rcCaret);
@@ -448,7 +451,10 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 	void CheckForChangeOutsidePaint(Range r);
 	void SetBraceHighlight(Position pos0, Position pos1, int matchStyle);
 
+	void SetAnnotationHeights(int start, int end);
 	void SetDocPointer(Document *document);
+	
+	void SetAnnotationVisible(int visible);
 
 	void Expand(int &line, bool doExpand);
 	void ToggleContraction(int line);

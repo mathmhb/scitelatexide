@@ -353,3 +353,4 @@ void LineMarker::Draw(Surface *surface, PRectangle &rcWhole, Font &fontForCharac
 		surface->FillRectangle(rcWhole, backCA); //!-change-[HighlightCurrFolder]
 	}
 }
+

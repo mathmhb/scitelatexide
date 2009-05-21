@@ -10,8 +10,6 @@
 #include "PlatformRes.h"
 
 SciTE ICON SciBall.ico
-SciTEfile ICON "SciTE-file.ico" //!-add-[NewIcons]
-SciTEses ICON "SciTE-ses.ico" //!-add-[NewIcons]
 
 1 RT_MANIFEST SciTE.exe.manifest
 
@@ -589,8 +587,8 @@ IDC_MARGIN         CURSOR  DISCARDABLE     "Margin.cur"
 IDC_DRAGDROP       CURSOR  DISCARDABLE     "DragDrop.cur" //!-add-[TabsMoving]
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION	1, 7, 8, 63
-PRODUCTVERSION	1, 7, 8, 63
+FILEVERSION	1, 7, 8, 64
+PRODUCTVERSION	1, 7, 8, 64
 FILEFLAGSMASK	0x3fL
 FILEFLAGS 0
 FILEOS VOS_NT_WINDOWS32
@@ -607,12 +605,12 @@ BEGIN
 		BEGIN
 			VALUE	"CompanyName",	"Instanton (soft_share@126.com)\0"
 			VALUE	"FileDescription",	"LaTeX IDE: an SciTE variant\0"
-			VALUE	"FileVersion",	"1.78 .63\0"
+			VALUE	"FileVersion",	"1.78 .64\0"
 			VALUE	"InternalName",	"SciTE\0"
 			VALUE	"LegalCopyright",	"Copyright 1998-2009 by Neil Hodgson\0"
 			VALUE	"OriginalFilename",	"SciTE.EXE\0"
 			VALUE	"ProductName",	"SciTE\0"
-			VALUE	"ProductVersion",	"1.78 .63\0"
+			VALUE	"ProductVersion",	"1.78 .64\0"
 		END
 	END
 END

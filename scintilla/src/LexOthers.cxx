@@ -931,6 +931,13 @@ static void ColourisePropsDoc(unsigned int startPos, int length, int, WordList *
 	styler.StartSegment(startPos);
 	unsigned int linePos = 0;
 	unsigned int startLine = startPos;
+
+	// property lexer.props.allow.initial.spaces 
+	//	For properties files, set to 0 to style all lines that start with whitespace in the default style. 
+	//	This is not suitable for SciTE .properties files which use indentation for flow control but 
+	//	can be used for RFC2822 text where indentation is used for continuation lines. 
+	bool allowInitialSpaces = styler.GetPropertyInt("lexer.props.allow.initial.spaces", 1) != 0;
+
 //!-start-[PropsColouriseFix]
 	char style = 0;
 	bool continuation = false;

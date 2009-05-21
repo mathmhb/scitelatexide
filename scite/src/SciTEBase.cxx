@@ -309,6 +309,9 @@ const char *contributors[] = {
             "Christopher Bean",
             "Sergey Kishchenko",
             "Kai Liu",
+            "Andreas Rumpf",
+            "James Moffatt",
+            "Yuzhou Xin",
 //!-start-[SciTE-Ru]
             "HSolo",
             "Midas",
@@ -790,7 +793,7 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		}
 #endif
 		AddStyledText(wsci, GetTranslationToAbout("Version").c_str(), trsSty);
-		AddStyledText(wsci, " 1.78 .63\n", 1);
+		AddStyledText(wsci, " 1.78 .64\n", 1);
 		AddStyledText(wsci, "    " __DATE__ " " __TIME__ "\n", 1);
 //		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f)); 
 		SetAboutStyle(wsci, 2, ColourDesired(0, 0, 0));
@@ -801,7 +804,7 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		AddStyledText(wsci, GetTranslationToAbout("by").c_str(), trsSty);
 		AddStyledText(wsci, " Neil Hodgson.\n", 2);
 		AddStyledText(wsci, GetTranslationToAbout("and").c_str(), trsSty);
-		AddStyledText(wsci, " SciTE-Ru 1.78.63Ru\n",1); 
+		AddStyledText(wsci, " SciTE-Ru 1.78.64Ru\n",1); 
 		SetAboutStyle(wsci, 3, ColourDesired(0, 0, 0));
 		AddStyledText(wsci, "December 1998-April 2009.\n", 3);
 		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f));
@@ -1433,8 +1436,24 @@ void SciTEBase::SelectionIntoProperties() {
 
 //! void SciTEBase::SelectionIntoFind(bool stripEol /*=true*/) {
 void SciTEBase::SelectionIntoFind(bool stripEol /*=true*/, bool inFiles /*=false*/) { //!-add-[FindInFiles]
-	SString sel = SelectionWord(stripEol);
-	if (sel.length() && !sel.contains('\r') && !sel.contains('\n')) {
+//!	SString sel = SelectionWord(stripEol);
+//!	if (sel.length() && !sel.contains('\r') && !sel.contains('\n')) {
+//!-start-[find.fillout]
+	int findFillout = props.GetInt("find.fillout", 0);
+	SString sel;
+	switch (findFillout) { 
+		case 2:
+			; //never fill search field
+			break; 
+		case 1:	
+			sel = SelectionExtend(0, stripEol); //fill with selection, if none leave blank
+			break;
+		default: 
+			sel = SelectionWord(stripEol); //fill with word if no selection is present
+			break;
+	}
+	if ((sel.length() || findFillout) && !sel.contains('\r') && !sel.contains('\n')) {
+//!-end-[find.fillout]
 		// The selection does not include a new line, so is likely to be
 		// the expression to search...
 //!-start-[FindInFiles]
@@ -2382,7 +2401,7 @@ bool SciTEBase::StartAutoComplete() {
 bool SciTEBase::StartAutoComplete() {
 
 	SString line = GetLine();
-	int current = GetCaretInLine();
+	int current = GetCaretInLine();//义牦�… 觐腩黻�
 //	if (current >= line.size())
 //		return false;
 
@@ -2433,7 +2452,7 @@ bool SciTEBase::StartAutoComplete() {
 		wordstart[0] = ' ';
 		GetRange(wEditor, posFind, Platform::Minimum(posFind + wordMaxSize - 3, doclen), wordstart + 1);
 		char *wordend = wordstart + 1 + root.length();
-		while (iswordcharforsel(*wordend)) { 
+		while (iswordcharforsel(*wordend)) { //橡钼屦赅 磬 疣玟咫栩咫�
 			wordend++;
 		}
 		*wordend++ = ' ';
@@ -5898,3 +5917,4 @@ char *SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
 	return localiser.Text(s, retainIfNotFound).detach();
 }
 //!-end-[LocalizationFromLua]
+
