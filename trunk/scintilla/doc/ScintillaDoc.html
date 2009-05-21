@@ -2249,6 +2249,10 @@ struct TextToFind {
      <a class="message" href="#SCI_SETCARETSTICKY">SCI_SETCARETSTICKY(bool useCaretStickyBehaviour)</a><br />
      <a class="message" href="#SCI_GETCARETSTICKY">SCI_GETCARETSTICKY</a><br />
      <a class="message" href="#SCI_TOGGLECARETSTICKY">SCI_TOGGLECARETSTICKY</a><br />
+     <a class="message" href="#SCI_SETMULTILINECARET">SCI_SETMULTILINECARET(bool multiLine)</a><br />
+     <a class="message" href="#SCI_GETMULTILINECARET">SCI_GETMULTILINECARET</a><br />
+     <a class="message" href="#SCI_SETMULTILINECARETBLINKS">SCI_SETMULTILINECARETBLINKS(bool multiLineBlinks)</a><br />
+     <a class="message" href="#SCI_GETMULTILINECARETBLINKS">SCI_GETMULTILINECARETBLINKS</a><br />
     </code>
 
     <p><b id="SCI_SETSELFORE">SCI_SETSELFORE(bool useSelectionForeColour, int <a class="jump"
@@ -2357,6 +2361,19 @@ struct TextToFind {
     These messages set, get or toggle the caretSticky flag which controls when the last position
      of the caret on the line is saved. When set to true, the position is not saved when you type
      a character, a tab, paste the clipboard content or press backspace.</p>
+
+    <p>
+    <b id="SCI_SETMULTILINECARET">SCI_SETMULTILINECARET(bool multiLine)</b><br />
+    <b id="SCI_GETMULTILINECARET">SCI_GETMULTILINECARET</b><br />
+    <b id="SCI_SETMULTILINECARETBLINKS">SCI_SETMULTILINECARETBLINKS(bool multiLineBlinks)</b><br />
+    <b id="SCI_GETMULTILINECARETBLINKS">SCI_GETMULTILINECARETBLINKS</b><br />
+    When a rectangular selection is made, typing and character deletion may either affect all selected lines 
+    (multi-line caret mode) or only one line. This is set with <code>SCI_SETMULTILINECARET</code> with 
+    the default being off.</p>
+    <p>Each line in the rectangular selection may have a blinking caret with 
+    <code>SCI_SETMULTILINECARETBLINKS(true)</code> or a single vertical line
+    may indicate where the characters will appear. The default is blinking.
+     </p>
 
     <h2 id="Margins">Margins</h2>
 
