@@ -2,6 +2,9 @@
 // Copyright 1998-2007 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
+//[mhb] 22/05/2009: to support easy changing editor's application name 
+#include "_config.h"
+
 #ifndef __BORLANDC__
 #include <windows.h>
 #endif
@@ -181,8 +184,10 @@ POPUP "&Help"
 BEGIN
 	MENUITEM "&Help\tF1", 				IDM_HELP
 #ifdef STATIC_BUILD
-	MENUITEM "&LaTeXIDE Help",			IDM_HELP_SCITE
-	MENUITEM "&About LaTeXIDE",				IDM_ABOUT
+	//~ MENUITEM "&LaTeXIDE Help",			IDM_HELP_SCITE
+	//~ MENUITEM "&About LaTeXIDE",				IDM_ABOUT
+	MENUITEM APPNAME " He&lp",			IDM_HELP_SCITE
+	MENUITEM "&About " APPNAME,				IDM_ABOUT
 #else
 	MENUITEM "&SciTE Help",			IDM_HELP_SCITE
 	MENUITEM "&About SciTE",			IDM_ABOUT
@@ -604,7 +609,8 @@ BEGIN
 		BLOCK "040904b0"
 		BEGIN
 			VALUE	"CompanyName",	"Instanton (soft_share@126.com)\0"
-			VALUE	"FileDescription",	"LaTeX IDE: an SciTE variant\0"
+			//~ VALUE	"FileDescription",	"LaTeX IDE: an SciTE variant\0"
+			VALUE	"FileDescription",	APPNAME ": an SciTE variant\0"
 			VALUE	"FileVersion",	"1.78 .64\0"
 			VALUE	"InternalName",	"SciTE\0"
 			VALUE	"LegalCopyright",	"Copyright 1998-2009 by Neil Hodgson\0"
