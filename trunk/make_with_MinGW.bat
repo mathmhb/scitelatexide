@@ -1,5 +1,5 @@
 @ECHO OFF
-SET PATH=C:\MinGW\bin;%PATH%;
+SET PATH=C:\MinGW\bin;D:\MinGW\bin;C:\MSys\bin;D:\MSys\bin;%~dp0;%PATH%;
 
 CD scintilla\win32
 make

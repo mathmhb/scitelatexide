@@ -23,7 +23,7 @@
 
 #endif
 
-const char appName[] = "SciTE LaTeX IDE";
+const char appName[] = APPNAME;
 
 //!-start-[GetApplicationProps]
 SciTEBase *SciTEBase::GetApplicationInstance() {

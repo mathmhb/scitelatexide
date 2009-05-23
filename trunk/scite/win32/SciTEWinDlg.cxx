@@ -1773,7 +1773,7 @@ BOOL SciTEWin::AboutMessage(HWND hDlg, UINT message, WPARAM wParam) {
 	case WM_INITDIALOG:
 		LocaliseDialog(hDlg);
 		SetAboutMessage(::GetDlgItem(hDlg, IDABOUTSCINTILLA),
-		                staticBuild ? "SciTE LaTeX IDE" : "SciTE");
+		                staticBuild ? APPNAME : "SciTE");
 		return TRUE;
 
 	case WM_CLOSE:
