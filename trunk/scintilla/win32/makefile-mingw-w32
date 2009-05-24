@@ -10,6 +10,8 @@
 CC = g++
 DLLWRAP = dllwrap
 DEL = del /q
+WINDRES = windres
+RANLIB = ranlib
 
 COMPONENT = ../bin/Scintilla.dll
 LEXCOMPONENT = ../bin/SciLexer.dll
@@ -27,9 +29,9 @@ vpath %.cxx ../src
 
 LDFLAGS=-mwindows -lstdc++ -limm32 -lole32 -luuid -mno-cygwin
 # Add -MMD to get dependencies
-#CXXFLAGS = -g -pg -pedantic -Os -fno-exceptions -fvtable-thunks -fno-rtti
+#CXXFLAGS = -g -pg -pedantic -Os -fexceptions -fvtable-thunks -fno-rtti
 INCLUDEDIRS=-I ../include -I ../src
-CXXBASEFLAGS=-Wall -Wno-missing-braces -Wno-char-subscripts -pedantic $(INCLUDEDIRS) -Os -fno-exceptions $(THUNKFLAGS) -fno-rtti -mno-cygwin
+CXXBASEFLAGS=-Wall -Wno-missing-braces -Wno-char-subscripts -pedantic $(INCLUDEDIRS) -Os -fexceptions $(THUNKFLAGS) -fno-rtti -mno-cygwin
 
 ifdef DEBUG
 CXXFLAGS=-DDEBUG $(CXXBASEFLAGS)
@@ -82,7 +84,7 @@ $(LEXCOMPONENT): $(LOBJS) Scintilla.def
 
 $(LEXLIB): $(LEXOBJS)
 	$(AR) rc $@ $^
-	ranlib $@
+	$(RANLIB) $@
 
 # Automatically generate dependencies for most files with "make deps"
 include deps.mak
@@ -113,5 +115,5 @@ ScintillaWinL.o:
 	$(CC) $(CXXFLAGS) -D SCI_LEXER -c $< -o $@
 
 ScintRes.o:	ScintRes.rc PlatformRes.h
-	windres ScintRes.rc $@
+	$(WINDRES) ScintRes.rc $@
 

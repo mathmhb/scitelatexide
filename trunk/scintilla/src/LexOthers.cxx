@@ -329,6 +329,7 @@ static void ColouriseBatchLine(
 			// No need to Reset Offset
 		// Check for Special Keyword in list, External Command / Program, or Default Text
 		} else if ((wordBuffer[0] != '%') &&
+				   (wordBuffer[0] != '!') &&
 			(!IsBOperator(wordBuffer[0])) &&
 			(!inString) && //!-add-[BatchLexerImprovement]
 			(continueProcessing)) {
@@ -535,6 +536,29 @@ static void ColouriseBatchLine(
 				// Reset Offset to re-process remainder of word
 				offset -= (wbl - 1);
 //!-end-[BatchLexerImprovement]
+			}
+		// Check for Environment Variable (!x...!)
+		} else if (wordBuffer[0] == '!') {
+			// Colorize Default Text
+			styler.ColourTo(startLine + offset - 1 - wbl, SCE_BAT_DEFAULT);
+			wbo++;
+			// Search to end of word for second ! (can be a long path)
+			while ((wbo < wbl) &&
+				(wordBuffer[wbo] != '!') &&
+				(!IsBOperator(wordBuffer[wbo])) &&
+				(!IsBSeparator(wordBuffer[wbo]))) {
+				wbo++;
+			}
+			if (wordBuffer[wbo] == '!') {
+				wbo++;
+				// Check for External Command / Program
+				if (cmdLoc == offset - wbl) {
+					cmdLoc = offset - (wbl - wbo);
+				}
+				// Colorize Environment Variable
+				styler.ColourTo(startLine + offset - 1 - (wbl - wbo), SCE_BAT_IDENTIFIER);
+				// Reset Offset to re-process remainder of word
+				offset -= (wbl - wbo);
 			}
 		// Check for Operator
 		} else if (IsBOperator(wordBuffer[0])) {
@@ -848,6 +872,9 @@ static void ColourisePoDoc(unsigned int startPos, int length, int, WordList *[],
 	}
 }
 
+static inline bool isassignchar(unsigned char ch) {
+	return (ch == '=') || (ch == ':');
+}
 
 //!static void ColourisePropsLine(
 static char ColourisePropsLine( // return last style //!-change-[PropsColouriseFix]
@@ -856,11 +883,18 @@ static char ColourisePropsLine( // return last style //!-change-[PropsColouriseF
     unsigned int startLine,
     unsigned int endPos,
     WordList *keywordlists[], //!-add-[PropsKeysSets]
-    Accessor &styler) {
+    Accessor &styler,
+    bool allowInitialSpaces) {
 
 	unsigned int i = 0;
-	while ((i < lengthLine) && isspacechar(lineBuffer[i]))	// Skip initial spaces
-		i++;
+	if (allowInitialSpaces) {
+		while ((i < lengthLine) && isspacechar(lineBuffer[i]))	// Skip initial spaces
+			i++;
+	} else {
+		if (isspacechar(lineBuffer[i])) // don't allow initial spaces
+			i = lengthLine;
+	}
+
 	if (i < lengthLine) {
 		if (lineBuffer[i] == '#' || lineBuffer[i] == '!' || lineBuffer[i] == ';') {
 			styler.ColourTo(endPos, SCE_PROPS_COMMENT);
@@ -870,7 +904,7 @@ static char ColourisePropsLine( // return last style //!-change-[PropsColouriseF
 			return SCE_PROPS_SECTION; //!-add-[PropsColouriseFix]
 		} else if (lineBuffer[i] == '@') {
 			styler.ColourTo(startLine + i, SCE_PROPS_DEFVAL);
-			if (lineBuffer[++i] == '=')
+			if (isassignchar(lineBuffer[i++]))
 				styler.ColourTo(startLine + i, SCE_PROPS_ASSIGNMENT);
 			styler.ColourTo(endPos, SCE_PROPS_DEFAULT);
 //!-start-[PropsKeywords]
@@ -883,9 +917,9 @@ static char ColourisePropsLine( // return last style //!-change-[PropsColouriseF
 //!-end-[PropsKeywords]
 		} else {
 			// Search for the '=' character
-			while ((i < lengthLine) && (lineBuffer[i] != '='))
+			while ((i < lengthLine) && !isassignchar(lineBuffer[i]))
 				i++;
-			if ((i < lengthLine) && (lineBuffer[i] == '=')) {
+			if ((i < lengthLine) && isassignchar(lineBuffer[i])) {
 //!				styler.ColourTo(startLine + i - 1, SCE_PROPS_KEY);
 //!-start-[PropsKeysSets]
 				int chAttr;
@@ -955,8 +989,8 @@ static void ColourisePropsDoc(unsigned int startPos, int length, int, WordList *
 				styler.ColourTo(i, SCE_PROPS_DEFAULT);
 			else
 //!-end-[PropsColouriseFix]
-//!			ColourisePropsLine(lineBuffer, linePos, startLine, i, styler);
-			style = ColourisePropsLine(lineBuffer, linePos, startLine, i, keywordlists, styler); //!-change-[PropsKeysSets][PropsColouriseFix]
+//!			ColourisePropsLine(lineBuffer, linePos, startLine, i, styler, allowInitialSpaces);
+			style = ColourisePropsLine(lineBuffer, linePos, startLine, i, keywordlists, styler, allowInitialSpaces); //!-change-[PropsKeysSets][PropsColouriseFix]
 //!-start-[PropsColouriseFix]
 			// test: is next a continuation of line
 			continuation = (linePos >= sizeof(lineBuffer) - 1) ||
@@ -973,8 +1007,8 @@ static void ColourisePropsDoc(unsigned int startPos, int length, int, WordList *
 			styler.ColourTo(startPos + length - 1, SCE_PROPS_DEFAULT);
 		else
 //!-end-[PropsColouriseFix]
-//!		ColourisePropsLine(lineBuffer, linePos, startLine, startPos + length - 1, styler);
-		ColourisePropsLine(lineBuffer, linePos, startLine, startPos + length - 1, keywordlists, styler); //!-change-[PropsKeysSets]
+//!		ColourisePropsLine(lineBuffer, linePos, startLine, startPos + length - 1, styler, allowInitialSpaces);
+		ColourisePropsLine(lineBuffer, linePos, startLine, startPos + length - 1, keywordlists, styler, allowInitialSpaces); //!-change-[PropsKeysSets]
 	}
 }
 

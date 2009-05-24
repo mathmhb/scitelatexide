@@ -721,9 +721,10 @@ SString SciTEBase::GetFileNameProperty(const char *name) {
 	        ExtensionFileName().c_str());
 	if (valueForFileName.length() != 0) {
 		return valueForFileName;
-	} else {
+	} /*!else {
 		return props.Get(name);
-	}
+	}*/
+	return props.Get(name); //-add-[no_unreachable_code_worning]
 }
 
 void SciTEBase::ReadProperties() {
@@ -773,21 +774,37 @@ void SciTEBase::ReadProperties() {
 		ReadAPI(fileNameForExtension);
 		apisFileNames = props.GetNewExpand("api.", fileNameForExtension.c_str());
 	}
+
+//!-start-[GetAPIPath]
+	props.Set("APIPath", apisFileNames.c_str());
+//!-end-[GetAPIPath]
+
 	FilePath fileAbbrev = props.GetNewExpand("abbreviations.", fileNameForExtension.c_str()).c_str();
 	if (!fileAbbrev.IsSet())
 		fileAbbrev = GetAbbrevPropertiesFileName();
-	if (!pathAbbreviations.SameNameAs(fileAbbrev)) {
+//!	if (!pathAbbreviations.SameNameAs(fileAbbrev)) {
+	if (!pathAbbreviations.SameNameAs(fileAbbrev)||(props.GetInt("abbrev.always.update"))) { //!-add-[abbrev.always.update]
 		pathAbbreviations = fileAbbrev;
 		ReadAbbrevPropFile();
 	}
 
 	DiscoverEOLSetting();
+//!-start-[GetAbbrevPath]
+	props.Set("AbbrevPath", pathAbbreviations.AsFileSystem());
+//!-end-[GetAbbrevPath]
+
+	if (!props.GetInt("eol.auto")) {
+		SetEol();
+	}
+
+	SendEditor(SCI_SETOVERTYPE, props.GetInt("change.overwrite.enable", 1) + 2); //-add-[ignore_overstrike_change]
 
 	codePage = props.GetInt("code.page");
 	if (CurrentBuffer()->unicodeMode != uni8Bit) {
 		// Override properties file to ensure Unicode displayed.
 		codePage = SC_CP_UTF8;
 	}
+	props.SetInteger("editor.unicode.mode", CurrentBuffer()->unicodeMode + IDM_ENCODING_DEFAULT); //!-add-[EditorUnicodeMode]
 	SendEditor(SCI_SETCODEPAGE, codePage);
 	int outputCodePage = props.GetInt("output.code.page", codePage);
 	SendOutput(SCI_SETCODEPAGE, outputCodePage);

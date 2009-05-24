@@ -312,6 +312,9 @@ const char *contributors[] = {
             "Andreas Rumpf",
             "James Moffatt",
             "Yuzhou Xin",
+            "Nic Jansma",
+            "Evan Jones",
+            "Mike Lischke",
 //!-start-[SciTE-Ru]
             "HSolo",
             "Midas",
@@ -590,7 +593,11 @@ static bool isNotStringParams(unsigned int msg) {
 
 /*!
 sptr_t SciTEBase::SendEditor(unsigned int msg, uptr_t wParam, sptr_t lParam) {
-	return fnEditor(ptrEditor, msg, wParam, lParam);
+	sptr_t retVal = fnEditor(ptrEditor, msg, wParam, lParam);
+	sptr_t status = fnEditor(ptrEditor, SCI_GETSTATUS, 0, 0);
+	if (status > 0)
+		throw ScintillaFailure(status);
+	return retVal;
 }
 */
 //!-start-[OnSendEditor]
@@ -639,7 +646,11 @@ sptr_t SciTEBase::SendEditorString(unsigned int msg, uptr_t wParam, const char *
 }
 
 sptr_t SciTEBase::SendOutput(unsigned int msg, uptr_t wParam, sptr_t lParam) {
-	return fnOutput(ptrOutput, msg, wParam, lParam);
+	sptr_t retVal = fnOutput(ptrOutput, msg, wParam, lParam);
+	sptr_t status = fnOutput(ptrOutput, SCI_GETSTATUS, 0, 0);
+	if (status > 0)
+		throw ScintillaFailure(status);
+	return retVal;
 }
 
 sptr_t SciTEBase::SendOutputString(unsigned int msg, uptr_t wParam, const char *s) {
@@ -677,7 +688,8 @@ void SciTEBase::SendChildren(unsigned int msg, uptr_t wParam, sptr_t lParam) {
 sptr_t SciTEBase::SendOutputEx(unsigned int msg, uptr_t wParam /*= 0*/, sptr_t lParam /*= 0*/, bool direct /*= true*/) {
 	if (direct)
 		return SendOutput(msg, wParam, lParam);
-	return Platform::SendScintilla(wOutput.GetID(), msg, wParam, lParam);
+	return Platform::SendScintillaPointer(wOutput.GetID(), msg, wParam,
+		reinterpret_cast<void*>(lParam));
 }
 
 #if PLAT_WIN
@@ -806,7 +818,7 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		AddStyledText(wsci, GetTranslationToAbout("and").c_str(), trsSty);
 		AddStyledText(wsci, " SciTE-Ru 1.78.64Ru\n",1); 
 		SetAboutStyle(wsci, 3, ColourDesired(0, 0, 0));
-		AddStyledText(wsci, "December 1998-April 2009.\n", 3);
+		AddStyledText(wsci, "December 1998-May 2009.\n", 3);
 		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f));
 		AddStyledText(wsci, "http://www.scintilla.org\n", 4);
 		AddStyledText(wsci, "Lua scripting language by TeCGraf, PUC-Rio\n", 3);
@@ -2401,7 +2413,7 @@ bool SciTEBase::StartAutoComplete() {
 bool SciTEBase::StartAutoComplete() {
 
 	SString line = GetLine();
-	int current = GetCaretInLine();//义牦�… 觐腩黻�
+	int current = GetCaretInLine();
 //	if (current >= line.size())
 //		return false;
 
@@ -2452,7 +2464,7 @@ bool SciTEBase::StartAutoComplete() {
 		wordstart[0] = ' ';
 		GetRange(wEditor, posFind, Platform::Minimum(posFind + wordMaxSize - 3, doclen), wordstart + 1);
 		char *wordend = wordstart + 1 + root.length();
-		while (iswordcharforsel(*wordend)) { //橡钼屦赅 磬 疣玟咫栩咫�
+		while (iswordcharforsel(*wordend)) { 
 			wordend++;
 		}
 		*wordend++ = ' ';
@@ -5917,4 +5929,3 @@ char *SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
 	return localiser.Text(s, retainIfNotFound).detach();
 }
 //!-end-[LocalizationFromLua]
-

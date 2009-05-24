@@ -50,7 +50,9 @@ endif
 INCLUDEDIRS=-I ../../scintilla/include -I ../../scintilla/win32 -I ../src $(LUA_INCLUDES)
 RCINCLUDEDIRS=--include-dir ../../scintilla/win32 --include-dir ../src
 
-CBASEFLAGS = -W -Wall $(INCLUDEDIRS) $(LUA_DEFINES) -mno-cygwin
+#[mhb] 05/22/09: define ONEIDE=-DONEIDE to use "All-In-One IDE" as the editor's name
+#~ ONEIDE=-DONEIDE
+CBASEFLAGS = -W -Wall $(INCLUDEDIRS) $(LUA_DEFINES) -mno-cygwin $(ONEIDE)
 
 ifdef DEBUG
 CFLAGS=-DDEBUG -g $(CBASEFLAGS)
@@ -59,7 +61,7 @@ CFLAGS=-DNDEBUG -Os $(CBASEFLAGS)
 STRIPFLAG="-Wl,-s"
 endif
 
-CXXFLAGS = $(CFLAGS) -Wno-char-subscripts -pedantic -fno-exceptions $(THUNKFLAGS) -fno-rtti -mno-cygwin
+CXXFLAGS = $(CFLAGS) -Wno-char-subscripts -pedantic -fexceptions $(THUNKFLAGS) -fno-rtti -mno-cygwin
 
 LDFLAGS=-mwindows -lcomctl32 -limm32 -lole32 -luuid $(LUA_LDFLAGS) -mno-cygwin
 
@@ -297,12 +299,12 @@ Sc1.o: SciTEWin.cxx SciTEWin.h SciTE.h Accessor.h WindowAccessor.h KeyWords.h Pr
 	$(CC) $(CXXFLAGS) -D STATIC_BUILD -c $< -o $@
 
 SciTERes.o:	SciTERes.rc SciTE.h PlatformRes.h
-	$(WINDRES) $(RCINCLUDEDIRS) SciTERes.rc $@
+	$(WINDRES) $(ONEIDE) $(RCINCLUDEDIRS) SciTERes.rc $@
 
 # Also depends on ../src/Embedded.properties but may not want to build everywhere
 # so must explicitly ask to build it.
 Sc1Res.o:	SciTERes.rc SciTE.h PlatformRes.h
-	$(WINDRES) $(RCINCLUDEDIRS) SciTERes.rc --define STATIC_BUILD $@
+	$(WINDRES) $(ONEIDE) $(RCINCLUDEDIRS) SciTERes.rc --define STATIC_BUILD $@
 
 # Make sure SciTEBase gets rebuilt (so its about box gets a new
 # date stamp) when any of the other objects are updated.

@@ -6,6 +6,10 @@
 // Copyright 1998-2001 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
+#ifdef SCI_NAMESPACE
+using namespace Scintilla;
+#endif
+
 #include "SString.h" //!-add-[FindResultListStyle]
 
 #ifdef SCI_NAMESPACE
