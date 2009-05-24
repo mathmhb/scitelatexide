@@ -566,6 +566,9 @@ typedef sptr_t (*SciFnDirect)(sptr_t ptr, unsigned int iMessage, uptr_t wParam, 
 #define SCI_GETMODEVENTMASK 2378
 #define SCI_SETFOCUS 2380
 #define SCI_GETFOCUS 2381
+#define SC_STATUS_OK 0
+#define SC_STATUS_FAILURE 1
+#define SC_STATUS_BADALLOC 2
 #define SCI_SETSTATUS 2382
 #define SCI_GETSTATUS 2383
 #define SCI_SETMOUSEDOWNCAPTURES 2384
@@ -863,7 +866,7 @@ struct SCNotification {
 	int ch;		/* SCN_CHARADDED, SCN_KEY */
 	int modifiers;	/* SCN_KEY */
 	int modificationType;	/* SCN_MODIFIED */
-	const char *text;	// SCN_MODIFIED, SCN_USERLISTSELECTION, SCN_AUTOCSELECTION */
+	const char *text;	/* SCN_MODIFIED, SCN_USERLISTSELECTION, SCN_AUTOCSELECTION */
 	int length;		/* SCN_MODIFIED */
 	int linesAdded;	/* SCN_MODIFIED */
 	int message;	/* SCN_MACRORECORD */

@@ -6,14 +6,14 @@
 
 .SUFFIXES: .cxx
 CC = g++
+GCC = gcc
 DLLWRAP = dllwrap
-ifndef CYGWIN
+WINDRES = windres
+RANLIB = ranlib
+
 DEL = del /q
 COPY = copy
-else
-DEL = rm
-COPY = cp
-endif
+
 
 PROG	= ../bin/SciTE-Dynamic.exe
 PROGSTATIC = ../bin/SciTE.exe
@@ -62,7 +62,7 @@ CFLAGS=-DNDEBUG -Os $(CBASEFLAGS)
 STRIPFLAG="-Wl,-s"
 endif
 
-CXXFLAGS = $(CFLAGS) -Wno-char-subscripts -pedantic -fno-exceptions $(THUNKFLAGS) -fno-rtti -mno-cygwin
+CXXFLAGS = $(CFLAGS) -Wno-char-subscripts -pedantic -fexceptions $(THUNKFLAGS) -fno-rtti -mno-cygwin
 
 LDFLAGS=-mwindows -lcomctl32 -limm32 -lole32 -luuid $(LUA_LDFLAGS) -mno-cygwin
 
@@ -70,7 +70,7 @@ LDFLAGS=-mwindows -lcomctl32 -limm32 -lole32 -luuid $(LUA_LDFLAGS) -mno-cygwin
 	$(CC) $(CXXFLAGS) -c $< -o $@
 
 .c.o:
-	gcc $(CFLAGS) -c $< -o $@
+	$(GCC) $(CFLAGS) -c $< -o $@
 
 OTHER_OBJS	= FilePath.o SciTEBuffers.o SciTEIO.o Exporters.o PropSetFile.o StringList.o \
 SciTEProps.o SciTEWin.o SciTEWinBar.o SciTEWinDlg.o MultiplexExtension.o \
@@ -300,13 +300,12 @@ Sc1.o: SciTEWin.cxx SciTEWin.h SciTE.h Accessor.h WindowAccessor.h KeyWords.h Pr
 	$(CC) $(CXXFLAGS) -D STATIC_BUILD -c $< -o $@
 
 SciTERes.o:	SciTERes.rc SciTE.h PlatformRes.h
-	windres $(ONEIDE) $(RCINCLUDEDIRS) SciTERes.rc $@
+	$(WINDRES) $(ONEIDE) $(RCINCLUDEDIRS) SciTERes.rc $@
 
 # Also depends on ../src/Embedded.properties but may not want to build everywhere
 # so must explicitly ask to build it.
 Sc1Res.o:	SciTERes.rc SciTE.h PlatformRes.h
-	windres $(ONEIDE) $(RCINCLUDEDIRS) --define STATIC_BUILD SciTERes.rc $@
-	#~ windres $(RCINCLUDEDIRS) SciTERes.rc --define STATIC_BUILD $@
+	$(WINDRES) $(ONEIDE) $(RCINCLUDEDIRS) SciTERes.rc --define STATIC_BUILD $@
 
 # Make sure SciTEBase gets rebuilt (so its about box gets a new
 # date stamp) when any of the other objects are updated.

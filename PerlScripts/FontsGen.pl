@@ -1,78 +1,117 @@
-#!/usr/bin/perl
+#! /usr/bin/env perl
+# -*- coding: utf-8 -*-
+
+# V1.6 修订：
+#	修正updmapcfg选项的错误（map文件名及选项激活开关两处问题）;
+#	修正生成*_pt1.map的流程，在不配置Type1字体的时候不再产生空的*_pt1.map文件;
+#	采用新的*_ttf.map文件格式，不再生成enc文件;
+#	增加依赖包，允许在Windows下编译执行。
+
+# V1.5 修订：
+#	$outstream会在map文件中产生一些不合理的符号">"，已删除所有$outstream。代价是
+#	    verbose mode产生的输出信息会减少;
+#	Type1字体的生成很费时间，加强了已存在字体的检查，避免重复生成;
+#	采纳aloft自动从pfb文件获取psname的技术，废止参数-psname。
+#	
+# 2009/05/24 instanton
+
+# milksea 修订：
+#	更改文件路径的位置，以适合标准的 TeXLive TDS；
+#	按 linux 作了少量修改；
+#	针对 TTF 或 Type1 字体选择生成 map 文件，不再多余生成；
+#	更改路径名为 / 分隔，加强兼容性；
+#	加强了对已安装字体的检测；
+#	忽略 TTC 字体的 -Type1 选项；
+#	增加 -verbose 选项，可输出更多提示信息；
+#	改变了 -updmap 选项的功能，直接调用 updmap 程序，原来的改为 -updmapcfg；
+#	更正了原来程序中的一些 bug。
+# 2008/10/18
 
 use File::Basename;
+use File::Path;
+use File::Copy;
+use File::DosGlob 'glob';
+@flist = glob "*.*";
+
 
 $progname = "$0";
-$version = "V1.3";
-$copyright = "Copyright (C) 2008 Instanton";
+$version = "V1.6+";
+$copyright = "Copyright (C) 2008-2009 Instanton";
+$contributions = "Contributions from milksea and aloft included";
 
 $need_help=0;
 $lead=9;
 $md_afm=$md_type1=$mv_afm=$mv_type1=$extra_run=$stemv="";
+$genslanted=0;
 $slant="sl";
 
-$exitcode=0;
-$ttfdir="%systemroot%\\fonts";
-$ttf_folder="$ENV{'SYSTEMROOT'}\\Fonts";
-$destdir=".\\Fonts";
-$updmap=0;
+$ttfdir = "$ENV{'SYSTEMROOT'}/Fonts";
+$ttfdir =~ s/\\/\//;	# 文件路径用斜线 / 代替反斜线 \
+$destdir = "./Fonts";
+$updmap = 0;
+$updmapcfg = 0;
 
 $pfb=0;
 $ttfname=0;
 $familyname=0;
+$ttfsuffix="_ttf";
+$pt1suffix="_pt1";
 
 $cjkmapbase="cjk";
 
+$verbose=0;
+
 ## default GBK encoding settings: 
-	$encoding="GBK";
-	$pre="gbk";
-	$switches="-GFAe -L cugbk0.map+";
-	$range=$range2="0,1,2,3,4,5,6,7,8,9";
-	$Uenc="UGBK";
-	$set_dim=$set2_dim=10;
-	$fdpre="C19";
-	$CJKnormal="";
-	$fddir="GB";
+$encoding="GBK";
+$pre="gbk";
+$switches="-GFAe -L cugbk0.map+";
+@range1=@range2=(0..9);
+$Uenc="UGBK";
+$set_dim=$set2_dim=10;
+$fdpre="c19";
+$CJKnormal="";
+$fddir="GBK";
 
 sub usage
 {
-	print <<EOF;
-FontGen $version: Configure Chinese fonts for TeX system
+    print <<EOF;
+FontsGen $version: Configure Chinese fonts for TeX system 
 $copyright
+$contributions
 
-Usage:   FontGen [-options]
+Usage: $progname [-options]
 Avaliable options:
 
   [-encoding=...]	  Set encoding of fonts. Supported encodings 
 			  are GBK, UTF8 and Big5. Defaults to GBK;
   [-prefix=...]	  	  Prefix for CJK fonts. Defaults to gbk for GBK 
-			  encoding, uni for UTF8 and b5 for Big5 encodings.  
-			  Normally there is no need to reset this option;
+			  encoding, uni for UTF8 and b5 for Big5 encodings;
   [-ttf=....ttf/c]	  Specify name of the TrueType fonts;
   [-CJKname=...]	  CJKfamily name of the generated fonts;
-  [-psname=...]		  Postscript name of the fonts, can be omitted for
-			  Sim* fonts under Windows XP;
   [-cjkmap=...]	  	  Base name of the .map file to be placed under
-			  Fonts\\map. Defaults to be cjk (corresponds to 
-			  cjk.map and cjk_ttf.map);
+			  Fonts\/map. Defaults to be cjk (corresponds to 
+			  cjk_pt1.map for Type1 and cjk_ttf.map for TrueType);
+  [-slanted=y|n]	  Whether to generate slanted fonts. Defaults to no.
   [-ttfdir=...]		  Path to the TrueType fonts. Defaults to
-			  %SystemRoot%\\Fonts;
-  [-destdir=...]	  Location of destination. Defaults to .\\Fonts;
-  [-Type1]		  Force generating Type1 fonts. Will not generate 
-			  Type1 fonts if omitted;
+			  %SystemRoot%\/Fonts;
+  [-destdir=...]	  Location of destination. Defaults to .\/Fonts;
+  [-Type1]		  Switch on Type1 fonts generation;
   [-stemv=...]		  Add -v parameter into cid-x.map;
-  [-updmap]		  Add map file info into updmap.cfg file;
-  [--version|-v]	  Version number and copyright infomation;
-  [--help|-h]	  	  Show this help text.
+  [-updmap]		  Update font maps for TeX Live system;
+  [-updmapcfg]		  Add map file info into updmap.cfg file for MiKTeX;
+  [-verbose|-v]		  Print more information;
+  [--version|-V]	  Version number and copyright infomation;
+  [--help|-h]		  Show this help text.
 EOF
 }
 
 sub version
 {
-	print <<EOF;
+    print <<EOF;
 
 FontGen $version: Automatically configure Chinese fonts for TeX
 $copyright
+$contributions
 
 This program comes with ABSOLUTELY NO WARRANTY.  This is free software, 
 you are welcome to redistribute it under the terms of the GNU General 
@@ -83,143 +122,172 @@ For help on usage of this program type FontGen --help or FontGen -h.
 EOF
 }
 
+# 打印 verbose 模式内容
+sub printverb
+{
+    if ($verbose) {
+	print "@_";
+    }
+}
+
+# 若路径不存在，创建路径
+sub test_makedir
+{
+    if (!(-e "@_")) {
+	printverb("Dir `@_' does not exist. Make it.\n");
+	mkpath("@_");
+    }
+}
+
 if ($#ARGV<0) 
 {
     usage();
-	exit;
+    exit;
 }
 foreach $arg (@ARGV)
 {
-	if($arg =~ /-ttfdir=/)
+    if($arg =~ /-ttfdir=/)
+    {
+	$ttfdir=$arg;	
+	$ttfdir =~ s/(-ttfdir=)(.+)/$2/;
+	if(!(-e $ttfdir))
 	{
-		$ttfdir=$arg;	
-		$ttfdir =~ s/(-ttfdir=)(.+)/$2/;
-		if(!(-e $ttfdir))
-		{
-			print "TrueType font directry not found!\n";
-			exit;
-		}
-		$ttf_folder=$ttfdir;
+	    print "ERROR: TrueType font directory not found!\n";
+	    exit;
 	}
-	elsif($arg =~ /-ttf=/)
-	{
-		$ttfname=$arg;
-		$ttfname=~ s/(-ttf=)(.+)/$2/;
-		$ttfbase=$ttfname;
-		$ttfbase=~ s/(.*)(\.[tT][tT][fFcC])/$1/;
-		if("$ttfname" eq "$ttfbase")
-		{
-			$ttfext=".ttf";
-			$ttfname=$ttfbase.$ttfext;
-		}
+    }
+    elsif($arg =~ /-ttf=/)
+    {
+	$ttfname = $arg;
+	$ttfname =~ s/(-ttf=)(.+)/$2/;
+	$ttfbase = $ttfname;
+	$ttfbase =~ s/(.*)(\.[tT][tT][fFcC])/$1/;
+	if ("$ttfname" eq "$ttfbase") {
+	    $ttfname = $ttfbase.".ttf";
 	}
-	if($arg =~ /-encoding=/) 
+    }
+    elsif($arg =~ /-encoding=/) 
+    {
+	$encoding=$arg;
+	$encoding =~ s/(-encoding=)(.+)/$2/;
+	if($encoding eq "GBK")
 	{
-		$encoding=$arg;
-		$encoding =~ s/(-encoding=)(.+)/$2/;
-		if($encoding eq "GBK")
-		{
-		}
-		elsif($encoding eq "UTF8")
-		{
-			$pre="uni";
-			$switches="-GFAE -l plane+0x";
-			$range=$range2="0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f";
-			$Uenc="Unicode";
-			$set_dim=$set2_dim=16;
-			$fdpre="C70";
-			$CJKnormal="\\CJKnormal";
-			$fddir="UTF8";
-		}
-		elsif($encoding eq "Big5")
-		{
-			$pre="b5";
-			$switches="-GFAe -L cubig5.map+";
-			$range="0,1,2,3,4,5";
-			$range2="0,1,2,3,4,5,6,7,8,9";
-			$Uenc="UBig5";
-			$set_dim=6;
-			$set2_dim=10;
-			$fdpre="C00";
-			$fddir="Bg5";
-		}
-		else
-		{
-			print "Font encoding $encoding not supported.\n";
-			exit;
-		}
+	    # empty
 	}
-	elsif($arg =~ /-prefix=/)
+	elsif($encoding eq "UTF8")
 	{
-		$pre=$arg;	
-		$pre =~ s/(-prefix=)(.+)/$2/;
+	    $pre="uni";
+	    $switches="-GFAE -l plane+0x";
+	    @range1=@range2=(0..9,"a".."f");
+	    $Uenc="Unicode";
+	    $set_dim=$set2_dim=16;
+	    $fdpre="c70";
+	    $CJKnormal="\\CJKnormal";
+	    $fddir="UTF8";
 	}
-	elsif($arg =~ /-stemv=/)
+	elsif($encoding eq "Big5")
 	{
-		$vs=$arg;	
-		$vs =~ s/(-stemv=)([0-9]+)/$2/;
-		$stemv="-v $vs";
+	    $pre="b5";
+	    $switches="-GFAe -L cubig5.map+";
+	    @range1="0..5";
+	    @range2="0..9";
+	    $Uenc="UBig5";
+	    $set_dim=6;
+	    $set2_dim=10;
+	    $fdpre="c00";
+	    $fddir="Bg5";
 	}
-	elsif($arg =~ /-CJKname=/)
+	else
 	{
-		$familyname=$arg;	
-		$familyname =~ s/(-CJKname=)(.+)/$2/;
+	    print "Font encoding $encoding not supported.\n";
+	    exit;
 	}
-	elsif($arg =~ /-psname=/)
-	{
-		$psname=$arg;	
-		$psname =~ s/(-psname=)(.+)/$2/;
-	}
-	elsif($arg =~ /-cjkmap=/)
-	{
-		$cjkmapbase=$arg;	
-		$cjkmapbase =~ s/(-cjkmap=)(.+)/$2/;
-	}
-	elsif($arg =~ /-destdir=/)
-	{
-		$destdir=$arg;	
-		$destdir =~ s/(-destdir=)(.+)/$2/;
-	}
-	elsif($arg eq "-Type1")
-	{
+    }
+    elsif($arg =~ /-slanted=/)
+    {
+	$genslanted = $arg;	
+	$genslanted =~ s/(-slanted=)(.+)/$2/;
+    }
+    elsif($arg =~ /-prefix=/)
+    {
+	$pre=$arg;	
+	$pre =~ s/(-prefix=)(.+)/$2/;
+    }
+    elsif($arg =~ /-stemv=/)
+    {
+	$vs=$arg;	
+	$vs =~ s/(-stemv=)([0-9]+)/$2/;
+	$stemv="-v $vs";
+    }
+    elsif($arg =~ /-CJKname=/)
+    {
+	$familyname=$arg;
+	$familyname =~ s/(-CJKname=)(.+)/$2/;
+    }
+    elsif($arg =~ /-cjkmap=/)
+    {
+	$cjkmapbase=$arg;	
+	$cjkmapbase =~ s/(-cjkmap=)(.+)/$2/;
+    }
+    elsif($arg =~ /-destdir=/)
+    {
+	$destdir=$arg;	
+	$destdir =~ s/(-destdir=)(.+)/$2/;
+    }
+    elsif($arg eq "-Type1")
+    {
 	if ($ttfname =~ /.*\.[tT][tT][cC]/) {
 	    print "Warning: Program ttf2pt1 does not support TTC fonts. I will ignore `-Type1' option.\n";
 	    $pfb = 0;
 	}
 	else {
-		$pfb=1;	
+	    $pfb = 1;
 	}
     }
-	elsif($arg eq "-updmap")
+    elsif($arg eq "-updmap")
+    {
+	$updmap=1;	
+    }
+    elsif ($arg eq "updmapcfg") {
+	$updmapcfg = 1;
+    }
+    elsif( ($arg eq "-verbose") || ($arg eq "-v") )
+    {
+	$verbose = 1;
+    }
+    elsif(($arg eq "--version")||($arg eq "-V"))
+    {
+	version();
+	exit;
+    }
+    elsif(($arg eq "--help")||($arg eq "-h"))
+    {
+	usage();
+	exit;
+    }
+    elsif($arg !~ /=/) 
+    {
+	print "Unrecognized option: $arg. Type $progname -h for usage.\n";
+	exit;
+    }
+    elsif($arg =~ /=/)
+    {
+	$testarg = $arg;
+	$testarg =~ s/(.*)(=.*)/$1/;
+	if(!(($testarg eq "-ttf") || ($testarg eq "-ttfdir") || ($testarg eq "-encoding") || 
+	    ($testarg eq "-prefix") || ($testarg eq "-CJKname") || ($testarg eq "-slanted") || 
+	    ($testarg eq "-destdir")))
 	{
-		$updmap=1;	
+	    print "Unrecognized option: $arg. Type $progname -h for usage.\n";
+	    exit;
 	}
-	elsif(($arg eq "--version")||($arg eq "-v"))
-	{
-		version();
-		exit;
-	}
-	elsif(($arg eq "--help")||($arg eq "-h"))
-	{
-		usage();
-		exit;
-	}
-	elsif($arg !~ /=/) 
-	{
-		print "Unrecognized option: $arg. Type FontsGen -h for usage information.\n";
-		exit;
-	}
-	elsif($arg =~ /=/)
-	{
-		$testarg = $arg;
-		$testarg =~ s/(.*)(=.*)/$1/;
-		if(!(($testarg eq "-ttf") || ($testarg eq "-ttfdir") || ($testarg eq "-encoding") || ($testarg eq "-prefix") || ($testarg eq "-CJKname") || ($testarg eq "-destdir")|| ($testarg eq "-psname")))
-		{
-			print "Unrecognized option: $arg. Type FontsGen -h for usage information.\n";
-			exit;
-		}
-	}
+    }
 }
+
+
+$Fdpre = $fdpre;
+$Fdpre =~ s/c/C/;
+
 
 if(!$ttfname)
 {
@@ -231,176 +299,340 @@ elsif(!$familyname)
     print "ERROR: No CJKfamily name specified!\n";
     exit;
 }
-elsif(!(-e "$ttf_folder\\$ttfname"))
+elsif(!(-e "$ttfdir/$ttfname"))
 {
     print "ERROR: TrueType font file $ttfname not found!\n";
     exit;
 }
 
-$psname=$ttfbase;
-if($ttfbase eq "simsun")
-{
-	$psname="SimSun";
-}
-if($ttfbase eq "simkai")
-{
-	$psname="KaiTi_GB2312";
-}
-if($ttfbase eq "simhei")
-{
-	$psname="SimHei";
-}
-if($ttfbase eq "simfang")
-{
-	$psname="FangSong_GB2312";
-}
-if($ttfbase eq "simli")
-{
-	$psname="LiSu";
-}
-if($ttfbase eq "simyou")
-{
-	$psname="YouYuan";
-}
-	
+printverb("Installing TTF font $ttfbase with CJKfamily name `$familyname' in encoding $encoding...\n");
+
+#test_makedir("$destdir/fonts/enc/Chinese/$pre$familyname");
+test_makedir("$destdir/fonts/tfm/Chinese/$pre$familyname");
 if($pfb)
 {
-	$extra_run="for %%i in ($range) do (\n  for %%j in ($range2) do (\n    if exist $pre$familyname%%i%%j.enc ttf2pt1 -W0 -b $switches%%i%%j  %ttfile% $pre$familyname%%i%%j\n))";
-	$md_afm="if not exist $destdir\\fonts\\afm\\Chinese\\$pre$familyname mkdir $destdir\\fonts\\afm\\Chinese\\$pre$familyname";
-	$md_type1="if not exist $destdir\\fonts\\type1\\Chinese\\$pre$familyname mkdir $destdir\\fonts\\type1\\Chinese\\$pre$familyname";
-	$mv_afm="move *.afm $destdir\\fonts\\afm\\Chinese\\$pre$familyname\\";
-	$mv_type1="move *.pfb $destdir\\fonts\\type1\\Chinese\\$pre$familyname\\"
+    test_makedir("$destdir/fonts/afm/Chinese/$pre$familyname");
+    test_makedir("$destdir/fonts/type1/Chinese/$pre$familyname");
 }
 
-@genfonts=(
-	"\@echo off\n",
-	"set ttfile=$ttfdir\\$ttfname\n",
-	"if not exist $destdir\\fonts\\enc\\Chinese\\$pre$familyname mkdir $destdir\\fonts\\enc\\Chinese\\$pre$familyname\n",
-	"if not exist $destdir\\fonts\\tfm\\Chinese\\$pre$familyname mkdir $destdir\\fonts\\tfm\\Chinese\\$pre$familyname\n",
-	"if not exist $destdir\\ttf2tfm\\base mkdir $destdir\\ttf2tfm\\base\n",
-	"if not exist $destdir\\dvipdfm\\config mkdir $destdir\\dvipdfm\\config\n",
-	"$md_afm\n",
-	"$md_type1\n\n",
-	"ttf2tfm $ttfdir\\$ttfname -w $pre$familyname\@$Uenc\@.tfm\n",
-	"ttf2tfm $ttfdir\\$ttfname -s 0.167 $pre$familyname$slant\@$Uenc\@.tfm\n",
-	"move *.tfm $destdir\\fonts\\tfm\\Chinese\\$pre$familyname\n\n",
-	"$extra_run\n",
-	"move *.enc $destdir\\fonts\\enc\\Chinese\\$pre$familyname\\\n",
-	"$mv_afm\n",
-	"$mv_type1\n"
-);
-open(F, ">genfonts.bat");
-	print F @genfonts;
-close(F);
+printverb("Generating TFM files... ");
 
-$exec=`genfonts.bat`;
-unlink "genfonts.bat";
+# this is a little noisy, so changed into $exec=...
+#system("ttf2tfm $ttfdir/$ttfname -q -f 0 -w $pre$familyname\@$Uenc\@.tfm");     
+#system("ttf2tfm $ttfdir/$ttfname -q -f 0 -s 0.167 $pre$familyname$slant\@$Uenc\@.tfm");
 
-open(F, "<$destdir\\dvipdfm\\config\\cid-x.map");
-@cid_content=<F>;
-close(F);
-foreach $fileline (@cid_content)
+$exec = `ttf2tfm $ttfdir/$ttfname -q -f 0 -w $pre$familyname\@$Uenc\@.tfm`;
+if($genslanted eq "y")
 {
-	chop($fileline);
-	if($fileline =~ /$pre$familyname/)
-	{
-		$exitcode=1;
+    $exec = `ttf2tfm $ttfdir/$ttfname -q -f 0 -s 0.167 $pre$familyname$slant\@$Uenc\@.tfm`;
+}
+printverb("Ok.\n");
+
+if ($pfb) 
+{
+    printverb("Generating Type1 fonts (AFM and PFB files) ... ");
+    foreach $i (@range1) {
+	foreach $j (@range2) {
+	    if ((-e "$pre$familyname$i$j.enc") && 
+		(! (-e "$destdir/fonts/type1/Chinese/$pre$familyname/$pre$familyname$i$j.pfb"))) 
+	    # generation of pfb files is time consuming, so avoid regenerating existing files
+	    {
+		system("ttf2pt1 -W0 -b $switches$i$j  $ttfdir/$ttfname $pre$familyname$i$j");
+	    }
 	}
-}
-undef @cid_content;
-if($exitcode)
-{
-	exit;
+    }
+    printverb("Ok.\n");
 }
 
-open(F, ">>$destdir\\dvipdfm\\config\\cid-x.map");
-print F "$pre$familyname\@$Uenc\@ unicode :0:$ttfname $stemv\n";
-print F "$pre$familyname$slant\@$Uenc\@ unicode :0:$ttfname -s .167 $stemv\n\n";
-close(F);
-
-open(F, ">>$destdir\\ttf2tfm\\base\\ttfonts.map");
-print F "$pre$familyname\@$Uenc\@  $ttfname Pid = 3 Eid = 1\n";
-print F "$pre$familyname$slant\@$Uenc\@  $ttfname Slant=0.167 Pid = 3 Eid = 1\n\n";
-close(F);
-
-if(!(-e "$destdir\\fonts\\map"))
+printverb("Moving TFM files to $destdir/fonts/tfm/Chinese/$pre$familyname/ ... ");
+foreach $tfmfile (<*.tfm>)
 {
-	mkdir "$destdir\\fonts\\map";
+    move("$tfmfile", "$destdir/fonts/tfm/Chinese/$pre$familyname/");
+}
+printverb("Ok.\n");
+
+#printverb("Moving ENC files to $destdir/fonts/enc/Chinese/$pre$familyname/ ... ");
+#foreach $encfile (<*.enc>)
+#{
+#    move("$encfile", "$destdir/fonts/enc/Chinese/$pre$familyname/");
+#}
+#printverb("Ok.\n");
+
+if ($pfb)
+{
+    printverb("Moving AFM files to $destdir/fonts/afm/Chinese/$pre$familyname/ ... ");
+    foreach $afmfile (<*.afm>) {
+	move("$afmfile", "$destdir/fonts/afm/Chinese/$pre$familyname/");
+    }
+    printverb("Ok.\n");
+    printverb("Moving PFB fonts $destdir/fonts/type1/Chinese/$pre$familyname/ ... ");
+    foreach $pfbfile (<*.pfb>) {
+	move("$pfbfile", "$destdir/fonts/type1/Chinese/$pre$familyname/");
+    }
+    printverb("Ok.\n");
 }
 
-$ttfsuffix="_ttf";
-open(FF, ">> $destdir\\fonts\\map\\$cjkmapbase$ttfsuffix.map");
-open(GG, ">> $destdir\\fonts\\map\\$cjkmapbase.map");
-
-@set=("0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f");
-for ($i=0;$i<$set_dim;$i=$i+1)
+$flag = 0;
+if (-e "$destdir/fonts/map/dvipdfm/dvipdfmx/cid-x.map")
 {
-	for ($j=0;$j<$set2_dim;$j=$j+1)
+    open(F, "<$destdir/fonts/map/dvipdfm/dvipdfmx/cid-x.map");
+    foreach $fileline (<F>) {
+	chomp($fileline);
+        if($fileline =~ /$pre$familyname/) 
 	{
-		if (-e "$destdir\\fonts\\enc\\Chinese\\$pre$familyname\\$pre$familyname@set[$i]@set[$j].enc")
+	    printverb("Font family `$pre$familyname' is already installed in cid-x.map, ignored.\n");
+	    $flag = 1;
+	    last;
+	}
+    }
+}
+close(F);
+unless ($flag)
+{
+    test_makedir("$destdir/fonts/map/dvipdfm/dvipdfmx");
+    printverb("Writing `$destdir/fonts/map/dvipdfm/dvipdfmx/cid-x.map' for dvipdfmx... ");
+    open(F, ">>$destdir/fonts/map/dvipdfm/dvipdfmx/cid-x.map");
+    print F "$pre$familyname\@$Uenc\@ unicode :0:$ttfname $stemv\n";
+    if($genslanted eq "y")
+    {
+    	print F "$pre$familyname$slant\@$Uenc\@ unicode :0:$ttfname -s .167 $stemv\n\n";
+    }
+    close(F);
+    printverb("Ok.\n");
+}
+
+$flag = 0;
+if (-e "$destdir/fonts/map/ttf2pk/config/ttfonts.map")
+{
+    open(F, "< $destdir/fonts/map/ttf2pk/config/ttfonts.map");
+    foreach $fileline (<F>) 
+    {
+	chomp($fileline);
+        if($fileline =~ /$pre$familyname/) {
+	    printverb("Font family `$pre$familyname' is already installed in ttfonts.map, ignored.\n");
+	    $flag = 1;
+	    last;
+	}
+    }
+}
+close(F);
+unless ($flag) 
+{
+    test_makedir("$destdir/fonts/map/ttf2pk/config");
+    printverb("Writing `$destdir/fonts/map/ttf2pk/config/ttfonts.map'... ");
+    open(F, ">>$destdir/fonts/map/ttf2pk/config/ttfonts.map");
+    print F "$pre$familyname\@$Uenc\@  $ttfname Pid = 3 Eid = 1\n";
+    if($genslanted eq "y")
+    {
+    	print F "$pre$familyname$slant\@$Uenc\@  $ttfname Slant=0.167 Pid = 3 Eid = 1\n\n";
+    }
+    close(F);
+    printverb("Ok.\n");
+}
+
+test_makedir("$destdir/fonts/map");
+
+$flag1 = 0;  # $flag1 = 0 表示当前字体未被当作TeX可用的TTF字体进行配置;
+if (-e "$destdir/fonts/map/$cjkmapbase$ttfsuffix.map")
+{
+    open(F, "< $destdir/fonts/map/$cjkmapbase$ttfsuffix.map");
+    foreach $fileline (<F>) {
+	chomp($fileline);
+        if ($fileline =~ /$pre$familyname/) 
+	{
+	    printverb("Font family `$pre$familyname' is already installed in $cjkmapbase$ttfsuffix.map, ignored.\n");
+	    $flag1 = 1;
+	    last;
+        }
+    }
+    close(F);
+}
+unless($flag1)
+{
+    printverb("Writing `$destdir/fonts/map/$cjkmapbase$ttfsuffix.map'... ");
+    open(F, ">> $destdir/fonts/map/$cjkmapbase$ttfsuffix.map");
+    print F "$pre$familyname\@$Uenc\@ <$ttfname PidEid=3,1\n";
+    if($genslanted eq "y")
+    {
+    	print F "$pre$familyname$slant\@$Uenc\@ < $ttfname PidEid=3,1\n\n";
+    }
+    close(F);
+    printverb("Ok.\n");
+}
+
+$flag2 = 0;  # $flag2 = 0 表示当前字体未被当作TeX可用的Type1字体进行配置;
+if (-e "$destdir/fonts/map/$cjkmapbase$pt1suffix.map")
+{
+    open(F, "< $destdir/fonts/map/$cjkmapbase$pt1suffix.map");
+    foreach $fileline (<F>) {
+	chomp($fileline);
+	if ($fileline =~ /$pre$familyname/) 
+	{
+	    printverb("Font family `$pre$familyname' is already installed in $cjkmapbase$pt1suffix.map, ignored.\n");
+	    $flag2 = 1;
+	    last;
+	}
+    }
+    close(F);
+}
+if ($pfb && not $flag2) 
+{
+    printverb("Writing `$destdir/fonts/map/$cjkmapbase$pt1suffix.map'... ");
+    open(F, ">> $destdir/fonts/map/$cjkmapbase$pt1suffix.map");
+    @set=(0..9,"a".."f");
+    for ($i=0;$i<$set_dim;$i=$i+1) 
+    {
+	for ($j=0;$j<$set2_dim;$j=$j+1) 
+	{
+	    #if (-e "$destdir/fonts/tfm/Chinese/$pre$familyname/$pre$familyname@set[$i]@set[$j].tfm") 
+	    if (-e "$pre$familyname@set[$i]@set[$j].enc") 
+	    {
+		if (-e "$destdir/fonts/type1/Chinese/$pre$familyname/$pre$familyname@set[i]@set[j].pfb") 
 		{
-			print FF "$pre$familyname@set[$i]@set[$j] < $pre$familyname@set[$i]@set[$j].enc < $ttfname\n";
-			print FF "$pre$familyname$slant@set[$i]@set[$j] < $pre$familyname@set[$i]@set[$j].enc < $ttfname\n";
-			print GG "$pre$familyname@set[$i]@set[$j]  $psname-@set[$i]@set[$j] < $pre$familyname@set[$i]@set[$j].pfb\n";
-			print GG "$pre$familyname$slant@set[$i]@set[$j]  $psname-@set[$i]@set[$j] \" .167 SlantFont \" < $pre$familyname@set[$i]@set[$j].pfb\n";
+		    open(FF, "<$destdir/fonts/type1/Chinese/$pre$familyname/$pre$familyname@set[i]@set[j].pfb");
+		    @pfb=<FF>;
+		    close(FF);
+		    @pfb=grep(/\/FontName.*def/, @pfb);
+		    $psname = @pfb[0];
+		    $psname =~ s|/FontName /(.+)-\w{2} def.*|$1|s;
 		}
-	}	
-}			
-print FF "\n";
-close(FF);
-print GG "\n";
-close(GG);
-
-@genfd=(
-"% This is the file $fdpre$familyname.fd of the CJK package\n",
-"%   for using Asian logographs (Chinese\/Japanese\/Korean) with LaTeX2e\n",
-"%\n",
-"% created by Werner Lemberg <wl\@gnu.org>\n",
-"% automatically generated by FontsGen $version\n",
-"\n",
-"\\def\\fileversion{4.8.0}\n",
-"\\def\\filedate{2008/05/22}\n",
-"\\ProvidesFile{$fdpre$familyname.fd}[\\filedate\\space\\fileversion]\n",
-"\n",
-"% Chinese characters\n",
-"%\n",
-"% character set: $encoding\n",
-"% font encoding: CJK ($encoding)\n",
-"\n",
-"\\DeclareFontFamily{$fdpre}{$familyname}{\\hyphenchar \\font\\m\@ne}\n",
-"\n",
-"\\DeclareFontShape{$fdpre}{$familyname}{m}{n}{<-> CJK * $pre$familyname}{$CJKnormal}\n",
-"\\DeclareFontShape{$fdpre}{$familyname}{bx}{n}{<-> CJKb * $pre$familyname}{\\CJKbold}\n",
-"\\DeclareFontShape{$fdpre}{$familyname}{m}{it}{<-> CJK * $pre$familyname$slant}{$CJKnormal}\n",
-"\\DeclareFontShape{$fdpre}{$familyname}{bx}{it}{<-> CJKb * $pre$familyname$slant}{\\CJKbold}\n",
-"\\DeclareFontShape{$fdpre}{$familyname}{m}{sl}{<-> CJK * $pre$familyname$slant}{$CJKnormal}\n",
-"\\DeclareFontShape{$fdpre}{$familyname}{bx}{sl}{<-> CJKb * $pre$familyname$slant}{\\CJKbold}\n",
-"\n",
-"\\endinput\n"
-);
-
-if(!(-e "$destdir\\tex\\latex\\CJK\\$fddir"))
-{
-	system("mkdir", "$destdir\\tex\\latex\\CJK\\$fddir");
+		print F "$pre$familyname@set[$i]@set[$j]  $psname-@set[$i]@set[$j] < $pre$familyname@set[$i]@set[$j].pfb\n";
+		if($genslanted eq "y")
+		{
+		    print F "$pre$familyname$slant@set[$i]@set[$j]  $psname-@set[$i]@set[$j] \" .167 SlantFont \" < $pre$familyname@set[$i]@set[$j].pfb\n";
+		}
+	    }
+	}
+    }
+    print F "\n";
+    close(F);
+    printverb("Ok.\n");
 }
-open(FD, "> $destdir\\tex\\latex\\CJK\\$fddir\\$fdpre$familyname.fd");
-	print FD @genfd;
-close(FD);
 
-if($updmap)
+foreach $encfile (<*.enc>)
 {
-	if(!(-e "$destdir\\web2c"))
+    unlink($encfile);
+}
+
+
+if (-e "$destdir/tex/latex/CJK/$fddir/$fdpre$familyname.fd") {
+    printverb("Font definition file `$fdpre$familyname.fd' already exists, ignored.\n");
+}
+else {
+    if($genslanted eq "y")
+    {
+	@genfd=(
+	    "% This is the file $fdpre$familyname.fd of the CJK package\n",
+	    "% for using Asian logographs (Chinese\/Japanese\/Korean) with LaTeX2e\n",
+	    "%\n",
+	    "% automatically generated by FontsGen $version\n",
+	    "\n",
+	    "\\def\\fileversion{4.8.1}\n",
+	    "\\def\\filedate{2008/08/10}\n",
+	    "\\ProvidesFile{$fdpre$familyname.fd}[\\filedate\\space\\fileversion]\n",
+	    "\n",
+	    "% Chinese characters\n",
+	    "%\n",
+	    "% character set: $encoding\n",
+	    "% font encoding: CJK ($encoding)\n",
+	    "\n",
+	    "\\DeclareFontFamily{$Fdpre}{$familyname}{\\hyphenchar \\font\\m\@ne}\n",
+	    "\n",
+	    "\\DeclareFontShape{$Fdpre}{$familyname}{m}{n}{<-> CJK * $pre$familyname}{$CJKnormal}\n",
+	    "\\DeclareFontShape{$Fdpre}{$familyname}{bx}{n}{<-> CJKb * $pre$familyname}{\\CJKbold}\n",
+	    "\\DeclareFontShape{$Fdpre}{$familyname}{m}{it}{<-> CJK * $pre$familyname$slant}{$CJKnormal}\n",
+	    "\\DeclareFontShape{$Fdpre}{$familyname}{bx}{it}{<-> CJKb * $pre$familyname$slant}{\\CJKbold}\n",
+	    "\\DeclareFontShape{$Fdpre}{$familyname}{m}{sl}{<-> CJK * $pre$familyname$slant}{$CJKnormal}\n",
+	    "\\DeclareFontShape{$Fdpre}{$familyname}{bx}{sl}{<-> CJKb * $pre$familyname$slant}{\\CJKbold}\n",
+	    "\n",
+	    "\\endinput\n"
+	);
+    }
+    else
+    {
+	@genfd=(
+	    "% This is the file $fdpre$familyname.fd of the CJK package\n",
+	    "% for using Asian logographs (Chinese\/Japanese\/Korean) with LaTeX2e\n",
+	    "%\n",
+	    "% automatically generated by FontsGen $version\n",
+	    "\n",
+	    "\\def\\fileversion{4.8.1}\n",
+	    "\\def\\filedate{2008/08/10}\n",
+	    "\\ProvidesFile{$fdpre$familyname.fd}[\\filedate\\space\\fileversion]\n",
+	    "\n",
+	    "% Chinese characters\n",
+	    "%\n",
+	    "% character set: $encoding\n",
+	    "% font encoding: CJK ($encoding)\n",
+	    "\n",
+	    "\\DeclareFontFamily{$Fdpre}{$familyname}{\\hyphenchar \\font\\m\@ne}\n",
+	    "\n",
+	    "\\DeclareFontShape{$Fdpre}{$familyname}{m}{n}{<-> CJK * $pre$familyname}{$CJKnormal}\n",
+	    "\\DeclareFontShape{$Fdpre}{$familyname}{bx}{n}{<-> CJKb * $pre$familyname}{\\CJKbold}\n",
+	    "\n",
+	    "\\endinput\n"
+	);
+    }
+    test_makedir("$destdir/tex/latex/CJK/$fddir");
+    printverb("Genarating font definition file `$destdir/tex/latex/CJK/$fddir/$fdpre$familyname.fd'... ");
+    open(FD, "> $destdir/tex/latex/CJK/$fddir/$fdpre$familyname.fd");
+    print FD @genfd;
+    close(FD);
+    printverb("Ok.\n");
+}
+
+
+# for TeX Live only
+if ($updmap) 
+{
+    printverb("Updating font maps...\n");
+    if ($pfb) 
+    {
+	system("updmap-sys --enable Map=$cjkmapbase$pt1suffix.map");
+	system("updmap --enable Map=$cjkmapbase$pt1suffix.map");
+    }
+    else 
+    {
+	system("updmap-sys --enable Map=$cjkmapbase$ttfsuffix.map");
+	system("updmap --enable Map=$cjkmapbase$ttfsuffix.map");
+    }
+    printverb("Ok.\n");
+}
+
+# For MiKTeX only. Harmless for TeX Live, I think.
+if($updmapcfg)
+{
+    $flag = 0;
+    open(F, "< $destdir/web2c/updmap.cfg");
+    foreach $fileline (<F>) 
+    {
+	chomp($fileline);
+	if ($fileline =~ /$pre$familyname/) 
 	{
-		system("mkdir", "$destdir\\web2c");
+	    printverb("Font family `$pre$familyname' is already installed in updmap.map, ignored.\n");
+	    $flag = 1;
+	    last;
 	}
-	open(F, ">> $destdir\\web2c\\updmap.cfg");
-	if($pfb)
+    }
+    close(F);
+    unless ($flag) 
+    {
+	printverb("Writing $destdir/web2c/updmap.cfg... ");
+	test_makedir("$destdir/web2c");
+	open(F, ">> $destdir/web2c/updmap.cfg");
+	if ($pfb) 
 	{
-		print F "Map $cjkmapbase.map\n";
+	    print F "Map $cjkmapbase$pt1suffix.map\n";
 	}
-	else
+	else 
 	{
-		print F "MixedMap $cjkmapbase$ttfsuffix.map\n";
+	    print F "MixedMap $cjkmapbase$ttfsuffix.map\n";
 	}
 	close(F);
+	printverb("Ok.\n");
+    }
 }
+
+printverb("\n");
+
+# vim:ai:ts=8:sts=4:sw=4:noet:sta:ft=perl:

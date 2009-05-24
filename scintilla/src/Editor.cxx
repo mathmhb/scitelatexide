@@ -97,6 +97,7 @@ Editor::Editor() {
 	hasFocus = false;
 	hideSelection = false;
 	inOverstrike = false;
+	ignoreOverstrikeChange = false; //-add-[ignore_overstrike_change]
 	errorStatus = 0;
 	mouseDownCaptures = true;
 
@@ -983,7 +984,7 @@ This way, we favour the displaying of useful information: the begining of lines,
 where most code reside, and the lines after the caret, eg. the body of a function.
 
      |        |       |      |                                            |
-slop | strict | jumps | even | Caret can go to the margin                 | When reaching limit锟�(caret going out of
+slop | strict | jumps | even | Caret can go to the margin                 | When reaching limit�锟�(caret going out of
      |        |       |      |                                            | visibility or going into the UZ) display is...
 -----+--------+-------+------+--------------------------------------------+--------------------------------------------------------------
   0  |   0    |   0   |   0  | Yes                                        | moved to put caret on top/on right
@@ -8211,6 +8212,7 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 	//Platform::DebugPrintf("end wnd proc\n");
 	return 0l;
 }
+
 
 
 
