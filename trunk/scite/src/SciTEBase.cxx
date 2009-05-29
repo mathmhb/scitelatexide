@@ -16,12 +16,6 @@
 
 #include "Platform.h"
 
-#if PLAT_FOX
-
-#include <unistd.h>
-
-#endif
-
 #if PLAT_GTK
 
 #include <unistd.h>
@@ -315,6 +309,7 @@ const char *contributors[] = {
             "Nic Jansma",
             "Evan Jones",
             "Mike Lischke",
+            "Eric Kidd",
 //!-start-[SciTE-Ru]
             "HSolo",
             "Midas",
@@ -3744,8 +3739,7 @@ bool SciTEBase::HandleXml(char ch) {
 	}
 
 	// This may make sense only in certain languages
-	if (lexLanguage != SCLEX_HTML && lexLanguage != SCLEX_XML &&
-	        lexLanguage != SCLEX_ASP && lexLanguage != SCLEX_PHP) {
+	if (lexLanguage != SCLEX_HTML && lexLanguage != SCLEX_XML) {
 		return false;
 	}
 

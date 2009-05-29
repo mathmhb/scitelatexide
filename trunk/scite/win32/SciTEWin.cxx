@@ -1727,7 +1727,7 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 				if(restore=="") restore="Restore";
 				if(quit=="") quit="Quit";
 				
-//				::AppendMenu(popup, MF_STRING, IDM_OPEN, "Open File ...");
+
 				::AppendMenu(popup, MF_STRING, SW_RESTORE, restore.c_str());
 				::AppendMenu(popup, MF_STRING, IDM_QUIT, quit.c_str());
 				::SetForegroundWindow(reinterpret_cast<HWND>(wSciTE.GetID()));
