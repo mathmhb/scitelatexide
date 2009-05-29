@@ -29,7 +29,7 @@ require 'scite_lua_std/reformat'
 require 'scite_lua_std/abbrev_encdec'
 require 'scite_lua_std/tex_lister'
 require 'scite_lua_std/compile_block'
-
+require 'scite_lua_std/sumatrapdfview'
 
 require 'gui'
 require 'scite_lua_std/GUI-Panel'
