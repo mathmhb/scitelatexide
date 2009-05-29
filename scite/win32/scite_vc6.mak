@@ -262,6 +262,7 @@ $(DIR_BIN)\euphoria.properties $(DIR_BIN)\flagship.properties \
 $(DIR_BIN)\forth.properties $(DIR_BIN)\fortran.properties \
 $(DIR_BIN)\freebasic.properties $(DIR_BIN)\gap.properties \
 $(DIR_BIN)\html.properties $(DIR_BIN)\inno.properties \
+$(DIR_BIN)\nimrod.properties \
 $(DIR_BIN)\kix.properties $(DIR_BIN)\lisp.properties $(DIR_BIN)\lot.properties \
 $(DIR_BIN)\lout.properties $(DIR_BIN)\lua.properties \
 $(DIR_BIN)\matlab.properties $(DIR_BIN)\metapost.properties \
@@ -273,7 +274,7 @@ $(DIR_BIN)\powerpro.properties $(DIR_BIN)\powershell.properties \
 $(DIR_BIN)\ps.properties $(DIR_BIN)\purebasic.properties \
 $(DIR_BIN)\python.properties $(DIR_BIN)\r.properties \
 $(DIR_BIN)\rebol.properties $(DIR_BIN)\ruby.properties \
-$(DIR_BIN)\scilab.properties $(DIR_BIN)\scriptol.properties \
+$(DIR_BIN)\scriptol.properties \
 $(DIR_BIN)\smalltalk.properties $(DIR_BIN)\sorcins.properties \
 $(DIR_BIN)\specman.properties $(DIR_BIN)\spice.properties \
 $(DIR_BIN)\sql.properties $(DIR_BIN)\tcl.properties $(DIR_BIN)\vb.properties \
@@ -404,6 +405,8 @@ $(DIR_BIN)\metapost.properties:	..\src\metapost.properties
 	copy ..\src\metapost.properties $@
 $(DIR_BIN)\mmixal.properties:	..\src\mmixal.properties
 	copy ..\src\mmixal.properties $@
+$(DIR_BIN)\nimrod.properties:	..\src\nimrod.properties
+	copy ..\src\nimrod.properties $@
 $(DIR_BIN)\nncrontab.properties:	..\src\nncrontab.properties
 	copy ..\src\nncrontab.properties $@
 $(DIR_BIN)\nsis.properties:	..\src\nsis.properties

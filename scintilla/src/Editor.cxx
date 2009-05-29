@@ -12,9 +12,6 @@
 
 #include "Platform.h"
 
-#ifndef PLAT_QT
-#define INCLUDE_DEPRECATED_FEATURES
-#endif
 #include "Scintilla.h"
 
 #include "SplitVector.h"
@@ -984,7 +981,7 @@ This way, we favour the displaying of useful information: the begining of lines,
 where most code reside, and the lines after the caret, eg. the body of a function.
 
      |        |       |      |                                            |
-slop | strict | jumps | even | Caret can go to the margin                 | When reaching limit�锟�(caret going out of
+slop | strict | jumps | even | Caret can go to the margin                 | When reaching limit锟铰��锟�(caret going out of
      |        |       |      |                                            | visibility or going into the UZ) display is...
 -----+--------+-------+------+--------------------------------------------+--------------------------------------------------------------
   0  |   0    |   0   |   0  | Yes                                        | moved to put caret on top/on right
@@ -3169,9 +3166,7 @@ void Editor::Paint(Surface *surfaceWindow, PRectangle rcArea) {
 				ll->RestoreBracesHighlight(rangeLine, braces);
 
 				bool expanded = cs.GetExpanded(lineDoc);
-#ifdef INCLUDE_DEPRECATED_FEATURES
-				if ((foldFlags & SC_FOLDFLAG_BOX) == 0) {
-#endif
+
 					// Paint the line above the fold
 					if ((expanded && (foldFlags & SC_FOLDFLAG_LINEBEFORE_EXPANDED))
 					        ||
@@ -3192,43 +3187,6 @@ void Editor::Paint(Surface *surfaceWindow, PRectangle rcArea) {
 							surface->FillRectangle(rcFoldLine, vs.styles[STYLE_FOLDINGLINE].fore.allocated);
 						}
 					}
-#ifdef INCLUDE_DEPRECATED_FEATURES
-				} else {
-					int FoldLevelCurr = (pdoc->GetLevel(lineDoc) & SC_FOLDLEVELNUMBERMASK) - SC_FOLDLEVELBASE;
-					int FoldLevelPrev = (pdoc->GetLevel(lineDoc - 1) & SC_FOLDLEVELNUMBERMASK) - SC_FOLDLEVELBASE;
-					int FoldLevelFlags = (pdoc->GetLevel(lineDoc) & ~SC_FOLDLEVELNUMBERMASK) & ~(0xFFF0000);
-					int indentationStep = pdoc->IndentSize();
-					// Draw line above fold
-					if ((FoldLevelPrev < FoldLevelCurr)
-					        ||
-					        (FoldLevelFlags & SC_FOLDLEVELBOXHEADERFLAG
-					         &&
-					         (pdoc->GetLevel(lineDoc - 1) & SC_FOLDLEVELBOXFOOTERFLAG) == 0)) {
-						PRectangle rcFoldLine = rcLine;
-						rcFoldLine.bottom = rcFoldLine.top + 1;
-						rcFoldLine.left += xStart + FoldLevelCurr * vs.spaceWidth * indentationStep - 1;
-						surface->FillRectangle(rcFoldLine, vs.styles[STYLE_FOLDINGLINE].fore.allocated);
-					}
-
-					// Line below the fold (or below a contracted fold)
-					if (FoldLevelFlags & SC_FOLDLEVELBOXFOOTERFLAG
-					        ||
-					        (!expanded && (foldFlags & SC_FOLDFLAG_LINEAFTER_CONTRACTED))) {
-						PRectangle rcFoldLine = rcLine;
-						rcFoldLine.top = rcFoldLine.bottom - 1;
-						rcFoldLine.left += xStart + (FoldLevelCurr) * vs.spaceWidth * indentationStep - 1;
-						surface->FillRectangle(rcFoldLine, vs.styles[STYLE_FOLDINGLINE].fore.allocated);
-					}
-
-					PRectangle rcBoxLine = rcLine;
-					// Draw vertical line for every fold level
-					for (int i = 0; i <= FoldLevelCurr; i++) {
-						rcBoxLine.left = xStart + i * vs.spaceWidth * indentationStep - 1;
-						rcBoxLine.right = rcBoxLine.left + 1;
-						surface->FillRectangle(rcBoxLine, vs.styles[STYLE_DEFAULT].fore.allocated);
-					}
-				}
-#endif
 
 				// Draw the Caret
 				if (multiLineCaret && !multiLineCaretBlinks && (selType == selRectangle) && (ll->selStart  >0 )) {
@@ -7512,13 +7470,6 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 	case SCI_SEARCHPREV:
 		return SearchText(iMessage, wParam, lParam);
 
-#ifdef INCLUDE_DEPRECATED_FEATURES
-	case SCI_SETCARETPOLICY:  	// Deprecated
-		caretXPolicy = caretYPolicy = wParam;
-		caretXSlop = caretYSlop = lParam;
-		break;
-#endif
-
 	case SCI_SETXCARETPOLICY:
 		caretXPolicy = wParam;
 		caretXSlop = lParam;
@@ -8212,6 +8163,7 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 	//Platform::DebugPrintf("end wnd proc\n");
 	return 0l;
 }
+
 
 
 

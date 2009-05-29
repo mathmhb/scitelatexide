@@ -214,6 +214,8 @@ deps:
 	$(COPY) $^ $@
 ..\bin\mmixal.properties:	..\src\mmixal.properties
 	$(COPY) $^ $@
+..\bin\nimrod.properties:	..\src\nimrod.properties
+	$(COPY) $^ $@
 ..\bin\nncrontab.properties:	..\src\nncrontab.properties
 	$(COPY) $^ $@
 ..\bin\nsis.properties:	..\src\nsis.properties
@@ -243,8 +245,6 @@ deps:
 ..\bin\rebol.properties:	..\src\rebol.properties
 	$(COPY) $^ $@
 ..\bin\ruby.properties:	..\src\ruby.properties
-	$(COPY) $^ $@
-..\bin\scilab.properties:	..\src\scilab.properties
 	$(COPY) $^ $@
 ..\bin\scriptol.properties:	..\src\scriptol.properties
 	$(COPY) $^ $@

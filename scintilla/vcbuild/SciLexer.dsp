@@ -422,11 +422,11 @@ SOURCE=..\src\LexSQL.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=..\src\LexTADS3.cxx
+SOURCE=..\src\LexTACL.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=..\src\LexTACL.cxx
+SOURCE=..\src\LexTADS3.cxx
 # End Source File
 # Begin Source File
 
