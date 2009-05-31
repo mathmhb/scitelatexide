@@ -981,7 +981,7 @@ This way, we favour the displaying of useful information: the begining of lines,
 where most code reside, and the lines after the caret, eg. the body of a function.
 
      |        |       |      |                                            |
-slop | strict | jumps | even | Caret can go to the margin                 | When reaching limit锟铰��锟�(caret going out of
+slop | strict | jumps | even | Caret can go to the margin                 | When reaching limit��奥锟铰锟铰��锟�(caret going out of
      |        |       |      |                                            | visibility or going into the UZ) display is...
 -----+--------+-------+------+--------------------------------------------+--------------------------------------------------------------
   0  |   0    |   0   |   0  | Yes                                        | moved to put caret on top/on right
@@ -1731,6 +1731,7 @@ void Editor::PaintSelMargin(Surface *surfWindow, PRectangle &rc) {
 				int hilitemark = 0;
 				if (vs.foldHighlightSet && vs.ms[margin].mask & SC_MASK_FOLDERS &&
 					lineDoc >= hlFirstLine && lineDoc <= hlLastLine)
+				{
 					if (level & SC_FOLDLEVELHEADERFLAG) {
 						if (firstSubLine) {
 							if (cs.GetExpanded(lineDoc)) {
@@ -1746,6 +1747,7 @@ void Editor::PaintSelMargin(Surface *surfWindow, PRectangle &rc) {
 					} else {
 						hilitemark = SC_MARKNUM_FOLDERSUB;
 					}
+				}
 //!-end-[HighlightCurrFolder]
 
 				marks &= vs.ms[margin].mask;
@@ -4079,7 +4081,7 @@ void Editor::NotifyModifyAttempt(Document*, void *) {
 
 void Editor::NotifyMove(int position) {
 	SCNotification scn = {0};
-	scn.nmhdr.code = SCN_POSCHANGED;
+	//scn.nmhdr.code = SCN_POSCHANGED;
 	scn.position = position;
 	NotifyParent(scn);
 	if (vs.foldHighlightSet) RedrawSelMargin(); //!-add-[HighlightCurrFolder]
@@ -8163,6 +8165,7 @@ sptr_t Editor::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
 	//Platform::DebugPrintf("end wnd proc\n");
 	return 0l;
 }
+
 
 
 
