@@ -91,6 +91,9 @@ LexBasic.o: ../src/LexBasic.cxx ../include/Platform.h \
   ../include/PropSet.h ../include/SString.h ../include/Accessor.h \
   ../src/StyleContext.h ../include/KeyWords.h ../include/Scintilla.h \
   ../include/SciLexer.h
+LexBiB.o: ../src/LexBiB.cxx ../include/Platform.h ../include/PropSet.h \
+  ../include/SString.h ../include/Accessor.h ../src/StyleContext.h \
+  ../include/KeyWords.h ../include/Scintilla.h ../include/SciLexer.h 
 LexBullant.o: ../src/LexBullant.cxx ../include/Platform.h \
   ../include/PropSet.h ../include/SString.h ../include/Accessor.h \
   ../include/KeyWords.h ../include/Scintilla.h ../include/SciLexer.h
@@ -171,6 +174,9 @@ LexInno.o: ../src/LexInno.cxx ../include/Platform.h ../include/PropSet.h \
 LexKix.o: ../src/LexKix.cxx ../include/Platform.h ../include/PropSet.h \
   ../include/SString.h ../include/Accessor.h ../src/StyleContext.h \
   ../include/KeyWords.h ../include/Scintilla.h ../include/SciLexer.h
+LexLatex.o: ../src/LexLatex.cxx ../include/Platform.h ../include/PropSet.h \
+  ../include/SString.h ../include/Accessor.h ../src/StyleContext.h \
+  ../include/KeyWords.h ../include/Scintilla.h ../include/SciLexer.h 
 LexLisp.o: ../src/LexLisp.cxx ../include/Platform.h ../include/PropSet.h \
   ../include/SString.h ../include/Accessor.h ../include/KeyWords.h \
   ../include/Scintilla.h ../include/SciLexer.h ../src/StyleContext.h
