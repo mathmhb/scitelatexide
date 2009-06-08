@@ -409,7 +409,7 @@ void SciTEBase::LoadSessionFile(const char *sessionName) {
 }
 
 void SciTEBase::RestoreRecentMenu() {
-	CharacterRange cr;
+	Sci_CharacterRange cr;
 	cr.cpMin = cr.cpMax = 0;
 
 	DeleteFileStackMenu();
@@ -424,6 +424,7 @@ void SciTEBase::RestoreRecentMenu() {
 }
 
 void SciTEBase::RestoreSession() {
+	props.Set("scite.state.loadsession", "1"); //!-add-[session.load.forced]
 	if (props.GetInt("session.close.buffers.onload", 1) == 1) //!-add-[session.close.buffers.onload]
 	// Comment next line if you don't want to close all buffers before restoring session
 	CloseAllBuffers(true);
@@ -478,6 +479,19 @@ void SciTEBase::RestoreSession() {
 			}
 		}
 	}
+//!-start-[session.load.forced]	
+	props.Set("scite.state.loadsession", "0");
+	if (props.GetInt("session.load.forced", 0) == 1 && curr != -1) {
+		ReadProperties();
+		SetIndentSettings();
+		UpdateBuffersCurrent();
+		SizeSubWindows();
+		SetWindowName();
+		if (lineNumbers && lineNumbersExpand)
+			SetLineNumberWidth();
+		UpdateStatusBar(true);
+	}
+//!-end-[session.load.forced]
 
 	if (curr != -1)
 		SetDocumentAt(curr);
@@ -1008,7 +1022,7 @@ void SciTEBase::AddFileToBuffer(FilePath file, int pos) {
 	}
 }
 
-void SciTEBase::AddFileToStack(FilePath file, CharacterRange selection, int scrollPos) {
+void SciTEBase::AddFileToStack(FilePath file, Sci_CharacterRange selection, int scrollPos) {
 	if (!file.IsSet())
 		return;
 	DeleteFileStackMenu();
@@ -1171,7 +1185,8 @@ void SciTEBase::SetToolsMenu() {
 				sMnemonic += "Ctrl+";
 				sMnemonic += SString(item);
 			}
-			SetMenuItemLocalised(menuTools, menuPos, itemID, sMenuItem.c_str(), sMnemonic[0] ? sMnemonic.c_str() : NULL);
+			SetMenuItemLocalised(menuTools, menuPos, itemID, sMenuItem.c_str(), 
+				sMnemonic[0] ? sMnemonic.c_str() : NULL);
 			menuPos++;
 		}
 	}
@@ -1201,12 +1216,12 @@ void SciTEBase::SetToolsMenu() {
 	MenuEx arrMenu[toolMax];
 	int menuPos = TOOLS_START+1;
 
-	// очищаем меню tools
+
 	arrMenu[0] = GetMenu(menuTools);
 	arrMenu[0].RemoveItems(IDM_TOOLS);
 	arrMenu[0].RemoveItems(IDM_MACRO_SEP, IDM_MACROLIST);
 
-	// формируем меню
+
 	for (items = 0; items < toolMax; items++) {
 		int itemID = IDM_TOOLS + items;
 		SString prefix = "command.name." + SString(items) + ".";
@@ -1238,7 +1253,7 @@ void SciTEBase::SetToolsMenu() {
 		}
 	}
 
-	// добавляем макросы
+
 	if (macrosEnabled) {
 		SetMenuItem(menuTools, menuPos++, IDM_MACRO_SEP, "");
 		SetMenuItemLocalised(menuTools, menuPos++, IDM_MACROLIST,
@@ -1251,7 +1266,7 @@ void SciTEBase::SetToolsMenu() {
 			"S&top Recording Macro", "Ctrl+Shift+F9");
 	}
 
-	// вставляем вложенные меню в начало
+
 	menuPos = TOOLS_START+1;
 	for (items = 1; items < toolMax; items++) {
 		if (arrMenu[items].GetID() != 0) {
@@ -1805,7 +1820,7 @@ int DecodeMessage(const char *cdoc, char *sourcePath, int format, int &column) {
 
 //!void SciTEBase::GoMessage(int dir) {
 bool SciTEBase::GoMessage(int dir) { //!-change-[GoMessageImprovement]
-	CharacterRange crange;
+	Sci_CharacterRange crange;
 	crange.cpMin = SendOutput(SCI_GETSELECTIONSTART);
 	crange.cpMax = SendOutput(SCI_GETSELECTIONEND);
 	int selStart = crange.cpMin;
@@ -1960,4 +1975,5 @@ bool SciTEBase::GoMessage(int dir) { //!-change-[GoMessageImprovement]
 	}
 	return false; //!-add-[GoMessageImprovement]
 }
+
 

@@ -5,7 +5,7 @@
 // Copyright 1998-2003 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-//! #include <time.h> //!-change-[close_on_dbl_clk]
+//! #include <time.h> //!-change-[tab.window]
 
 #include "SciTEWin.h"
 
@@ -397,7 +397,7 @@ void SciTEWin::ExecuteHelp(const char *cmd) {
 }
 
 void SciTEWin::CopyAsRTF() {
-	CharacterRange cr = GetSelection();
+	Sci_CharacterRange cr = GetSelection();
 	char *fileNameTemp = tmpnam(0);
 	if (fileNameTemp) {
 		SaveToRTF(fileNameTemp, cr.cpMin, cr.cpMax);
@@ -1633,7 +1633,7 @@ LRESULT SciTEWin::KeyUp(WPARAM wParam) {
 	return 0l;
 }
 
-/*!
+/*!-change-[ExtendedContextMenu]
 void SciTEWin::AddToPopUp(const char *label, int cmd, bool enabled) {
 	SString localised = localiser.Text(label);
 	HMENU menu = reinterpret_cast<HMENU>(popup.GetID());
@@ -1716,6 +1716,7 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 				::ShowWindow(MainHWND(), SW_RESTORE);
 				::FlashWindow(MainHWND(), FALSE);
 			}
+// Add: tray menu [LaTeX IDE]
 			else if(lParam==WM_RBUTTONDOWN)
 			{        
 				POINT pt;
@@ -1736,21 +1737,6 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 				if (iSelection == IDM_QUIT)
 				{
 					RestoreFromTray();  // clear the tray icon first
-/*
-					// check if any of documents is modified   
-					bool isAnyDirty=false;
-					for (int i = 0; i < buffers.length; ++i) 
-					{
-						isAnyDirty |= (buffers.buffers).isDirty;
-						if (isAnyDirty) break;
-					}
-					// if any of documents is modified, then restore the window
-					if (isAnyDirty)
-					{
-						::ShowWindow(MainHWND(), SW_RESTORE);
-						::FlashWindow(MainHWND(), FALSE);
-					}
-*/
 					QuitProgram();
 					::FlashWindow(MainHWND(), FALSE);
 				}

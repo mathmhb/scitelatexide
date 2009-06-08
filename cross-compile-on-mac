@@ -1,0 +1,23 @@
+#/usr/bin/bash
+
+cd scintilla/win32
+mv ./makefile ./makefile.---
+mv ./makefile-mingw-mac ./makefile
+make
+mv ./makefile ./makefile-mingw-mac
+mv ./makefile.--- ./makefile
+
+cd ../../scite/win32
+mv ./makefile ./makefile.---
+mv ./makefile-mingw-mac ./makefile
+make
+mv ./makefile ./makefile-mingw-mac
+mv ./makefile.--- ./makefile
+cd ../..
+cp ./scite/bin/SciTE.exe ./Release/SciTE.exe
+
+cd ./iconlib
+build-on-mac
+mv ./toolbar.dll ../Release/toolbar.dll
+
+

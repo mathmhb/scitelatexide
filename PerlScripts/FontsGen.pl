@@ -35,7 +35,7 @@ use File::DosGlob 'glob';
 
 
 $progname = "$0";
-$version = "V1.6+";
+$version = "V1.7";
 $copyright = "Copyright (C) 2008-2009 Instanton";
 $contributions = "Contributions from milksea and aloft included";
 
@@ -337,7 +337,7 @@ if ($pfb)
 		(! (-e "$destdir/fonts/type1/Chinese/$pre$familyname/$pre$familyname$i$j.pfb"))) 
 	    # generation of pfb files is time consuming, so avoid regenerating existing files
 	    {
-		system("ttf2pt1 -W0 -b $switches$i$j  $ttfdir/$ttfname $pre$familyname$i$j");
+		system("ttf2pt1 -W0 -pft -b $switches$i$j  $ttfdir/$ttfname $pre$familyname$i$j");
 	    }
 	}
     }

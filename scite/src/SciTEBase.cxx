@@ -310,6 +310,7 @@ const char *contributors[] = {
             "Evan Jones",
             "Mike Lischke",
             "Eric Kidd",
+            "maXmo",
 //!-start-[SciTE-Ru]
             "HSolo",
             "Midas",
@@ -935,7 +936,7 @@ SString SciTEBase::GetLine(int line) {
 }
 
 void SciTEBase::GetRange(Window &win, int start, int end, char *text) {
-	TextRange tr;
+	Sci_TextRange tr;
 	tr.chrg.cpMin = start;
 	tr.chrg.cpMax = end;
 	tr.lpstrText = text;
@@ -1221,8 +1222,8 @@ void SciTEBase::SetWindowName() {
 	wSciTE.SetTitle(windowName.c_str());
 }
 
-CharacterRange SciTEBase::GetSelection() {
-	CharacterRange crange;
+Sci_CharacterRange SciTEBase::GetSelection() {
+	Sci_CharacterRange crange;
 	crange.cpMin = SendEditor(SCI_GETSELECTIONSTART);
 	crange.cpMax = SendEditor(SCI_GETSELECTIONEND);
 	return crange;
@@ -1313,7 +1314,7 @@ bool SciTEBase::islexerwordcharforsel(char ch) {
 
 SString SciTEBase::GetRange(Window &win, int selStart, int selEnd) {
 	SBuffer sel(selEnd - selStart);
-	TextRange tr;
+	Sci_TextRange tr;
 	tr.chrg.cpMin = selStart;
 	tr.chrg.cpMax = selEnd;
 	tr.lpstrText = sel.ptr();
@@ -1752,7 +1753,7 @@ int SciTEBase::FindNext(bool reverseDirection, bool showWarnings) {
 	if (lenFind == 0)
 		return -1;
 
-	CharacterRange cr = GetSelection();
+	Sci_CharacterRange cr = GetSelection();
 	int startPosition = cr.cpMax;
 	int endPosition = LengthDocument();
 	if (reverseDirection) {
@@ -1806,7 +1807,7 @@ void SciTEBase::ReplaceOnce() {
 	if (havefound) {
 		SString replaceTarget = EncodeString(replaceWhat);
 		int replaceLen = UnSlashAsNeeded(replaceTarget, unSlash, regExp);
-		CharacterRange cr = GetSelection();
+		Sci_CharacterRange cr = GetSelection();
 		SendEditor(SCI_SETTARGETSTART, cr.cpMin);
 		SendEditor(SCI_SETTARGETEND, cr.cpMax);
 		int lenReplaced = replaceLen;
@@ -1828,7 +1829,7 @@ int SciTEBase::DoReplaceAll(bool inSelection) {
 		return -1;
 	}
 
-	CharacterRange cr = GetSelection();
+	Sci_CharacterRange cr = GetSelection();
 	int startPosition = cr.cpMin;
 	int endPosition = cr.cpMax;
 	int selType = SC_SEL_STREAM;
@@ -2427,7 +2428,7 @@ bool SciTEBase::StartAutoComplete() {
 	}
 	SString root = line.substr(startword, current - startword);
 	int doclen = LengthDocument();
-	TextToFind ft = {{0, 0}, 0, {0, 0}};
+	Sci_TextToFind ft = {{0, 0}, 0, {0, 0}};
 	ft.lpstrText = const_cast<char*>(root.c_str());
 	ft.chrg.cpMin = 0;
 	ft.chrgText.cpMin = 0;
@@ -2508,10 +2509,12 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 	SString line = GetLine();
 	int current = GetCaretInLine();
 
+//!-start-[autocompleteword.incremental]
 	if (!current)
 	{
 		SendEditor(SCI_AUTOCCANCEL);
 	}
+//!-end-[autocompleteword.incremental]
 	int startword = current;
 	// Autocompletion of pure numbers is mostly an annoyance
 	bool allNumber = true;
@@ -2525,7 +2528,7 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 		return true;
 	SString root = line.substr(startword, current - startword);
 	int doclen = LengthDocument();
-	TextToFind ft = {{0, 0}, 0, {0, 0}};
+	Sci_TextToFind ft = {{0, 0}, 0, {0, 0}};
 	ft.lpstrText = const_cast<char*>(root.c_str());
 	ft.chrg.cpMin = 0;
 	ft.chrg.cpMax = doclen;
@@ -3306,7 +3309,7 @@ void SciTEBase::SetTextProperties(
 
 	ps.SetInteger("NbOfLines", SendEditor(SCI_GETLINECOUNT));
 
-	CharacterRange crange = GetSelection();
+	Sci_CharacterRange crange = GetSelection();
 	int selFirstLine = SendEditor(SCI_LINEFROMPOSITION, crange.cpMin);
 	int selLastLine = SendEditor(SCI_LINEFROMPOSITION, crange.cpMax);
 	if (SendEditor(SCI_GETSELECTIONMODE) == SC_SEL_RECTANGLE) {
@@ -3365,7 +3368,7 @@ void SciTEBase::UpdateStatusBar(bool bUpdateSlowData) {
 void SciTEBase::SetLineIndentation(int line, int indent) {
 	if (indent < 0)
 		return;
-	CharacterRange crange = GetSelection();
+	Sci_CharacterRange crange = GetSelection();
 	int posBefore = GetLineIndentPosition(line);
 	SendEditor(SCI_SETLINEINDENTATION, line, indent);
 	int posAfter = GetLineIndentPosition(line);
@@ -3593,7 +3596,7 @@ void SciTEBase::MaintainIndentation(char ch) {
 }
 
 void SciTEBase::AutomaticIndentation(char ch) {
-	CharacterRange crange = GetSelection();
+	Sci_CharacterRange crange = GetSelection();
 	int selStart = crange.cpMin;
 	int curLine = GetCurrentLineNumber();
 	int thisLineStart = SendEditor(SCI_POSITIONFROMLINE, curLine);
@@ -3639,7 +3642,7 @@ void SciTEBase::AutomaticIndentation(char ch) {
 void SciTEBase::CharAdded(char ch) {
 	if (recording)
 		return;
-	CharacterRange crange = GetSelection();
+	Sci_CharacterRange crange = GetSelection();
 	int selStart = crange.cpMin;
 	int selEnd = crange.cpMax;
 	if ((selEnd == selStart) && (selStart > 0)) {
@@ -3669,7 +3672,8 @@ void SciTEBase::CharAdded(char ch) {
 					StartAutoComplete();
 				}
 			} else if (autoCCausedByOnlyOne) {
-				StartAutoCompleteWord(!props.GetInt("autocompleteword.incremental"));
+//!				StartAutoCompleteWord(true);
+				StartAutoCompleteWord(!props.GetInt("autocompleteword.incremental")); //!-change-[autocompleteword.incremental]
 			}
 		} else if (HandleXml(ch)) {
 			// Handled in the routine
@@ -3687,7 +3691,8 @@ void SciTEBase::CharAdded(char ch) {
 				if (autoCompleteStartCharacters.contains(ch)) {
 					StartAutoComplete();
 				} else if (props.GetInt("autocompleteword.automatic") && wordCharacters.contains(ch)) {
-					StartAutoCompleteWord(!props.GetInt("autocompleteword.incremental"));
+//!					StartAutoCompleteWord(true);
+					StartAutoCompleteWord(!props.GetInt("autocompleteword.incremental")); //!-change-[autocompleteword.incremental]
 					autoCCausedByOnlyOne = SendEditor(SCI_AUTOCACTIVE);
 				}
 			}
@@ -4815,12 +4820,15 @@ void SciTEBase::Notify(SCNotification *notification) {
 		}
 		break;
 
+//!-start-[autocompleteword.incremental]
 	case SCN_AUTOCUPDATED:
 		if (props.GetInt("autocompleteword.incremental"))
 		{
 			StartAutoCompleteWord(false);
 		}
 		break;
+//!-end-[autocompleteword.incremental]
+
 	case SCN_CHARADDED:
 		if (extender)
 			handled = extender->OnChar(static_cast<char>(notification->ch));
