@@ -1,0 +1,19 @@
+#/usr/bin/bash
+
+cd scintilla/win32
+mv ./makefile ./makefile.---
+mv ./makefile-mingw-mac ./makefile
+make clean
+mv ./makefile ./makefile-mingw-mac
+mv ./makefile.--- ./makefile
+rm ../bin/*.dll
+
+cd ../../scite/win32
+mv ./makefile ./makefile.---
+mv ./makefile-mingw-mac ./makefile
+make clean
+mv ./makefile ./makefile-mingw-mac
+mv ./makefile.--- ./makefile
+rm ../bin/*.exe
+
+cd ../..

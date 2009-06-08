@@ -582,13 +582,14 @@ BEGIN
 END
 
 //! IDR_CLOSEFILE BITMAP "closefile.bmp"
+IDR_BUTTONS BITMAP "buttons.bmp"	//!-add-[user.toolbar]
 
 //The embedded properties file is to allow a one file distribution of Sc1.EXE
 #ifdef STATIC_BUILD
 Embedded Properties Embedded.properties
 IDC_MARGIN         CURSOR  DISCARDABLE     "Margin.cur"
 #endif
-IDC_DRAGDROP       CURSOR  DISCARDABLE     "DragDrop.cur" //!-add-[TabsMoving]
+IDC_DRAGDROP       CURSOR  DISCARDABLE     "DragDrop.cur" //!-add-[tab.window]
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION	1, 7, 8, 64

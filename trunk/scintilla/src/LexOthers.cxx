@@ -1462,8 +1462,20 @@ static void ColouriseErrorListDoc(unsigned int startPos, int length, int, WordLi
 	styler.StartAt(startPos);
 	styler.StartSegment(startPos);
 	unsigned int linePos = 0;
+
+	// property lexer.errorlist.value.separate 
+	//	For lines in the output pane that are matches from Find in Files or GCC-style 
+	//	diagnostics, style the path and line number separately from the rest of the 
+	//	line with style 21 used for the rest of the line. 
+	//	This allows matched text to be more easily distinguished from its location. 
 //!	bool valueSeparate = styler.GetPropertyInt("lexer.errorlist.value.separate", 0) != 0;
 //!-start-[FindResultListStyle]
+
+	// property lexer.errorlist.value.separate 
+	//	For lines in the output pane that are matches from Find in Files or GCC-style 
+	//	diagnostics, style the path and line number separately from the rest of the 
+	//	line with style 21 used for the rest of the line. 
+	//	This allows matched text to be more easily distinguished from its location. 
 	bool valueSeparate = styler.GetPropertyInt("lexer.errorlist.value.separate", 1) > 0;
 	SString findTitleBegin = styler.GetProperty("lexer.errorlist.findtitle.begin");
 	SString findTitleEnd = styler.GetProperty("lexer.errorlist.findtitle.end");
