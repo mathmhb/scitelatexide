@@ -279,7 +279,8 @@ const char *contributors[] = {
             "Enrico Tr\xc3\xb6ger",
             "Todd Whiteman",
             "Yuval Papish",
-            "instanton",
+            "Instanton",
+			"Mathmhb",
             "Sergio Lucato",
             "VladVRO",
             "Dmitry Maslov",
@@ -806,6 +807,7 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 //		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f)); 
 		SetAboutStyle(wsci, 2, ColourDesired(0, 0, 0));
 		AddStyledText(wsci, "Instanton (soft_share@126.com)\n", 4);
+		AddStyledText(wsci, "Mathmhb (mathmhb@163.com)\n", 4);
 		Platform::SendScintilla(wsci, SCI_STYLESETITALIC, 2, 1);
 		AddStyledText(wsci, GetTranslationToAbout("Based on").c_str(), trsSty); 
 		AddStyledText(wsci, " SciTE 1.78 ", 1); //!-add-[SciTE-Ru]

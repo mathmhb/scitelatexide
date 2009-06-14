@@ -163,6 +163,10 @@ BEGIN
 	MENUITEM "Open A&bbreviations File",		IDM_OPENABBREVPROPERTIES
 	MENUITEM "Open Lua Startup Scr&ipt", 		IDM_OPENLUAEXTERNALFILE
 	MENUITEM SEPARATOR
+	POPUP "&Properties Files"
+	BEGIN
+		MENUITEM SEPARATOR
+	END
 END // used: abcghlmoprstux
 
 POPUP "&Language"
@@ -608,7 +612,7 @@ BEGIN
 	BEGIN
 		BLOCK "040904b0"
 		BEGIN
-			VALUE	"CompanyName",	"Instanton (soft_share@126.com)\0"
+			VALUE	"CompanyName",	"Instanton (soft_share@126.com) & Mathmhb (mathmhb@163.com)\0"
 			//~ VALUE	"FileDescription",	"LaTeX IDE: an SciTE variant\0"
 			VALUE	"FileDescription",	APPNAME ": an SciTE variant\0"
 			VALUE	"FileVersion",	"1.78 .64\0"
