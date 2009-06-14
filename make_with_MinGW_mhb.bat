@@ -9,6 +9,6 @@ make ONEIDE=-DONEIDE
 upx -o ..\bin\Sc1.exe ..\bin\SciTE.exe
 copy ..\bin\Sc1.exe ..\..\Release
 cd ..\..\iconlib
-make.bat
+call make.bat
 copy toolbar.dll ..\Release
-
+pause

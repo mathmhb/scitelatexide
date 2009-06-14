@@ -337,7 +337,7 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
             //------------------------------------------------------------------
             case SCE_L_STRING:
                 if(sc.atLineEnd) sc.ForwardSetState(SCE_L_STRING); 
-                else if(sc.chPrev=='\'' && sc.ch == '\''){ 
+                else if((sc.chPrev=='\'' && sc.ch == '\'')||(sc.chPrev=='"')) { //[mhb] 06/14/09: suggested by qsh, to fix latex ``...." coloring bug
                     sc.ForwardSetState(SCE_L_DEFAULT);
 				}
             break;            

@@ -583,6 +583,12 @@ void SciTEWin::SetMenuItem(int menuNumber, int position, int itemID,
                            const char *text, const char *mnemonic) {
 	// On Windows the menu items are modified if they already exist or are created
 	HMENU hmenu = ::GetSubMenu(::GetMenu(MainHWND()), menuNumber);
+	
+	//[mhb] 06/14/09: to put user properties files in a submenu
+	if ((menuNumber==menuOptions) && (position>=IMPORT_START)) {
+		hmenu = ::GetSubMenu(hmenu, IMPORT_START);
+	}
+	
 	SString sTextMnemonic = text;
 	long keycode = 0;
 	if (mnemonic && *mnemonic) {
