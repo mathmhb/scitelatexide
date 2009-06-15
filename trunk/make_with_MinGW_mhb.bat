@@ -6,9 +6,8 @@ make
 CD ..\..
 CD scite\win32
 make ONEIDE=-DONEIDE
-upx -o ..\bin\Sc1.exe ..\bin\SciTE.exe
-copy ..\bin\Sc1.exe ..\..\Release
+copy ..\bin\SciTE.exe ..\..\Release
+
+upx -o ..\Sc1IDE\Sc1.exe ..\bin\SciTE.exe
 cd ..\..\iconlib
-call make.bat
-copy toolbar.dll ..\Release
-pause
+call mymake.bat
