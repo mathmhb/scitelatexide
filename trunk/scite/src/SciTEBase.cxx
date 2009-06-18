@@ -3349,6 +3349,9 @@ void SciTEBase::UpdateStatusBar(bool bUpdateSlowData) {
 		}
 		SetTextProperties(propsStatus);
 		int caretPos = SendEditor(SCI_GETCURRENTPOS);
+		//[mhb] 06/18/09 : add a property "FoldLevel"
+		propsStatus.SetInteger("FoldLevel",
+		        SendEditor(SCI_GETFOLDLEVEL, GetCurrentLineNumber()) - SC_FOLDLEVELBASE);
 		propsStatus.SetInteger("LineNumber",
 		        SendEditor(SCI_LINEFROMPOSITION, caretPos) + 1);
 		propsStatus.SetInteger("ColumnNumber",
