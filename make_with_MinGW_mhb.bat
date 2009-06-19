@@ -7,7 +7,9 @@ CD ..\..
 CD scite\win32
 make ONEIDE=-DONEIDE
 copy ..\bin\SciTE.exe ..\..\Release
-
-upx -o ..\Sc1IDE\Sc1.exe ..\bin\SciTE.exe
-cd ..\..\iconlib
-call mymake.bat
+cd ..\..
+del Sc1IDE\Sc1.exe
+upx -o Sc1IDE\Sc1.exe scite\bin\SciTE.exe
+cd iconlib
+cmd.exe /c mymake.cmd
+cd ..
