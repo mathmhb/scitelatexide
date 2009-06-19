@@ -1,5 +1,0 @@
-/usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-windres -o resfile.o ./toolbar.rc
-/usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-gcc -s -shared -nostdlib -o toolbar.dll resfile.o
-
-rm resfile.o
-

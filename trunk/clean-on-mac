@@ -1,4 +1,4 @@
-#/usr/bin/bash
+#!/bin/bash
 
 cd scintilla/win32
 mv ./makefile ./makefile.---

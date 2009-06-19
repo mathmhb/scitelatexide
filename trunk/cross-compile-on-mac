@@ -1,4 +1,4 @@
-#/usr/bin/bash
+#!/usr/bin/bash
 
 cd scintilla/win32
 mv ./makefile ./makefile.---
@@ -16,8 +16,6 @@ mv ./makefile.--- ./makefile
 cd ../..
 cp ./scite/bin/SciTE.exe ./Release/SciTE.exe
 
-cd ./iconlib
-build-on-mac
-mv ./toolbar.dll ../Release/toolbar.dll
-
+cd ./iconlib/ico
+./build-on-mac
 
