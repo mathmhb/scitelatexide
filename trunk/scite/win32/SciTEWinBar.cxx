@@ -469,14 +469,37 @@ void SciTEWin::SetToolBar() {
 
 	SString fileNameForExtension = ExtensionFileName();
 
-	SString sIconlib = props.GetNewExpand("user.toolbar.iconlib.", fileNameForExtension.c_str());
+	//[mhb] 06/19/09 revised: to use only one iconlib from property user.toolbar.iconlib; no obvious reasons to use multiple iconlibs
+	//SString sIconlib = props.GetNewExpand("user.toolbar.iconlib.", fileNameForExtension.c_str());
+	SString sIconlib = props.GetExpanded("user.toolbar.iconlib");
+	
+	//[mhb] 06/19/09 : to reuse existing iconlib so as to make the editor faster
+	static HICON icons[1000];//allow max 1000 icons
+	static int icons_count=0;
+	int reload_icons= (icons_count==0);
+	
+	
 	HICON hIcon = NULL;
 	HICON hIconBig = NULL;
 	int iCount = 0;
 	HDC hDesktopDC = ::GetDC( NULL );
 	RECT rect = { 0, 0, 16, 16 };
 	HBRUSH hBrashBack = ::GetSysColorBrush( COLOR_BTNFACE );
-	while ( (int)::ExtractIconEx( sIconlib.c_str(), iCount++, &hIconBig, &hIcon, 1 ) > 0 ) {
+	
+	//while ( (int)::ExtractIconEx( sIconlib.c_str(), iCount++, &hIconBig, &hIcon, 1 ) > 0 ) { //[mhb] 06/19/09 commented
+	while ( 1 ) { //[mhb] 06/19/09  revised: (int) ... >0
+		
+		//[mhb] 06/19/09 added: allow to reuse saved icons which are saved in memory when loaded first time
+		if (reload_icons) {
+			if ((int)::ExtractIconEx( sIconlib.c_str(), iCount, &hIconBig, &hIcon, 1 ) <= 0) break;
+			icons[iCount]=CopyIcon(hIcon);
+			icons_count=++iCount;
+		} else {
+			if (iCount>=icons_count) break;
+			hIcon=CopyIcon(icons[iCount]);
+			iCount++;
+		}
+	
 		if ( hIconBig != NULL )::DestroyIcon( hIconBig );
 		if ( hIcon != NULL ) {
 			HDC hDC = ::CreateCompatibleDC( hDesktopDC );
