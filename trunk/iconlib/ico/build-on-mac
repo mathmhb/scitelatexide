@@ -1,0 +1,30 @@
+#!/bin/bash
+# make toolbar.dll from a unix shell script
+
+touch toolbar.constant
+touch toolbar.rc
+
+i=0
+for File in *.ICO
+do
+	echo ICO_${File%.ICO}=0$i >> toolbar.constant
+	echo $i ICON "$File" >> toolbar.rc
+	i=`expr $i + 1`
+done
+
+/usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-windres -o resfile.o toolbar.rc
+/usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-gcc -s -shared -nostdlib -o toolbar.dll resfile.o
+
+rm resfile.o
+
+#cp ./toolbar.dll ../../Sc1IDE
+#cp ./toolbar.constant ../../Sc1IDE
+
+mv ./toolbar.dll ../../Release
+mv ./toolbar.constant ../../Release
+
+for a in toolbar.* 
+do
+	rm $a
+done
+
