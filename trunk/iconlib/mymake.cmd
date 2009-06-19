@@ -1,7 +1,7 @@
 @echo off
-REM copyright [mhb] 15/06/2009: generate toolbar.dll from named icons in [my] (excluding ICON_*.ico)
-REM You just need to put named icon files in [my]. Remember to make all file names uppercase.
-cd /d "%~dp0my"
+REM copyright [mhb] 15/06/2009: generate toolbar.dll from named icons in [ico] (excluding ICON_*.ico)
+REM You just need to put named icon files in [ico]. Remember to make all file names uppercase.
+cd /d "%~dp0ico"
 set N=0
 echo Deleting toolbar.constant and toolbar.rc ...
 del toolbar.constant
