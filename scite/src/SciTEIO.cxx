@@ -105,11 +105,18 @@ void SciTEBase::SetFileName(FilePath openName, bool fixCase) {
 
 	ReadLocalPropFile();
 
+	//[mhb] 06/23/09 added: to provide a new property "FileType" to indicate current file type xxx: file.patterns.xxx=...
+	char *filename=StringDup(FileNameExt().AsFileSystem());
+	props.Set("FileType", props.GetFileType(filename).c_str());
+
 	props.Set("FilePath", filePath.AsFileSystem());
 	props.Set("FileDir", filePath.Directory().AsFileSystem());
 	props.Set("FileName", filePath.BaseName().AsFileSystem());
 	props.Set("FileExt", filePath.Extension().AsFileSystem());
-	props.Set("FileNameExt", FileNameExt().AsFileSystem());
+	props.Set("FileNameExt", filename); //[mhb] 06/23/09 changed: FileNameExt().AsFileSystem()
+	
+	delete[] filename; //[mhb] 06/23/09 added
+	
 	SetFileProperties(props);	//!-add-[FileAttr in PROPS]
 	SetWindowName();
 	if (buffers.buffers)
