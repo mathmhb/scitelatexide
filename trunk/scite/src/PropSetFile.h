@@ -18,6 +18,8 @@ public:
 	bool Read(FilePath filename, FilePath directoryForImports, FilePath imports[] = 0, int sizeImports = 0);
 	void SetInteger(const char *key, sptr_t i);
 	SString GetWild(const char *keybase, const char *filename);
+	SString GetPropExt(const char *fmt, const char *keybase, const char *keyext);//[mhb] 06/22/09 
+	SString GetFileType(const char *filename);//[mhb] 06/22/09 
 	SString GetNewExpand(const char *keybase, const char *filename="");
 	bool GetFirst(char **key, char **val);
 	bool GetNext(char **key, char **val);

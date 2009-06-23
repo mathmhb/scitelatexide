@@ -201,6 +201,24 @@ static bool MatchWild(const char *pattern, size_t lenPattern, const char *fileNa
 	return false;
 }
 
+//[mhb] 06/22/09 added: Match filenames to multiple patterns seperated by ";"
+static bool MatchPatterns(const char *patterns, const char *fileName, bool caseSensitive) {
+	char *keyfile=StringDup(patterns);
+	for (;;) {
+		char *del = strchr(keyfile, ';');
+		if (del == NULL)
+			del = keyfile + strlen(keyfile);
+		if (MatchWild(keyfile, del - keyfile, fileName, caseSensitive)) {
+			delete []keyfile;
+			return true;
+		}
+		if (*del == '\0')
+			break;
+		keyfile = del + 1;
+	}
+	return false;
+}
+
 SString PropSetFile::GetWildUsingStart(const PropSet &psStart, const char *keybase, const char *filename) {
 
 	for (int root = 0; root < hashRoots; root++) {
@@ -210,7 +228,7 @@ SString PropSetFile::GetWildUsingStart(const PropSet &psStart, const char *keyba
 				char *keyfile = NULL;
 
 				if (strncmp(orgkeyfile, "$(", 2) == 0) {
-					const char *cpendvar = strchr(orgkeyfile, ')');
+	const char *cpendvar = strchr(orgkeyfile, ')');
 					if (cpendvar) {
 						SString var(orgkeyfile, 2, cpendvar-orgkeyfile);
 						SString s = psStart.GetExpanded(var.c_str());
@@ -250,8 +268,60 @@ SString PropSetFile::GetWildUsingStart(const PropSet &psStart, const char *keyba
 	}
 }
 
+//[mhb] 06/22/09 added: to extract property "keybase.keyext"
+SString PropSetFile::GetPropExt(const char *fmt, const char *keybase, const char *keyext) {
+	char buf[100];
+	SString s;
+	sprintf(buf,fmt,keybase,keyext);
+	s=GetExpanded(buf);
+	return s;
+}
+//[mhb] 06/22/09 added: to extract current file type via searching property "get.wild.filetypes"
+SString PropSetFile::GetFileType(const char *filename) {
+	SString ft=GetExpanded("get.wild.filetypes");
+	//search file.patterns.xxx for any xxx in property "get.wild.filetypes"
+	char *p=StringDup(ft.c_str()),*q=NULL,*p0=p;
+	while (*p) {
+		q=strchr(p,';');
+		if (q) {*q=0;}
+		SString fp=GetPropExt("%s.%s","file.patterns",p);
+		if (MatchPatterns(fp.c_str(), filename, caseSensitiveFilenames)) {
+            q=strdup(p);
+			delete []p0;
+			return SString(q);
+		}
+		if (!q) {break;} else {p=q+1;}
+	}
+	delete []p0;
+	return SString("");
+}
+
 SString PropSetFile::GetWild(const char *keybase, const char *filename) {
-	return GetWildUsingStart(*this, keybase, filename);
+	//[mhb] added: use new property "get.wild.mode" to choose how to GetWild
+	SString wild_mode=GetExpanded("get.wild.mode");
+	if (wild_mode.value()==0) {// use original very slow method in SciTE
+		return GetWildUsingStart(*this, keybase, filename);
+	}
+	
+	//[mhb] 06/22/09: use new FAST method, not searching the whole properties files
+	SString s=GetPropExt("%s%s",keybase,filename);
+	if (s.length()==0) {
+		char *ext=strrchr(filename,'.');
+		if (ext) {s=GetPropExt("%s*%s",keybase,ext);}
+	}
+	if (s.length()==0) {
+		SString typ=GetExpanded("FileType");//automatically set when open/switch file
+        if (typ.length()==0) {
+            typ=GetFileType(filename);//if FileType is not set, try to detect by using GetFileType
+        }
+		if (typ.length()>0) {
+			s=GetPropExt("%s$(file.patterns.%s)",keybase,typ.c_str());
+		}
+	}
+	if (s.length()==0) {
+		s=GetPropExt("%s%s",keybase,"*");
+	}
+	return s;
 }
 
 // GetNewExpand does not use Expand as it has to use GetWild with the filename for each
