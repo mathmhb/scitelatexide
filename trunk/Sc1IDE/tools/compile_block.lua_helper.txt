@@ -1,0 +1,41 @@
+在TeX源文件头部添加如下代码：(只添一组)
+
+%--------------------------------------------
+%使用latex编译,并用yap打开dvi
+%!block compiler latex
+%!block viewer start yap -1
+%!block view_ext .dvi
+%!block use_sys_tmp_path 0
+%!block del_aux 1
+
+%--------------------------------------------
+%使用texify编译,并用texify指定的dvi阅读器打开
+%!block compiler start texify -q --run-viewer
+%!block viewer @
+%!block view_ext .dvi
+%!block use_sys_tmp_path 0
+%!block del_aux 1
+
+%--------------------------------------------
+%使用pdflatex编译,并用系统关联程序打开pdf文件,此为默认选项
+%!block compiler pdflatex
+%!block viewer start ""
+%!block view_ext .pdf
+%!block use_sys_tmp_path 0
+%!block del_aux 1
+
+%--------------------------------------------
+%使用pdflatex编译,并使用FoxitReader打开pdf文件
+%!block compiler pdflatex
+%!block viewer start "" FoxitReader
+%!block view_ext .pdf
+%!block use_sys_tmp_path 0
+%!block del_aux 1
+
+%--------------------------------------------
+%使用xelatex编译,并使用FoxitReader打开pdf文件
+%!block compiler xelatex
+%!block viewer start "" FoxitReader
+%!block view_ext .pdf
+%!block use_sys_tmp_path 0
+%!block del_aux 1

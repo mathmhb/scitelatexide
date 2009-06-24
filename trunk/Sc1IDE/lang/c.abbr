@@ -1,0 +1,11 @@
+doc=#include <stdio.h>\n\nint main(int argc, char *argv[])\n{\n\tprintf("Hello, world\\n");\n\t\n\treturn 0;\n}\n
+if=if () {\n|\n}
+elseif=elseif () {\n|\n}
+for=for (i=0;i<n;i++) {\n|\n}
+do=do {\n|\n} while();
+while=while () {\n|\n}
+switch=switch () {case 1:\n|break;}
+struct=struct {\n|\n}
+class=class {\n|\n}
+dstr=\nif (MessageBox(NULL,"Error!|","DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]\n
+dint=\n{char s[1000];sprintf(s,"Value:%d",|);if (MessageBox(NULL,s,"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}}//[mhb]\n

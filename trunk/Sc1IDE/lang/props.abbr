@@ -1,0 +1,12 @@
+sdh=$(SciteDefaultHome)
+suh=$(SciteUserHome)
+fn=$(FileName)
+fe=$(FileExt)
+fne=$(FileNameExt)
+fp=$(FilePath)
+fd=$(FileDir)
+fi=file.patterns.|
+ft=$(file.patterns.|)
+cc=command.compile.$(file.patterns.|)=
+cb=command.build.$(file.patterns.|)=
+cg=command.go.$(file.patterns.|)=

@@ -1,0 +1,219 @@
+
+  SciTEHexEdit
+  A Self-Contained Primitive Hex Editor for SciTE
+
+  Copyright (c) 2005 Kein-Hong Man <khman@users.sf.net>
+
+  http://luaforge.net/projects/sl-hexedit/
+
+--
+
+INTRODUCTION
+
+SciTEHexEdit is a self-contained basic hex editor written as a Lua
+extension for the SciTE editor. It enables the user to do basic hex
+editor-style viewing and editing without exiting SciTE. SciTEHexEdit was
+developed on SciTE 1.64+ (compiled from CVS, Mingw on Win32.) Some
+testing has also been done on SciTE 1.65. SciTEHexEdit is released with
+a Lua-style MIT license.
+
+--
+
+WHAT'S NEW
+
+Version 0.9 (20050811):
+* initial release, beta quality, basic features complete
+
+--
+
+INSTALLATION
+
+The hex editor is contained in a single file, SciTE_HexEdit.lua. First,
+set the Lua function HexEdit() to a suitable hotkey combination. Make
+sure the script is compiled along with your SciTE Lua startup script
+(you can use require() or you can copy the code over.) Then set the hot
+key, for example:
+
+  command.name.2.*=Hex Editing
+  command.subsystem.2.*=3
+  command.2.*=HexEdit
+  command.save.before.2.*=2
+
+The above uses the default Ctrl-2. As the script uses the per-buffer
+table in Lua, you will also need to set:
+
+  ext.lua.reset=0
+
+This enables view updating/synchronization to work. The script will
+refuse to work further in hex editing mode if ext.lua.reset is not 0. No
+event handlers are installed, so it should not clash with your other Lua
+stuff.
+
+SciTEHexEdit is best used with a monospaced font.
+
+There's some fire-proofing, but since this is quite a hairy hack, the
+script's operation can be easily abused if you are inclined to shoot
+yourself in the foot. Viewing alone is quite safe; it will never try to
+write to your file. For saving, the original is renamed so that you have
+a fallback if something happens to go terribly wrong.
+
+--
+
+OPENING FILES
+
+To start, first open the file, say a binary file, in SciTE normally.
+Then run the script by pressing the hot key. A new hex editing window
+will open for you to edit hex style. Below is a sample:
+
+  . Braindead SciTE Hex Editor . khman . ver 0.9 (20050811) .
+  +------------------------------------------------------------------------+
+  | UpdateView | Open/Revert | Move: First|Prev|Next|Last | Save | Command |
+  +------------------------------------------------------------------------+
+  SourceFile: "c:\wscite\script\SciTE_HexEdit.lua"  (FileLength: 19366)
+  BlockOffset: 0  BlockSize: 256  Command:
+
+  ----------------------------------------------------------------------------
+  |Offset|  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | ASCII view     |
+  ----------------------------------------------------------------------------
+  00000000  2d 2d 2d 2d 2d 2d 2d 2d-2d 2d 2d 2d 2d 2d 2d 2d |----------------|
+  00000010  2d 2d 2d 2d 2d 2d 2d 2d-2d 2d 2d 2d 2d 2d 2d 2d |----------------|
+  00000020  2d 2d 2d 2d 2d 2d 2d 2d-2d 2d 2d 2d 2d 2d 2d 2d |----------------|
+  00000030  2d 2d 2d 2d 2d 2d 2d 2d-2d 2d 2d 2d 2d 2d 2d 2d |----------------|
+  00000040  2d 2d 2d 2d 2d 2d 2d 2d-0a 2d 2d 20 53 63 69 54 |-------- -- SciT|
+  00000050  45 5f 48 65 78 45 64 69-74 3a 20 41 20 53 65 6c |E_HexEdit: A Sel|
+  00000060  66 2d 43 6f 6e 74 61 69-6e 65 64 20 50 72 69 6d |f-Contained Prim|
+  00000070  69 74 69 76 65 20 48 65-78 20 45 64 69 74 6f 72 |itive Hex Editor|
+  00000080  20 66 6f 72 20 53 63 69-54 45 0a 2d 2d 2d 2d 2d | for SciTE -----|
+  00000090  2d 2d 2d 2d 2d 2d 2d 2d-2d 2d 2d 2d 2d 2d 2d 2d |----------------|
+  000000A0  2d 2d 2d 2d 2d 2d 2d 2d-2d 2d 2d 2d 2d 2d 2d 2d |----------------|
+  000000B0  2d 2d 2d 2d 2d 2d 2d 2d-2d 2d 2d 2d 2d 2d 2d 2d |----------------|
+  000000C0  2d 2d 2d 2d 2d 2d 2d 2d-2d 2d 2d 2d 2d 2d 2d 2d |----------------|
+  000000D0  2d 2d 2d 0a 2d 2d 20 56-65 72 73 69 6f 6e 20 30 |--- -- Version 0|
+  000000E0  2e 39 2c 20 32 30 30 35-30 38 31 31 0a 2d 2d 20 |.9, 20050811 -- |
+  000000F0  43 6f 70 79 72 69 67 68-74 20 32 30 30 35 20 62 |Copyright 2005 b|
+  ----------------------------------------------------------------------------
+
+The window is an untitled buffer. You won't need to save this buffer;
+further updating and saving operations are handled in Lua by the script.
+The original binary file window can now be closed as it is not used by
+the script. By the same means, multiple independent hex editing windows
+for the same file can be opened, but note that each will have its own
+copy of the original file and its own state.
+
+If you have located something of interest in a binary file, position the
+caret, then start the hex editor window. The hex edit window will open
+with a view that is in the approximate position of the caret, so you can
+start viewing the area of interest in hex immediately. (This optional
+feature can be disabled via a flag in the script.)
+
+--
+
+SCRIPT OPERATIONS
+
+The hex editor identifies its buffer via the signature line (line 1).
+Main operations are triggered by running the script (by pressing the hot
+key) in the hex editing window with the caret on a 'button' (in line 3).
+Below are the 'buttons' ('Move:' is not a button):
+
+  +------------------------------------------------------------------------+
+  | UpdateView | Open/Revert | Move: First|Prev|Next|Last | Save | Command |
+  +------------------------------------------------------------------------+
+
+Lines 5-6 are file and view properties:
+
+  SourceFile: "c:\wscite\script\SciTE_HexEdit.lua"  (FileLength: 19366)
+  BlockOffset: 0  BlockSize: 256  Command:
+
+SourceFile, BlockOffset and BlockSize can be changed and when the script
+is run, various useful tasks can be done. For example, if you change the
+SourceFile parameter (which must always be in double quotes) you can
+execute 'Open' to load a different file, or execute 'Save' to save to a
+different file.
+
+BlockOffset and BlockSize accepts hexadecimal values with an '0x'
+prefix, e.g. 0xDEAD, 0xBEEF. BlockOffset determines the start offset of
+the hex edit window, while BlockSize is the number of bytes shown.
+
+--
+
+BROWSING
+
+The browsing buttons are 'First', 'Prev', 'Next' and 'Last'. They are
+rather self-explanatory. As before, place the caret on one of the words
+and run the script. This will move the hex edit view to a new location.
+
+To browse quickly, one method is to select the browse direction by
+pointing to the requisite button with the mouse, then trigger the hotkey
+with your other hand to move through the data file.
+
+--
+
+EDITING & SAVING
+
+You can make changes by editing hex values or by editing ASCII values.
+As the space character is used to substitute for control characters, you
+cannot change a character to a control character or a space in the ASCII
+pane. The file size and offset values cannot be changed.
+
+When you have made some changes, execute 'UpdateView' to synchronize the
+hex and ASCII panes. This updates the internal buffer, but does not
+write to the file on disk. Changes you have made in one pane will appear
+in the other pane (there is no auto-refresh.) Once you have updated the
+hex view, you can browse to another location. If you do not update, you
+will lose the changes when browsing.
+
+To make view updates faster, running the script with the caret anywhere
+in the hex edit window implies 'UpdateView', so you do not need to move
+to the button bar to execute the operation.
+
+Changes must be explicitly saved otherwise they will be lost when the
+hex edit window is closed. To save, execute 'Save' to commit changes.
+Before changing your file, the original data is saved with a '.$$$'
+suffix appended to the file name, in case you want the original file
+somewhere down the line.
+
+'Open/Revert' always destroy changes, so be careful when executing that
+when you have already made some changes.
+
+--
+
+COMMANDS
+
+'Command' can be used to execute a command sequence. Write commands to
+the area after the 'Command:' item in line 6. Then execute 'Command' to
+run the command you have written.
+
+This is a mechanism for extending the functionality of the hex editor.
+No commands are currently implemented. You will need to add Lua code to
+handle commands, look for 'CMD_EXTENSIONS' in the script.
+
+For example, you might write code to handle searching within the hex
+editor environment. The command might appear on screen like this:
+
+  BlockOffset: 0  BlockSize: 256  Command: find "foo"
+
+--
+
+NOTES
+
+The script always loads the entire file at once, so it may be slow for
+large files. Also, the script may take some time to display a window
+with a large block size.
+
+The byte width of the hex editing window is 16 by default. This can be
+changed, as long as the number is 2^n. A width of 32 can be quite
+comfortably accommodated if the editor window is maximized.
+
+--
+
+FEEDBACK
+
+Feedback and contributions are welcome. I am on dial-up, so I might not
+be able to reply immediately. My alternative e-mail address is: mkh AT
+pl DOT jaring DOT my
+
+Enjoy!!
+
+Kein-Hong Man (esq.)
+Kuala Lumpur
+Malaysia 20050811

@@ -1,0 +1,114 @@
+doc=\\documentclass{article}\\pagestyle{empty}\n\\usepackage{latexsym,amssymb,amsmath,amsbsy,amsopn,amstext,amsxtra,color,multicol,bm,calc,ifpdf,CJK}\n\\usepackage{graphicx}\n\\begin{document}%\n|\n\\end{document}
+up=\\usepackage{|}
+mkt=\\title{|}\n\\author{}\n\\maketitle\n
+s1=\\section{|}
+s2=subsection{|}
+s3=subsubsection{|}
+sec=\\section{|}
+section{=subsection{
+subsection{=subsubsection{
+bib=\\bibliography{|}\n\\bibliographystyle{plain} 
+
+enm=\\begin{enumerate}\n\t\\item |\n\\end{enumerate}
+itm=\\begin{itemize}\n\t\\item |\n\\end{itemize}
+des=\\begin{description}\n\t\\item |\n\\end{description}
+ver=\\begin{verbatim}\n\t|\n\\end{verbatim}
+quo=\\begin{quote}\n\t|\n\\end{quote}
+lst=\\begin{lstlisting}\n\t|\n\\end{lstlisting}
+alg=\\begin{algorithm}[H]\\label{}%\n\\caption{|}\n\\begin{algorithmic}[1]%\n\\end{algorithmic}\n\\end{algorithm}
+
+sli=\\begin{slide}\n\t|\n\\end{slide}
+frm=\\begin{frame}\n\t|\n\\end{frame}
+eq=\\begin{equation}\\label{}\n| = \n\\end{equation}\n
+eqa=\\begin{equation}\\label{}\n\\begin{array}{ccccc}\n|\n\\end{array}\n\\end{equation}
+eqn=\\begin{eqnarray}\n|& = &\n\\end{eqnarray}\n
+arr=\\left[\\begin{array}{ccccc}\n|\n\\end{array}\\right]\n
+aln=\\begin{align}\n|& = \\\\\n\\end{align}\n
+tbl=\\begin{table}\\centering\n\t\n  \\caption{}\\label{}\n\\end{table}
+tab=\\begin{tabular}{|l|l|}\n  | &  \\\\ \\hline\n   &  \\\\ \\hline\n\\end{tabular}
+fig=\\begin{figure}[!htb]\n\t\\centering\n\t\\includegraphics[width=\\textwidth ]{|}\\\\\t % e.g.,[scale=0.75], [width=0.75\\textwidth ]\n\t\\caption{}\n\t\\label{}\n\\end{figure}
+sbf=\\begin{figure}[!htb]\n\t\\centering\n\t\\subfigure[|]{\t % Caption of subfigure in []\n\t\\label{}\t % Label of subfigure in {}\n\t\\includegraphics[width=0.45\\textwidth ]{}}\n\t\\subfigure[]{\n\t\\label{}\n\t\\includegraphics[width=0.45\\textwidth ]{}}\n\t\\caption{}\t % Caption of figure\n\t\\label{}\t % Label of figure\n\\end{figure}
+
+pic=\\begin{picture}(100,60)\n\\put(0,0){|}\n\\end{picture}\n
+put=\\put(0,0){|}\n
+mul=\\multiput(0,0)(+5,0){3}{|}
+frb=\\framebox(10,5){|}
+dab=\\dashbox(10,5){|}
+mab=\\makebox(10,5){|}
+pab=\\parbox(10,5){|}
+nsb=\\newsavebox{\\pic1}
+sb=\\savebox{\\pic1}(10,5){|}
+ub=\\usebox{\\pic1}
+lin=\\line(+1,0){|}
+vec=\\vector(+1,0){|}
+qbe=\\qbezier(0,0)(0|,1)(1,1)
+cir=\\circle{10|}
+ova=\\oval(10|,5)
+
+a=\\alpha 
+b=\\beta 
+c=\\chi 
+d=\\delta 
+e=\\varepsilon 
+f=\\phi 
+g=\\gamma 
+h=\\eta 
+i=\\iota 
+j=\\varphi
+J=\\vartheta 
+k=\\kappa 
+l=\\lambda 
+m=\\mu 
+n=\\nu 
+p=\\pi 
+q=\\theta 
+r=\\rho 
+s=\\sigma 
+t=\\tau 
+u=\\upsilon 
+v=\\varpi
+V=\\varsigma 
+w=\\omega 
+x=\\xi 
+y=\\psi 
+z=\\zeta 
+A={\\rm A}
+B={\\rm B}
+C={\\rm X}
+D=\\Delta
+E={\\rm E}
+F=\\Phi 
+G=\\Gamma
+H={\\rm H}
+I={\\rm I}
+K={\\rm K}
+L=\\Lambda
+M={\\rm M}
+N={\\rm N}
+O={\\rm O}
+P=\\Pi
+Q=\\Theta
+R={\\rm P}
+S=\\Sigma
+T={\\rm T}
+U=\\Upsilon
+W=\\Omega
+X=\\Xi
+Y=\\Psi
+Z={\\rm Z}
+
+xelatexart=%!TEX TS-program = xelatex\n%~ \\XeTeXinputencoding "GB2312"\n\\documentclass[a4paper, 12pt]{article}\n\\usepackage{color}\n\t\\definecolor{xgray}{rgb}{0.7,0.7,0.7}\n\t\\definecolor{dred}{rgb}{0.6313, 0.1647, 0.1607}\n%~ \\usepackage{amssymb}\n%~ \\usepackage{amsmath}\n%~ \\usepackage[french]{babel}\n\\usepackage[cm-default]{fontspec}\t\t\t\t\t%no-math\n\\usepackage{xunicode}\n\\usepackage{xltxtra}\n\\defaultfontfeatures{Mapping=tex-text}\n\\setmainfont %[Numbers=OldStyle]\t\t\t\t\t%Set main/serif font, e.g., Minion Pro\n{Minion Pro}\n%~ \\setsansfont[Numbers=OldStyle]{Myriad Pro}\t\t%Set sans serif font\n%~ \\setmonofont{Courier}\t\t\t\t\t\t\t%Set monospaced font\n\\usepackage{calc}\n\\usepackage[hmargin=2cm, vmargin=2cm]{geometry}\n\\usepackage{fancyhdr}\n\\usepackage{graphicx}\n\t\\graphicspath{{img/}}\n\\usepackage[xetex,\n\t%~ ,pagebackref=true\n\t,bookmarks\n\t,bookmarksnumbered=true\n\t,bookmarksopen=true\n\t,pdfauthor={}\n\t,pdftitle={}\n\t,pdfsubject={}\n\t,pdfkeywords={}\n\t,pdfcreator={XeLaTex with hyperref package using SciTE as editor}\n\t,colorlinks\n\t,linkcolor=blue\n\t,citecolor=\t\t\t%\\definecolor{dred}{rgb}{0.6313, 0.1647, 0.1607}\n\t,hyperindex\n\t,plainpages=false\n\t,pdfstartview=FitH\n\t,pdfborder={0 0 0}\n\t,linktocpage\n]{hyperref}\n\\linespread{1}\n%~ \\XeTeXdefaultencoding "UTF8"\n\\begin{document}\n\t|\n\\end{document}\n
+
+ctexbook=\n%& -makeindex_opts='-C mixed -s cct.ist' % 索引按拼音排序\n\\documentclass [12pt,oneside]{ctexbook}\n\\parskip 6pt\n\\parindent 24pt\n\n\\usepackage{CJKpunct}\n\\usepackage{graphicx}\n\n\\usepackage{amsmath}\n\\usepackage{amsfonts}\n\\usepackage{psfrag}\n\n\\allowdisplaybreaks\n\n\\usepackage{ifpdf}\n\\ifpdf\n\\usepackage[CJKbookmarks=true,\n          hyperindex=true,\n          pdfstartview=FitH,\n          bookmarksnumbered=true,\n          bookmarksopen=false,\n          citecolor=blue,\n          linkcolor=blue,\n          colorlinks=true, %注释掉此项则交叉引用为彩色边框(将colorlinks和pdfborder同时注释掉)\n          pdfborder=001,   %注释掉此项则交叉引用为彩色边框\n          unicode]{hyperref}\n\\else\n\\usepackage[CJKbookmarks=true,\n          hypertex,\n          hyperindex,\n          linkcolor=blue,\n          unicode,\n          citecolor=blue%\n          ]{hyperref}\n\\fi\n\n%%}}--\n\n\\begin{document}\n\n\\def\\dbar{{\\mathchar'26\\mkern-12mu d}}\n\n\\begin{titlepage}\n\\begin{center}\n\n\\vspace{4cm} {\\Huge |}\t%% Insert title here\n\n\\bigskip\n\n\\vspace{0.15in}\n\n\\vspace{3.0in} \\it \\vspace{0.1in} {\\large\n\n%% Author's name\n\n\\vspace{0.3in}\n\n%% Author's affiliation\n\\vspace{0.2in}\n\n%% \\large date\n} \\vspace*{1.5in}\n\\end{center}\n\\thispagestyle{empty}\n\n\\end{titlepage}\n\n%\\newpage\n\\setcounter{page}{1}\n\\tableofcontents\n\n\\newpage\n\\setcounter{page}{1}\n\n\\chapter{ }\n\n\n\n\\end{document}\n
+
+
+cbm=%2multibyte Version: 5.50.0.2890 CodePage: 936\n\\documentclass[CJK,compress,mathserif]{beamer}%\n\n\\usepackage{CJK}\n%\\RequirePackage{CJK}\n%\\AtBeginDocument{\\begin{CJK*}{GBK}{song}}\n%\\AtEndDocument{\\end{CJK*}}\n\n\\usepackage{beamerthemesplit}\n\\usepackage{amsmath}\n\\usepackage{amsfonts}\n\\usepackage{amssymb}\n\\usepackage{graphicx}%\n\\setcounter{MaxMatrixCols}{30}\n\\providecommand{\\U}[1]{\\protect \\rule{.1in}{.1in}}\n\\hypersetup{pdfpagemode={FullScreen}}\n\\usetheme{Madrid}\n\\begin{document}\n\n\\begin{CJK*}{GBK}{song}\n\\title{|}\n\\author{ }\n\\date{}%\n%%}}--%%}}--\n\n\\frame{\\titlepage}%\n\n\\section*{ }%\n\n\\frame{\\tableofcontents}%\n\n\n\\section{ }\n\n\n\\begin{frame}%\n\n\\end{frame}\n\n\\end{document}\n
+
+bm=%\\documentclass[compress]{beamer}%\n\\documentclass[compress,mathserif]{beamer}%\n\\hypersetup{pdfpagemode={FullScreen}}\n%\\usetheme{Warsaw}\n%\\usetheme{Singapore}\n\\usetheme{Madrid}\n\\usepackage{amsmath}\n\\usepackage{amsfonts}\n\\usepackage{amssymb}\n\\usepackage{graphicx}\n\\usepackage[all]{xy}\n%\\usepackage{fourier}\n\\usepackage{mathpazo}\n%\\usepackage[garamond]{mathdesign}\n%\\usepackage{newcent}\n%\\usepackage{helvet}\n%%}}--\n\n\\begin{document}\n\n\\title{|}\n\\author{|\n\\\\\nCollaborators: }\n\\date{\\today}\n%%}}--\n\\frame{\\titlepage}%\n\n%\\section*{Contents}%\n\n\\frame{\\tableofcontents}%\n\n\n\\section{Introduction}\n\n\\begin{frame}\n\\frametitle{\\secname}\n\n\\end{frame}%\n\n\\end{document}\n
+
+ac={|}
+
+blk=\\begin{columns}\n  \\begin{column}{0.45\\textwidth}\n  \\pause\n    \\begin{alertblock}{Alert block}\n      [color=Red]This is an alert block.[/color]\n    \\end{alertblock}\n  \\end{column}\n  \\pause\n  \\begin{column}{0.09\\textwidth}\n    \\centering\n    [color=Red]$\\Longrightarrow$[/color]\n   \\end{column}\n  \\pause\n  \\begin{column}{0.45\\textwidth}\n    \\begin{exampleblock}{Example block}\n      [color=Red]This is an example block.[/color]\n    \\end{exampleblock}\n  \\end{column}\n\\end{columns}
+
+(=\\left(|\\right)
+

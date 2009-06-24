@@ -1,0 +1,202 @@
+local W=find_word; --a function to find word only: its code is defined in myfold.lua
+
+myfold_settings={
+  bst={
+	{{'@%w+%{%s*[%w_%.]+%s*,'},-1},
+	{{'^%}'},-2},
+	{ {'^%{'}, -1},
+	{ {'^%}'}, -2},
+  },
+  --[[
+  bib={
+	{{'@%w+%{%s*[%w_%.]+%s*,'},-1},
+	{{'^%}'},-2},
+	{ {'^%{'}, -1},
+	{ {'^%}'}, -2},
+  },
+  ]]--
+  --[[
+  tex={
+	{{'^%s*%%'},-9},
+	{ '\\begin{verbatim}', -1, 0},
+	{ '\\end{verbatim}', -2, 0},
+	{ '\\begin{code}', -1, 0},  --for ctex-faq
+	{ '\\end{code}', -2, 0},   --for ctex-faq
+	{ '\Question', 7},  --for ctex-faq
+	{ '\\documentclass' , 1},
+	{ '\\documentstyle' , 1},
+	--{ '\\title' , 2},
+	--{ '\\maketitle' , 3},
+	{ '\\begin{document}' ,1},
+	{ '\\part', 3},
+	{ '\\chapter', 4},
+	{ '\\section', 5},
+	{ '\\subsection',6},
+	{ '\\subsubsection', 7},
+	{ '\\subsubsubsection', 8},
+	{ '\\paragraph',9},
+	{ '\\mypart', 3},
+	{ '\\mychapter', 4},
+	{ '\\mysection', 5},
+	{ '\\mysubsection',6},
+	{ '\\mysubsubsection', 7},
+	{ '\\mysubsubsubsection', 8},
+	{ '\\myparagraph',9},
+	{ '\\begin{thebibliography}', 2},
+	{ '\\bibitem', 4},
+	{ '\\end{thebibliography}', 3},
+	{ '\\end{document}' ,2},
+-- 	{ '\\begin{itemize}', -1},
+-- 	{ '\\end{itemize}', -2},
+-- 	{ {'\\item',W}, -3},
+	{ '\\begin{', -1},
+	{ '\\end{', -2},
+	
+	{ '\\begin_', -1}, --[mhb] 04/26/09: for LyX
+	{ '\\end_', -2}, --[mhb] 04/26/09: for LyX
+	
+	{ '\\if', -1},
+	{ {'\\fi',W}, -2},
+	{ {'\\elseif',W}, -3},
+	{ {'\\else',W}, -3},
+	{ '\\IF', -1}, --for DraTeX
+	{ {'\\FI',W}, -2},  --for DraTeX
+	{ {'\\ELSE',W}, -3},  --for DraTeX
+	{ '\\[', -1},
+	{ '\\]', -2},
+	{ '\\unprotect',-1},
+	{ '\\protect',-2},
+	{ '$$', 0},
+-- 	{ {'%{%s*$'}, -1},    --uncomment to enable folding by braces
+-- 	{ {'^%s*%}'}, -2},   --uncomment to enable folding by braces
+	{ {'\\frame',W},8}, --for beamer
+	{ {'\\foilhead',W},8}, --for foils
+	{ {'\\overlays',W},8}, --for prosper
+	{ {'\\slide',W},8}, --for mdwslides
+	{ {'\\foilhead',W},8}, --for foils
+	{ {'\\tsectionandpart',W},5}, --for prosper
+	{ {'\\overlays',W},8}, --for prosper
+	{ {'\\newslide',W},8}, --for rayslides
+	{ '\\starttext', 2},
+	{ '\\stoptext', 3},
+	{ '\\startstandardmakeup', -1},
+	{ '\\stopstandardmakeup', -2},
+	{ '\\startuniqueMPgraphic', -1},
+	{ '\\stopuniqueMPgraphic', -2},
+	{ '\\startformula', -1},
+	{ '\\stopformula', -2},
+	{ '\\TitlePage', 4},
+	{ '\\Topics', 4},
+	{ '\\Topic', 5},
+	{ '\\Subject', 6},
+	{ '\\framed', 6},
+	{ '\\Start', -1},
+	{ '\\Stop', -2},
+	{ '\\start', -1},  --for arbitray \startXXX
+	{ '\\stop', -2},  --for arbitray \stopXXX
+	},
+	]]--
+--~   asy={
+--~ 	{ {'%{%s*$'}, -1},
+--~ 	{ {'^%s*%}'}, -2}
+--~ 	},
+--[[
+  metapost={
+	{{'verbatimtex',W},-1},
+	{{'^%s*etex%s*$'},-2},
+	{{'beginfig',W},-1},
+	{{'endfig',W},-2},
+	{{'def '},-1},
+	{{'enddef',W},-2},
+	{{'if',W},-1},
+	{{'fi',W}, -2},
+	{{'elseif',W}, -3},
+	{{'else',W}, -3},
+	{{'^%s*for'},-1},
+	{{'endfor',W},-2},
+	{'beginbox_',-1},
+	{'endbox_',-2},
+	{{'begingroup',W},-1},
+	{{'endgroup',W},-2}
+	},
+	]]
+  metafont={
+	{{'cmchar',W},1},
+	{{'begin%w*char',W},-1},
+	{{'endchar',W},-2},
+	{{'^def '},-1},
+	{{'enddef',W},-2},
+	{{'if',W},-1},
+	{{'fi',W}, -2},
+	{{'elseif',W}, -3},
+	{{'else',W}, -3},
+	{{'^%s*for'},-1},
+	{{'endfor',W},-2},
+	{'beginbox_',-1},
+	{'endbox_',-2},
+	{{'begingroup',W},-1},
+	{{'endgroup',W},-2},
+	{{'^%s*bye%s*'},1}
+	},
+  asm={
+	{{'^%s*%;'},-9},
+	{'.data?',2},
+	{'.data',2},
+	{'.code',2},
+	{'start:',3},
+	{'end start',4},
+	{{'macro',W},-1},
+	{{'endm',W},-2},
+	{{'segment',W},-1},
+	{{'ends',W},-2},
+	{{'proc',W},-1},
+	{{'endp',W},-2}
+	},
+	--[[
+  euphoria={
+	{{'^%s*%--',find_comment},-1},
+	{{'^%s*%--',find_comment},-2},
+	{{'^%s*if',W},-1},
+	{{'end if',W},-2},
+	{{'else',W},-3},
+	{{'^%s*for',W},-1},
+	{{'end for',W},-2},
+	{{'^%s*while',W},-1},
+	{{'end while',W},-2},
+	{{'type.+%b()'},-1},
+	{{'end type',W},-2},
+	{{'procedure.+%b()'},-1},
+	{{'end procedure',W},-2},
+	{{'function.+%b()'},-1},
+	{{'end function',W},-2}
+	},
+	]]--
+  batch={
+	{{'^%s*iff',W},-1},
+	{{'endiff',W},-2},
+	{{'elseiff',W},-3},
+	{{'else',W},-3},
+	{{'^%s*do',W},-1},
+	{{'enddo',W},-2},
+	{{'^%s*switch',W},-1},
+	{{'endswitch',W},-2},
+	{{'^:.*'},1},
+	{{'^return',W},2},
+	},
+  texinfo={
+	{{'^%s*@copying',W},-1},
+	{{'@end copying',W},-2},
+	{{'^%s*@titlepage',W},-1},
+	{{'@end titlepage',W},-2},
+	{{'^%s*@menu',W},-1},
+	{{'@end menu',W},-2},
+	{{'^%s*@enumerate',W},-1},
+	{{'@end enumerate',W},-2},
+	{{'@item',W},-3},
+	{{'^%s*@itemize',W},-1},
+	{{'@end itemize',W},-2},
+	{{'@item',W},-3},
+	},
+};
+
+--~ myfold_settings.lyx=myfold_settings.tex; --[mhb] 04/26/09: to support LyX folding
