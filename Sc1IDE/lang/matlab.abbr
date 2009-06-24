@@ -1,0 +1,3 @@
+cm1=% $[FileName]: Demo ....\n%\n% SYNTAX:\n%   ret = $[FileName](G)\n%   Return ...\n\n%   Author: Hongbin Ma\n%   Last updated: $[CurrentDate] with MATLAB 6.5\n%   Problems or suggestions? Email me: mathmhb[at]163.com\n
+
+cm2=% $[FileName]: Demo ....\n%\n% SYNTAX:\n%\n%   ret = $[FileName](G)\n%   Return ...\n%\n% EXAMPLE:\n%\n%   \n% See also \n\n%   Author: Hongbin Ma\n%   Email:  mathmhb[at]163.com\n%   Last updated: $[CurrentDate] with MATLAB 6.5\n%\n%   Problems or suggestions? Email me.

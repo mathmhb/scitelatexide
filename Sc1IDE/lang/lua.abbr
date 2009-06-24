@@ -1,0 +1,27 @@
+req=scite_require('')
+if=if | then\n\nend
+elseif=elseif | then\n
+for=for _,v in pairs(tbl) do\n|\nend
+fori=for i=1,n do\n|\nend
+while=while | do\n\nend
+repeat=repeat\n|\nuntil 
+function=function f()\n|\nend
+oop=local function on_open(file)\n\nend\nscite_OnOpen(on_open)\n-- scite_OnSwitchFile(on_open)\n
+osw=local function on_switch(file)\n\nend\nscite_OnSwitchFile(on_switch)\n
+osv=local function on_save(file)\n\nend\nscite_OnSave(on_save)\n
+oel=local function on_editorline(line)\n\nend\nscite_scite_OnEditorLine(on_editorline)\n
+opl=local function on_outputline(line)\n\nend\nscite_scite_OnOutputLine(on_outputline)\n
+ouu=local function on_updateui ()\n\tscite.Perform("reloadproperties:")\n\treturn\nend\nscite_OnUpdateUI(on_updateui)
+odb=local function on_on_dblclick()\n\nend\nscite_OnDoubleClick(on_dblclick)\n
+ocl=local function on_click()\nend\nlocal old_OnClick=OnClick\nfunction OnClick(shift, ctrl, alt)\n   local result\n   if old_OnClick then result = old_OnClick(shift, ctrl, alt) end\n   on_click()\n   return result\nend
+ocm=local function on_command()\n    if id == IDM_BOOKMARK_TOGGLE then\n    end\nend\nlocal old_OnCommand=OnCommand\nfunction OnCommand(id)\n   local result\n   if old_OnCommand then result = old_OnCommand(shift, ctrl, alt) end\n   on_command()\n   return result\nend
+osend=local old_OnSendEditor = OnSendEditor\nfunction OnSendEditor(id_msg, wp, lp)\n\tlocal result\n\tif old_OnSendEditor then result = old_OnSendEditor(id_msg, wp, lp) end\n\tif id_msg == SCI_SETREADONLY then\n\t\t-- if SetReadOnly(wp~=0) then return true end\n\tend\n\treturn result\nend
+
+sel=sample_list={'hello','world'}\nfunction sel_sample(s)\n    print(s)\nend\nfunction select_configfiles()\n\tscite_UserListShow(sample_list,1,sel_sample)\nend\n
+
+ldbl=ls:on_double_click(function() \n    local idx=ls:get_selected_item()\n    if idx == -1 then return end\n    local item = ls:get_selected_item()\n\tprint(item)\nend)
+lsel=ls:on_select(function() \n    local idx=ls:get_selected_item()\n    if idx == -1 then return end\n    local item = ls:get_selected_item()\n\tprint(item)\nend)
+lkey=ls:on_key(function(key)\n\tif key == 13 then -- Enter\n\telseif key == 8 then -- BackSpace\n\telseif key == 46 then -- Delele\n\telseif key == 45 then -- Insert\n\tend\nend)
+
+
+

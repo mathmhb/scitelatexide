@@ -1,0 +1,27 @@
+
+--To load language-sensitive statusbar
+props['statusbar.text.1']=c_{
+'[$(scite.readonly)] $(FileNameExt)|Line[$(LineNumber)] Col[$(ColumnNumber)]|[$(SelHeight)/$(NbOfLines)]lines [$(SelLength)/$(BufferLength)]bytes|$(OverType) ($(EOLMode))[$(FileAttrString)]|$(CurrentDate) $(CurrentTime)|$(FileType)[$(Lexer)][$(code.page.name)][$(font.current.size)px]      $(Message)',
+'[$(scite.readonly)] $(FileNameExt)|行[$(LineNumber)] 列[$(ColumnNumber)]|[$(SelHeight)/$(NbOfLines)]行 [$(SelLength)/$(BufferLength)]字节|$(OverType) ($(EOLMode))[$(FileAttrString)]|$(CurrentDate) $(CurrentTime)|$(FileType)[$(Lexer)][$(code.page.name)][$(font.current.size)px]      $(Message)',
+'[$(scite.readonly)] $(FileNameExt)|︽[$(LineNumber)] [$(ColumnNumber)]|[$(SelHeight)/$(NbOfLines)]︽[$(SelLength)/$(BufferLength)]竊|$(OverType) ($(EOLMode))[$(FileAttrString)]|$(CurrentDate) $(CurrentTime)|$(FileType)[$(Lexer)][$(code.page.name)][$(font.current.size)px]      $(Message)'
+}
+
+
+--To load language-sensitive tray menu: only works for SciTE modified by Instanton???
+props['tray.menu.quit']=c_({'Quit','退出','癶'})
+props['tray.menu.restore']=c_({'Restore','恢复窗口','临'})
+
+--[[
+--To load language-sensitive printer settings
+props['print.header.format']=c_{
+	'$(FileNameExt) ?Printed on $(CurrentDate), $(CurrentTime) ?Page $(CurrentPage)',
+	'$(FileNameExt) ?Printed on $(CurrentDate), $(CurrentTime) ?Page $(CurrentPage)',
+	'$(FileNameExt) ?Printed on $(CurrentDate), $(CurrentTime) ?Page $(CurrentPage)'
+}
+props['print.footer.format']=c_{
+	'$(FilePath) ?File date: $(FileDate) ?File time: $(FileTime)',
+	'$(FilePath) ?File date: $(FileDate) ?File time: $(FileTime)',
+	'$(FilePath) ?File date: $(FileDate) ?File time: $(FileTime)'
+}
+
+]]--

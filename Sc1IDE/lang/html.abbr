@@ -1,0 +1,64 @@
+doc=<HEAD>\n<TITLE> | </TITLE>\n</HEAD>\n<HTML>\n<BODY>\n |\n</BODY>\n</HTML>
+hello=<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">\n<HTML>\n <HEAD>\n  <TITLE> | </TITLE>\n  <META NAME="Generator" CONTENT="">\n  <META NAME="Author" CONTENT="">\n  <META NAME="Keywords" CONTENT="">\n  <META NAME="Description" CONTENT="">\n </HEAD>\n\n <BODY>\n  \n </BODY>\n</HTML>
+hea=<HEAD>\n<TITLE> | </TITLE>\n</HEAD>\n
+htm=<HTML>\n<BODY>\n |\n</BODY>\n</HTML>
+b=<B> | </B>
+i=<I> | </I>
+u=<U> | </U>
+tt=<TT> | </TT>
+f=<FONT SIZE="" COLOR=""> | </FONT>
+big=<BIG> | </BIG>
+sma=<SMALL> | </SMALL>
+sup=<SUP> | </SUP>
+sub=<SUB> | </SUB>
+str=<STRIKE> | </STRIKE>
+&nbsp;
+&copy;
+br=<BR>
+p=<P>
+map=<MAP NAME="">\n	<AREA SHAPE="" HREF="" COORDS="" ALT="">\n</MAP>
+fra=<FRAMESET ROWS="," COLS=",">\n	<FRAME SRC="" NAME="">\n	<FRAME SRC="" NAME="">\n</FRAMESET>
+img=<IMG SRC=" | " WIDTH="" HEIGHT="" BORDER="0" ALT="">
+a=<A HREF=""> | </A>
+hr=<HR>
+!=<!--  |  -->
+tab=<TABLE>\n<TR>\n	<TD></TD>\n	<TD></TD>\n</TR>\n</TABLE>
+tr=<TR>\n	<TD></TD>\n	<TD></TD>\n</TR>\n
+td=<TD> | </TD>\n
+cen=<CENTER> | </CENTER>
+blo=<BLOCKQUOTE> | </BLOCKQUOTE>
+pre=<PRE> | </PRE>
+cod=<CODE> | </CODE>
+scr=<SCRIPT LANGUAGE="JavaScript">\n<!--\n	\n//-->\n</SCRIPT>
+app=<APPLET CODE="" WIDTH="" HEIGHT="">\n | </APPLET>
+obj=<OBJECT ID="ActionBvr Class" WIDTH="" HEIGHT="" CLASSID="CLSID:58A2E406-8304-11D2-9533-0060b0C3C4F4">\n | </OBJECT>
+for=<FORM METHOD=POST ACTION="">\n | \n</FORM>
+div=<DIV> | </DIV>
+h1=<H1> | </H1>
+h2=<H2> | </H2>
+h3=<H3> | </H3>
+h4=<H4> | </H4>
+h5=<H5> | </H5>
+ul=<UL>\n	<LI>\n	<LI>\n</UL>
+ol=<OL>\n	<LI>\n	<LI>\n</OL>
+dl=<DL>\n	<DT>\n	<DD>\n</DL>
+li=<LI>
+sel=<SELECT NAME="">\n	<OPTION VALUE="" SELECTED>\n	<OPTION VALUE="">\n</SELECT>
+ite=<INPUT TYPE="text" NAME="">
+tex=<TEXTAREA NAME="" ROWS="" COLS=""></TEXTAREA>
+ira=<INPUT TYPE="radio" NAME="">
+ich=<INPUT TYPE="checkbox" NAME="">
+ibu=<INPUT TYPE="button" VALUE="" ONCLICK="">
+ire=<INPUT TYPE="reset">
+isu=<INPUT TYPE="submit">
+ipa=<INPUT TYPE="password" NAME="">
+ihi=<INPUT TYPE="hidden" NAME="">
+iim=<INPUT TYPE="image" SRC="">
+nb=&nbsp;
+cop=&copy;
+reg=&reg;
+eur=&euro;
+tm=&trade;
+<=&lt;
+"=&quot;
+&=&amp;

@@ -1,0 +1,26 @@
+local texdos=mtexdir..'\\bin\\tex-dos.exe '
+function my_calc() 	winexec('calc.exe') end
+function my_paint() 	winexec('mspaint.exe') end
+function my_google() 	winexec('iexplore.exe "http://www.google.com/search?q='..props.CurrentSelection..'"') end
+function my_explorer() 	winexec('explorer.exe /select,'..props.FilePath) end
+function my_mainmenu() 	winexec(texdos..'main.btm') end
+function my_utilsman() 	winexec(texdos..'utilsman.exe'..props['FilePath']) end
+function my_openx() 	winexec(texdos..'openx.btm '..props['FilePath']) end
+function my_texaide() 	winexec(texdos..'util.btm texaide') end
+local scite_debug_help=[[
+To debug your C/C++ program in SciTE, please compile it by TinyC or MingW GCC with debug info (set GEN_DEBUG=1 in myutils.properties) and make sure GDB.exe is in your PATH environment. 
+To debug your Pascal/delphi program, please compile it by FreePascal so that I can use GDB to debug it.
+To debug your Java/C#/Python program here, I need to find JDB.exe/MDB.exe/Pydb.exe in the PATH. To debug your Lua program here, I need to find LUA.exe, which is already shiped with MTeX.
+To start debugging, first set some breakpoints by the Breakpoint button or F9 key.
+Then you can use Go/StepIn/StepOut/GotoCursor to run your program step by step or to specified location.
+To watch changes of variables, first put the cursor under the variable, then click Watch button.
+To inspect variables at the cursor, you can use Inspect/Locals button or type command "p expr" in the output panel directly.
+Buttons Backtrace/Up/Down may be useful to trace the function stack.
+After debugging, use Stop button to quit the debugger.
+You can also run Lua commands in the output panel; to evaluate Lua expression, try "=1+2/3"; to evaluate SciTE property, try "$FileDir"; to run shell commands, try ">dir /w". 
+Enjoy powerful debugging with SciTE, greatly enhanced by [mathmhb]!
+]]
+function my_debughelp() print(scite_debug_help) winexec('"C:\\Program Files\\Internet Explorer\\iexplore.exe" "http://scitedebug.luaforge.net/"') end
+function my_calc() 	winexec('calc.exe') end
+
+

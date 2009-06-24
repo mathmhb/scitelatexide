@@ -1,0 +1,116 @@
+hello={$APPTYPE CONSOLE}\nbegin;\n    writeln('Hello!');\nend.
+kol={$APPTYPE CONSOLE}\nuses windows,messages,kol,shellapi;\n//{$I w32.pas}\nvar s:string;\nbegin;\n    MsgOk('Hello!');\nend.
+
+beg=begin;\n|\n;end
+func=unction f(|):;\nbegin;\n\nend
+proc=procedure f(|):;\nbegin;\n\nend
+begin=begin;\n|\n;end
+if=if | then\n
+elseif=elseif | then\n
+for=for i:=1,n do\nbegin;\n|\nend
+while=while | do\nbegin;\n\nend
+repeat=repeat\n|\nuntil 
+function=function f(|):;\nbegin;\n\nend
+procedure=procedure f(|):;\nbegin;\n\nend
+asm=asm\n\t|\nend;
+asmfunc=function |(): ; assembler;\nasm\n\t\nend;
+asmproc=procedure |(); assembler;\nasm\n\t\nend;
+arr=array of |;
+arrc=array of const|
+arr1=array [|..] of ;
+arr2=array [|..,..] of ;
+be=begin\n\t|\nend;
+bparr=bitpacked array of |;
+bparrc=bitpacked array of const|
+bparr1=bitpacked array [|..] of ;
+bparr2=bitpacked array [|..,..] of ;
+bprec=| = bitpacked record\n\t\nend;
+cas=case | of\n\t:\nend;
+case=case | of\n\t:\n\telse\nend;
+caso=case | of\n\t:\n\totherwise\nend;
+cls=| = class\nprivate\n\t\npublic\n\t\nend;
+const=constructor |();\nbegin\n\t\nend;
+dest=destructor |();\nbegin\n\t\nend;
+ext=external name '|';
+extc=cdecl; external name '|';
+extp=pascal; external name '|';
+exts=stdcall; external name '|';
+def={$define |}
+ford=for |:= downto  do\n\t;
+fort=for |:= to  do\n\t;
+fordb=for |:= downto  do begin\n\t\nend;
+fortb=for |:= to  do begin\n\t\nend;
+func=function |(): ;\nbegin\n\t\nend;
+gencls=generic |<T> = class\nprivate\n\t\npublic\n\t\nend;
+ifb=if | then begin\n\t\nend;
+ifbe=if | then begin\n\t\nend else begin\n\t\nend;
+ifd={$ifdef |}\n\t\n{$endif}
+ifde={$ifdef |}\n\t\n{$else}\n\t\n{$endif}
+if=if | then ;
+ife=if | then  else ;
+intarr=array of Integer;
+lib=library |;\n\nexports\n\t\nend.\n
+mac={$define |:=}
+mdel={$mode delphi}
+mobj={$mode objfpc}{$H+}
+mtp={$mode tp}
+obj=| = object\nprivate\n\t\npublic\n\t\nend;
+oper=operator |();\nbegin\n\t\nend;
+parr=packed array of |;
+parrc=packed array of const|
+parr1=packed array [|..] of ;
+parr2=packed array [|..,..] of ;
+prec=| = packed record\n\t\nend;
+proc=procedure |();\nbegin\n\t\nend;
+prog=program |;\n\nbegin\n\t\nend.\n
+prop=property |: read ;
+proprw=property |: read  write ;
+pubal=[public, alias: |];
+rec=| = record\n\t\nend;
+rep=repeat\n\t|\nuntil ;
+whi=while | do ;
+whib=while | do begin\n\t\nend;
+wit=with | do ;
+witb=with | do begin\n\t\nend;
+trye=try\n\t|\nexcept\n\ton  do begin\n\t\t\n\tend;\nend;
+tryef=try\n\ttry\n\t\t|\n\texcept\n\t\ton  do begin\n\t\t\t\n\t\tend;\nfinally\n\t\nend;
+tryf=try\n\t|\nfinally\n\t\nend;
+unit=unit |;\n\ninterface\n\n\nimplementation\n\n\nend.\n
+virabs=virtual; abstract;
+(*=(* | *)
+
+exe=\ts:=GetStartDir+'bin\\oxl.exe '+GetArgs;\n\tShellExec(s,'','',SW_SHOW);\n\t//WinExec(PChar(s),SW_SHOW);\n\t//ExecWait(s,SW_SHOW);\n
+
+
+//B1.OnClick := TOnEvent( MakeMethod( nil, @B_Click ) );
+cli=procedure B_Click(Dummy:Pointer; Sender: PControl);\nbegin;\nend;\n
+ocl=B1.OnClick := TOnEvent( MakeMethod( nil, @B1_Click ) );
+tim=procedure T_Timer(Dummy:Pointer; Sender: PControl);\nbegin;\nend;\n
+otm=T.OnTimer := TOnEvent( MakeMethod( nil, @T_Timer ) );
+mle=procedure W_MouseLeave(Dummy_Self: PObj; Sender: PControl;var Mouse: TMouseEventData);\nvar P:TPoint;\nbegin\n  GetCursorPos(P);\nend;
+oml=w.OnMouseLeave:=TOnEvent( MakeMethod( nil, @W_MouseLeave ) );
+men=procedure MouseEnter(Dummy:Pointer; Sender: PControl);\nbegin;\nend;
+ome=E.OnMouseEnter := TOnEvent(MakeMethod( nil, @MouseEnter));
+mmo=procedure W_MouseMove(dummy:Pointer;Sender: PControl;var Mouse: TMouseEventData);\nbegin\n  //W.SimpleStatusText:=Sender.CustomData;\nend;\n
+omm=B1.OnMouseMove:=TOnMouse( MakeMethod( nil, @B_MouseMove ) );
+res=procedure W_Resize(Dummy:Pointer; Sender: PControl);\nbegin\nend;
+ors=W.OnResize := TOnEvent( MakeMethod( nil, @W_Resize ) );
+clo=procedure W_Close(Dummy:Pointer; Sender: PControl);\nbegin\nend;
+ocl=W.OnClose := TOnEvent( MakeMethod( nil, @W_Close ) );
+fme=function FormMessage(Dummy_Self: PObj; var Msg: TMsg; var Rslt: Integer ): Boolean;\nbegin\n  Result := FALSE;\nend;
+ofm=W.OnMessage := TOnMessage( MakeMethod(nil, @FormMessage));
+mih=procedure MenuItemHandler(Dummy:PControl; Sender: PMenu; Item: Integer);\nbegin;\nend;
+ami=PM.AddItem(PChar(GetText(Wnd)),TOnMenuItem( MakeMethod( nil,@MenuItemHandler) ),[]);
+frm=W:= NewForm(W,'|');
+lab=L1:=NewLabel(W,'|');
+but=B1:=NewButton(W,'|');
+rad=R1:=NewRadioBox(W,'|');
+che=C1:=NewCheckBox(W,'|');
+edi=E1:=NewEditBox(W,[]);
+mem=EB1:=NewEditBox(W,[eoMultiline, eoNoHScroll]);
+lis=LB1:=NewListBox(W,[]);
+com=CB1:=NewComboBox(W,[]);CB1.DropDownCount=20;
+gro=G1:=NewGroupBox(W,'');
+bit=BB1:=NewBitBtn(W,s,[],glyphLeft,0,0);
+wra=WL1:=NewWordWrapLabel(W,'|');
+ric=RE:=NewRichEdit(W,[eoNoHScroll]);LoadRTF(RE,'');

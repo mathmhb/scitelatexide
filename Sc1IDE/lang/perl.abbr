@@ -1,0 +1,1 @@
+hello=#!/usr/bin/perl\nuse strict;\nuse warnings;\n\nprint "Hello, World...\\n";\n

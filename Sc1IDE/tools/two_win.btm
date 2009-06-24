@@ -1,0 +1,7 @@
+@echo off
+setlocal
+set w=%@eval[%_xpixels/2]
+set h=%_ypixels
+start "" "%@path[%0]..\sc1.exe" -check.if.already.open=0 -save.session=0 -sidebar.show=0
+nircmdc.exe win setsize class SciTEWindow 0 0 %w %h
+nircmdc.exe win setsize foreground %w 0 %w %h

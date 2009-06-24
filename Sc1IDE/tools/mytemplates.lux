@@ -1,0 +1,15 @@
+--To define document templates
+templates={
+	html='template.html',
+	latex='template.tex',
+	java='template.java',
+	perl='template.pl',
+	cpp='template.cpp'
+}
+template_paths={props['SciteDefaultHome']..'/templates',props['SciteDefaultHome']..'/../editplus',props['SciteDefaultHome']..'/../../demo'}
+--scite_Command(c_{'Select Document Templates','选择文档模板','匡拒ゅ郎家狾'}..'|select_templates|Ctrl+Alt+N')
+
+--To define cliptext files
+clipfiles={LaTeX='latex.ctl',Html='html.ctl',Html4='html4.ctl',css1='css.ctl',css2='css2.ctl'}
+clipfile_paths={props['SciteDefaultHome']..'/../editplus'}
+--scite_Command(c_{'Select Clip Text','选择剪贴文本','匡拒芭禟ゅセ'}..'|select_clipfiles|Ctrl+Alt+C')
