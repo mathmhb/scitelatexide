@@ -8,5 +8,5 @@ CD scite\win32
 make
 copy ..\bin\SciTE.exe ..\..\Release
 cd ..\..\iconlib
-make.bat
+make.cmd
 copy toolbar.dll ..\Release

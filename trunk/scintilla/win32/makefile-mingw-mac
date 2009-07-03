@@ -7,18 +7,23 @@
 # safely if using a newer version which may display warning messages.
 
 .SUFFIXES: .cxx
-CC = /usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-g++
-DLLWRAP = /usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-dllwrap
+
+# MINGWVERSION is used to specify which version of MINGW is to be used to do the cross compiling.
+# Two versions are available: i386-mingw32-4.3.0 and i386-mingw32-3.4.5
+
+MINGWVERSION = i386-mingw32-3.4.5
+CC = /usr/local/$(MINGWVERSION)/bin/i386-mingw32-g++
+DLLWRAP = /usr/local/$(MINGWVERSION)/bin/i386-mingw32-dllwrap
 DEL = rm -f
-WINDRES = /usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-windres
-RANLIB = /usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-ranlib
+WINDRES = /usr/local/$(MINGWVERSION)/bin/i386-mingw32-windres
+RANLIB = /usr/local/$(MINGWVERSION)/bin/i386-mingw32-ranlib
 
 COMPONENT = ../bin/Scintilla.dll
 LEXCOMPONENT = ../bin/SciLexer.dll
 LEXLIB = Lexers.a
 
 ifndef NOTHUNKS
-gversion = $(word 1,$(subst ., ,$(shell /usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-g++ --version)))
+gversion = $(word 1,$(subst ., ,$(shell /usr/local/$(MINGWVERSION)/bin/i386-mingw32-g++ --version)))
 ifeq ($(gversion),2)
 THUNKFLAGS=-fvtable-thunks
 endif
