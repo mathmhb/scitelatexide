@@ -228,7 +228,7 @@ SString PropSetFile::GetWildUsingStart(const PropSet &psStart, const char *keyba
 				char *keyfile = NULL;
 
 				if (strncmp(orgkeyfile, "$(", 2) == 0) {
-	const char *cpendvar = strchr(orgkeyfile, ')');
+					const char *cpendvar = strchr(orgkeyfile, ')');
 					if (cpendvar) {
 						SString var(orgkeyfile, 2, cpendvar-orgkeyfile);
 						SString s = psStart.GetExpanded(var.c_str());

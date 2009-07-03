@@ -280,7 +280,7 @@ const char *contributors[] = {
             "Todd Whiteman",
             "Yuval Papish",
             "Instanton",
-			"Mathmhb",
+            "Mathmhb",
             "Sergio Lucato",
             "VladVRO",
             "Dmitry Maslov",
@@ -802,7 +802,7 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		}
 #endif
 		AddStyledText(wsci, GetTranslationToAbout("Version").c_str(), trsSty);
-		AddStyledText(wsci, " 1.78 .64\n", 1);
+		AddStyledText(wsci, " 1.79 .64\n", 1);
 		AddStyledText(wsci, "    " __DATE__ " " __TIME__ "\n", 1);
 //		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f)); 
 		SetAboutStyle(wsci, 2, ColourDesired(0, 0, 0));
@@ -810,13 +810,13 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		AddStyledText(wsci, "Mathmhb (mathmhb@163.com)\n", 4);
 		Platform::SendScintilla(wsci, SCI_STYLESETITALIC, 2, 1);
 		AddStyledText(wsci, GetTranslationToAbout("Based on").c_str(), trsSty); 
-		AddStyledText(wsci, " SciTE 1.78 ", 1); //!-add-[SciTE-Ru]
+		AddStyledText(wsci, " SciTE 1.79 ", 1); //!-add-[SciTE-Ru]
 		AddStyledText(wsci, GetTranslationToAbout("by").c_str(), trsSty);
 		AddStyledText(wsci, " Neil Hodgson.\n", 2);
 		AddStyledText(wsci, GetTranslationToAbout("and").c_str(), trsSty);
-		AddStyledText(wsci, " SciTE-Ru 1.78.64Ru\n",1); 
+		AddStyledText(wsci, " SciTE-Ru 1.79.64Ru\n",1); 
 		SetAboutStyle(wsci, 3, ColourDesired(0, 0, 0));
-		AddStyledText(wsci, "December 1998-May 2009.\n", 3);
+		AddStyledText(wsci, "December 1998-July 2009.\n", 3);
 		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f));
 		AddStyledText(wsci, "http://www.scintilla.org\n", 4);
 		AddStyledText(wsci, "Lua scripting language by TeCGraf, PUC-Rio\n", 3);
