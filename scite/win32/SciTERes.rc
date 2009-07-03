@@ -596,8 +596,8 @@ IDC_MARGIN         CURSOR  DISCARDABLE     "Margin.cur"
 IDC_DRAGDROP       CURSOR  DISCARDABLE     "DragDrop.cur" //!-add-[tab.window]
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION	1, 7, 8, 64
-PRODUCTVERSION	1, 7, 8, 64
+FILEVERSION	1, 7, 9, 65
+PRODUCTVERSION	1, 7, 9, 65
 FILEFLAGSMASK	0x3fL
 FILEFLAGS 0
 FILEOS VOS_NT_WINDOWS32
@@ -615,12 +615,12 @@ BEGIN
 			VALUE	"CompanyName",	"Instanton (soft_share@126.com) & Mathmhb (mathmhb@163.com)\0"
 			//~ VALUE	"FileDescription",	"LaTeX IDE: an SciTE variant\0"
 			VALUE	"FileDescription",	APPNAME ": an SciTE variant\0"
-			VALUE	"FileVersion",	"1.78 .64\0"
+			VALUE	"FileVersion",	"1.79 .65\0"
 			VALUE	"InternalName",	"SciTE\0"
 			VALUE	"LegalCopyright",	"Copyright 1998-2009 by Neil Hodgson\0"
 			VALUE	"OriginalFilename",	"SciTE.EXE\0"
 			VALUE	"ProductName",	"SciTE\0"
-			VALUE	"ProductVersion",	"1.78 .64\0"
+			VALUE	"ProductVersion",	"1.79 .65\0"
 		END
 	END
 END

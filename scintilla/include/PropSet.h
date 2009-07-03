@@ -29,7 +29,7 @@ struct Property {
  */
 class PropSet {
 protected:
-	enum { hashRoots=31 };//[mhb] increased: 31
+	enum { hashRoots=31 };
 	Property *props[hashRoots];
 	Property *enumnext;
 	int enumhash;

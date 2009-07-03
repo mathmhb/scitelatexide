@@ -1,10 +1,8 @@
 // Scintilla source code edit control
-/** @file LexCrontab.cxx
- ** Lexer to use with extended crontab files used by a powerful
- ** Windows scheduler/event monitor/automation manager nnCron.
- ** (http://nemtsev.eserv.ru/)
+/** @file LexForth.cxx
+ ** Lexer for FORTH
  **/
-// Copyright 1998-2001 by Neil Hodgson <neilh@scintilla.org>
+// Copyright 1998-2003 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
 #include <stdlib.h>
@@ -17,6 +15,7 @@
 
 #include "PropSet.h"
 #include "Accessor.h"
+#include "StyleContext.h"
 #include "KeyWords.h"
 #include "Scintilla.h"
 #include "SciLexer.h"
