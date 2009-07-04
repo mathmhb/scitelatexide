@@ -13,13 +13,40 @@ function set_mainfile()
 	local curfile=props['FilePath']
 	local s='command.checked.'..tostring(cn_set_mainfile)..'.*'
 	if mainfile==curfile then
+		print('Unsetting Mainfile: '..mainfile)
 		mainfile=''
 		props[s]='0'
 	else
 		mainfile=curfile
 		props[s]='1'
+		print('Setting Mainfile: '..mainfile)
 	end
-	print('Setting Mainfile: '..mainfile)
+end
+--[mhb] 06/28/09 : to support compiling mainfile via corresponding compile command
+function compile_mainfile()
+	if mainfile=='' then
+		print('Please Set Mainfile first!')
+		return
+	end
+	local curfile=props['FilePath']
+	if mainfile~='' and curfile~='' then
+		scite.Open(mainfile)
+	end
+	local typ=props['FileType']
+	print('Compiling Mainfile: ',props['FilePath'],typ)
+	local cmd=props['COMPILEMAIN_'..typ]
+	if cmd=='' then
+		scite.MenuCommand(IDM_COMPILE)
+	elseif cmd=='@build' then
+		scite.MenuCommand(IDM_BUILD)
+	elseif cmd=='@go' then
+		scite.MenuCommand(IDM_GO)
+	else
+		shellexec(cmd)
+	end
+	if mainfile~='' and curfile~='' then
+		scite.Open(curfile)
+	end
 end
 
 local last_shortcut=''
@@ -235,7 +262,6 @@ function current_filetype()
 		dyn_files[fnam]=typ
 		return typ
 	end
-	
 	return nil
 end
 
@@ -382,8 +408,11 @@ end
 
 function update_menus()
 	local menu_all=prop2table('MENU_*',true)
+	local i0=tonumber(props['MENU_NUM_*'])
+	if (not i0) or (i0==0) then i0=40 end
+	
 	if #menu_all>0 then
-		add_menus('*',menu_all,25)
+		add_menus('*',menu_all,i0)
 	end
 	for _,v in ipairs(filetypes) do
 		local typ=v[1]
@@ -424,8 +453,10 @@ function set_parameters(file)
     props['MainFile']=mainfile
   end
   
-  local typ=current_filetype() 
-  props['FileType']=typ -- provides a new property for use in statusbar or other lua files
+  --local typ=current_filetype() 
+  local typ=props['FileType']
+
+  --props['FileType']=typ -- provides a new property for use in statusbar or other lua files
   local lex=props['lexer.$(file.pattern.'..typ..')']
   lex=props['LEXER_'..typ]
   local res=lexer_settings[typ]
@@ -454,9 +485,9 @@ function run_usercmd(...)
 	print('Done.')
 end
 
-scite_OnOpenSwitch(set_parameters)
--- scite_OnSave(set_parameters)
-scite_OnOpen(use_dyn_ftype) -- [mhb] 01/19/09: updates current dynamic file type
+--scite_OnOpenSwitch(set_parameters)
+--scite_OnSave(set_parameters)
+--scite_OnOpen(use_dyn_ftype) -- [mhb] 01/19/09: updates current dynamic file type
 
 
 --To support properties selecting easily (such as FilePath,Date,...)
@@ -537,7 +568,7 @@ function select_configfiles()
 end
 --[mhb] 05/27/09: edit menucmds.lux
 function edit_menucmds()
-	sel_cfgfile('menucmds.properties')
+	print('This function is outdated! Now you can directly edit settings in menucmds.properties and tools-*.properties!')
 end
 
 
@@ -683,7 +714,7 @@ function reload_menucmds()
 	clear_prop_tables()
 	local lua_dir=(props['ext.lua.directory'] or props['SciteDefaultHome']..'\\tools')..'/'
 
-	local log_file=props['SciteDefaultHome']..'/menucmds.cache'
+	local log_file=props['SciteDefaultHome']..'/menucmds.cache.properties'
 	f_log=nil
 	if tostring(props['GEN_MENU_CACHE'])=='1' or (not f_exist(log_file)) then
 		f_log=io.open(log_file,'w')
@@ -700,13 +731,12 @@ function reload_menucmds()
 	add_filetypes(filetypes)
 	update_menus()
 -- 	end
-	
+
 	if f_log then 
 		f_log:close() 
 		f_log=nil 
 	end
 	props['CACHE_TABLES']='1'
-
 end
 
 props['GEN_MENU_CACHE']='0'

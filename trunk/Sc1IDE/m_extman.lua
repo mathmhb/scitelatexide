@@ -343,22 +343,6 @@ function get_func_name(func)
     return nil
 end
 
-function use_extman_events()
-  _G.OnUserListSelection=_On_UserListSelection
-  _G.OnMarginClick=_On_MarginClick
-  _G.OnDoubleClick=_On_DoubleClick
-  _G.OnSavePointLeft=_On_SavePointLeft
-  _G.OnSavePointReached=_On_SavePointReached
-  _G.OnChar=_On_Char
-  _G.OnSave=_On_Save
-  _G.OnBeforeSave=_On_BeforeSave
-  _G.OnSwitchFile=_On_SwitchFile
-  _G.OnOpen=_On_Open
-  _G.OnKey=_On_Key
-  _G.OnDwellStart=_On_DwellStart
-  _G.OnClose=_On_Close
-end
-
 
 -- [mhb] functions about filenames
 function File_Ext(f)
@@ -691,7 +675,6 @@ props['IS_READY']='0' --[mhb] 05/25/09
 function OnUpdateUI()
   if props['IS_READY']=='0' then
     props['IS_READY']='1' --[mhb] 05/25/09
---     use_extman_events()
     DispatchOne(_Open,props['FilePath']) --[mhb] 06/05/09
   end
   if editor.Focus then
@@ -1003,7 +986,51 @@ function scite_MenuCommand(cmd)
     scite.MenuCommand(cmd)
 end
 
+--[Disable/Enable Lua Events]
+local events={
+'OnUserListSelection','OnMarginClick','OnDoubleClick','OnSavePointLeft','OnSavePointReached',
+'OnChar','OnSave','OnBeforeSave','OnSwitchFile','OnOpen','OnKey','OnDwellStart','OnClose','OnUpdateUI'
+}
+function show_events()
+  local s=''
+  for i,v in ipairs(events) do s=s..v..'='..tostring(_G[v])..';' end
+  print(s)
+  DoFunc('msgbox',s)
+end
+local _E={}
+function save_events()
+    for _,v in ipairs(events) do _E[v]=_G[v] end
+end
+function set_events(E)
+  if not E then E=_E end
+  OnUserListSelection=E.OnUserListSelection
+  OnMarginClick=E.OnMarginClick
+  OnDoubleClick=E.OnDoubleClick
+  OnSavePointLeft=E.OnSavePointLeft
+  OnSavePointReached=E.OnSavePointReached
+  OnChar=E.OnChar
+  OnSave=E.OnSave
+  OnBeforeSave=E.OnBeforeSave
+  OnSwitchFile=E.OnSwitchFile
+  OnOpen=E.OnOpen
+  OnKey=E.OnKey
+  OnDwellStart=E.OnDwellStart
+  OnClose=E.OnClose
+  for _,v in ipairs(events) do _G[v]=E[v] end
+end
 
+local E_pn='USE_EVENT_HANDLERS'
+if tostring(props[E_pn])=='' then props[E_pn]='1' end
+function toggle_events()
+  if props[E_pn]=='1' then 
+    props[E_pn]='0'
+    set_events({})
+  else
+    props[E_pn]='1'
+    set_events(_E)
+  end
+  show_events()
+end
 
 --[Register SciTE Events]:: 
 scite_OnOpen(buffer_switch)
@@ -1012,3 +1039,4 @@ scite_OnSwitchFile(buffer_switch)
 if not scite_DirectoryExists(lua_path) then
     print('Error: directory '..lua_path..' not found')
 end
+

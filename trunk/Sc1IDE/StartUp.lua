@@ -40,6 +40,8 @@ else
     print('cannot load spawner '..err)
 end
 
+
+
 --My new extman functions (without loading scripts automatically): required by most [mathmhb]'s lua scripts 
 dofile(props['SciteDefaultHome']..'/'..'m_extman.lua')
 
@@ -67,7 +69,6 @@ else
   end
 end
 
-
---[mhb] 06/12/09: allow to enable/disable lua events via property USE_EVENT_HANDLERS
--- dofile(props['SciteDefaultHome']..'/'..'m_events.lua')
+-- save current lua events
+save_events()
 
