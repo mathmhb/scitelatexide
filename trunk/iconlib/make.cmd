@@ -6,6 +6,8 @@ set N=0
 echo Deleting toolbar.constant and toolbar.rc ...
 del toolbar.constant
 del toolbar.rc
+copy VersionInfo.rc toolbar.rc
+
 echo Regenerating toolbar.constant and toolbar.rc from *.ico automatically ...
 for %%A in (*.ico) do call proc_ico.cmd %%A%%
 
