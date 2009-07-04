@@ -2,7 +2,8 @@
 # make toolbar.dll from a unix shell script
 
 touch toolbar.constant
-touch toolbar.rc
+#touch toolbar.rc
+cp ./VersionInfo.rc ./toolbar.rc
 
 i=0
 for File in *.ICO
@@ -12,13 +13,17 @@ do
 	i=`expr $i + 1`
 done
 
-/usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-windres -o resfile.o toolbar.rc
-/usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-gcc -s -shared -nostdlib -o toolbar.dll resfile.o
+/usr/local/i386-mingw32-3.4.5/bin/i386-mingw32-windres -o resfile.o toolbar.rc
+/usr/local/i386-mingw32-3.4.5/bin/i386-mingw32-gcc -s -shared -nostdlib -o toolbar.dll resfile.o
+
+# /usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-windres -o resfile.o toolbar.rc
+# /usr/local/i386-mingw32-4.3.0/bin/i386-mingw32-gcc -s -shared -nostdlib -o toolbar.dll resfile.o
+
 
 rm resfile.o
 
-#cp ./toolbar.dll ../../Sc1IDE
-#cp ./toolbar.constant ../../Sc1IDE
+cp ./toolbar.dll ../../Sc1IDE
+cp ./toolbar.constant ../../Sc1IDE
 
 mv ./toolbar.dll ../../Release
 mv ./toolbar.constant ../../Release

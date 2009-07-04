@@ -15,6 +15,7 @@ mv ./makefile ./makefile-mingw-mac
 mv ./makefile.--- ./makefile
 cd ../..
 cp ./scite/bin/SciTE.exe ./Release/SciTE.exe
+cp ./scite/bin/SciTE.exe ./Sc1IDE/Sc1.exe
 
 cd ./iconlib/ico
 ./build-on-mac
