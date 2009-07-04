@@ -14,7 +14,7 @@ end
 -- local win = true
 
 local tab_index = 0
-local panel_width = 250
+local panel_width = tonumber(props['sidebar.width']) or 280 --[mhb] 06/28/09 
 local win_height = props['position.height']
 if win_height == '' then win_height = 600 end
 
