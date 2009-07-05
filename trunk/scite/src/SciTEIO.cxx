@@ -336,25 +336,8 @@ void SciTEBase::DiscoverIndentSetting() {
 	}
 }
 
-//[mhb] 07/04/09 : check whether a data block contains UTF8 chars
-int Has_UTF8_Char(char *data,int size) {
-	if (!data||size<2) {return 0;}
-	byte *p=(byte*)(data);
-	int i=0,cnt=0;
-	while (p[0] && p[1] && p[2] && i+2<size) {
-		if (p[0]>>7==0x01) {
-			if (p[1]>>7==0x00) {return 0;}
-			if ((p[0]>>4==0x0e) && (p[1]>>6==0x02) && (p[2]>>6==0x02)) 	{
-				cnt++;p+=2;i+=2;
-			}//UTF-8
-		}
-		p++;i++;
-	}
-	return cnt>0 ? 1 : 0;
-}
 
 void SciTEBase::OpenFile(int fileSize, bool suppressMessage) {
-	Utf8_16_Read convert;
 
 	FILE *fp = filePath.Open(fileRead);
 	if (fp) {
@@ -364,11 +347,8 @@ void SciTEBase::OpenFile(int fileSize, bool suppressMessage) {
 		char data[blockSize];
 		size_t lenFile = fread(data, 1, sizeof(data), fp);
 		UniMode codingCookie = CodingCookieValue(data, lenFile);
-		
-		//[mhb] 07/04/09 : to check UTF8 chars automatically; new property "utf8.auto.check"
-		if ((codingCookie==uni8Bit) && props.GetInt("utf8.auto.check") && Has_UTF8_Char(data,blockSize)) {
-			codingCookie=uniCookie;
-		}
+
+		Utf8_16_Read convert(codingCookie==uni8Bit && props.GetInt("utf8.auto.check")>0);//[mhb] 07/05/09 : Utf8_16_Read convert;
 		
 		SendEditor(SCI_ALLOCATE, fileSize + 1000);
 		SString languageOverride;
