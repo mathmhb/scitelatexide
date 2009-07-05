@@ -27,6 +27,8 @@ local sp_exit=package.loadlib(mspell_dll,'SpellCheckerExit')
 local spell_suggestions=package.loadlib(mspell_dll,'SpellCheckerSuggestions')
 local sp_load_userdicts=package.loadlib(mspell_dll,'ReadUserDicts')
 
+local speller_inited=false
+
 local function write_spell_ini()
    local keys={
    'in_file','out_file','debugging','index_level','max_errors','max_error_ratio','max_word_length','max_lookups','max_suggestions','check_uppercase','check_ignore_case','keep_capital_initial','dict_path','dict_file','userdict_file'
@@ -67,6 +69,7 @@ function spell_init()
    print('Spell checker m_spell.dll loaded into memory!')
    LoadUserDict(user_dict_file) 
    print('User dict file loaded into memory!')
+   speller_inited=true
 --    os.remove(ini_file)
 end
 
@@ -177,7 +180,13 @@ end
 
 function GetSuggestions(w)
    local tbl=nil
-   if not spell_init then return; end
+   if not speller_inited then 
+      spell_init()
+      if not speller_inited then
+         print('Cannot initialize the spell checker library!')
+         return
+      end
+   end
 	f_write(in_file,w)
 	spell_suggestions()
 	tbl=f_read(out_file,true)
@@ -186,7 +195,7 @@ function GetSuggestions(w)
     return tbl
 end
 
-function CheckCurWord(no_spelling_menu)
+function CheckCurWord(no_spelling_menu,show_words)
    local r=GetCurWordRange()
    if not r then return nil; end
    if not r.word then return nil; end
@@ -205,6 +214,12 @@ function CheckCurWord(no_spelling_menu)
    if table.getn(tbl)<1 then return; end
 --    print(r.p1,r.p2)
    ErrorMark(r.p1,r.p2)
+   if show_words then
+      output:Clear()
+      local msg=table.concat(tbl,'\t')
+      print('Please right-click the incorrect word to choose a suggestion!')
+      print('Suggestions:',msg)
+   end
    if no_spelling_menu then return tbl; end
    
    props['WORD_INCORRECT']=w
