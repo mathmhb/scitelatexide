@@ -907,6 +907,11 @@ static char ColourisePropsLine( // return last style //!-change-[PropsColouriseF
 			if (isassignchar(lineBuffer[i++]))
 				styler.ColourTo(startLine + i, SCE_PROPS_ASSIGNMENT);
 			styler.ColourTo(endPos, SCE_PROPS_DEFAULT);
+//!-start-[qhs] 07/06/09: to fix the crash bug while the the first letter in the first line is an assignchar (':' or '=') in the properties files
+		} else if (isassignchar(lineBuffer[i])) { 
+			styler.ColourTo(startLine + i, SCE_PROPS_ASSIGNMENT);
+			styler.ColourTo(endPos, SCE_PROPS_DEFAULT);
+//!-end-[qhs]
 //!-start-[PropsKeywords]
 		} else if (isprefix(lineBuffer, "import ")) {
 			styler.ColourTo(startLine + 6, SCE_PROPS_KEYWORD);
@@ -943,8 +948,8 @@ static char ColourisePropsLine( // return last style //!-change-[PropsColouriseF
 					chAttr = SCE_PROPS_KEY;
 				}
 				styler.ColourTo(startLine + indent + len, chAttr);
-//				styler.ColourTo(startLine + i - 1 - fin, SCE_PROPS_KEY);//[mhb] 07/04/09: suggested by QiHS 
-//				styler.ColourTo(startLine + i - 1, chAttr);//[mhb] 07/04/09: suggested by QiHS  
+				styler.ColourTo(startLine + i - 1 - fin, SCE_PROPS_KEY);
+				styler.ColourTo(startLine + i - 1, chAttr);
 //!-end-[PropsKeysSets]
 				styler.ColourTo(startLine + i, SCE_PROPS_ASSIGNMENT);
 				styler.ColourTo(endPos, SCE_PROPS_DEFAULT);
