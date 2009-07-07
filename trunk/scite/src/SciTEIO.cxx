@@ -348,7 +348,14 @@ void SciTEBase::OpenFile(int fileSize, bool suppressMessage) {
 		size_t lenFile = fread(data, 1, sizeof(data), fp);
 		UniMode codingCookie = CodingCookieValue(data, lenFile);
 
-		Utf8_16_Read convert(codingCookie==uni8Bit && props.GetInt("utf8.auto.check")>0);//[mhb] 07/05/09 : Utf8_16_Read convert;
+		//[mhb] 07/07/09 
+		int check_utf8=props.GetInt("utf8.auto.check");
+		if (codingCookie==uni8Bit && check_utf8==2) {
+			if (Has_UTF8_Char((unsigned char*)(data),lenFile)) {
+				codingCookie=uniCookie;
+			}
+		}
+		Utf8_16_Read convert(codingCookie==uni8Bit && check_utf8==1);//[mhb] 07/05/09 : Utf8_16_Read convert;
 		
 		SendEditor(SCI_ALLOCATE, fileSize + 1000);
 		SString languageOverride;
