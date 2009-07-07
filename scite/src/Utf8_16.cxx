@@ -33,7 +33,7 @@ Utf8_16_Read::Utf8_16_Read() {
 	m_nBufSize = 0;
 	m_pNewBuf = NULL;
 	m_bFirstRead = true;
-	m_bAutoCheckUtf8 = false;//[mhb] 07/05/09: by default, not auto check utf8 
+	m_nAutoCheckUtf8 = false;//[mhb] 07/05/09: by default, not auto check utf8 
 }
 
 Utf8_16_Read::Utf8_16_Read(bool AutoCheckUtf8) {
@@ -41,7 +41,7 @@ Utf8_16_Read::Utf8_16_Read(bool AutoCheckUtf8) {
 	m_nBufSize = 0;
 	m_pNewBuf = NULL;
 	m_bFirstRead = true;
-	m_bAutoCheckUtf8 = AutoCheckUtf8;//[mhb] 07/05/09: by default, not auto check utf8 
+	m_nAutoCheckUtf8 = AutoCheckUtf8;//[mhb] 07/05/09: by default, not auto check utf8 
 }
 
 Utf8_16_Read::~Utf8_16_Read() {
@@ -156,8 +156,8 @@ int Utf8_16_Read::determineEncoding() {
 			m_eEncoding = eUtf8;
 			nRet = 3;
 		}
-		//[mhb] 07/05/09 :to support checking utf-8 from raw chars
-		else if (m_nLen>2 && m_bAutoCheckUtf8 ) {
+		//[mhb] 07/05/09 :to support checking utf-8 from raw chars; 07/07/09 : method 1
+		else if (m_nLen>2 && m_nAutoCheckUtf8==1 ) {
 			if (Has_UTF8_Char(m_pBuf,m_nLen)) {
 				m_eEncoding = eUtf8;
 				nRet=0;
