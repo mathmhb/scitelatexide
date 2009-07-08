@@ -493,7 +493,8 @@ local function FileMan_ShowPath()
 	local rtf = '{\\rtf\\ansi\\ansicpg1251{\\fonttbl{\\f0\\fcharset204 Helv;}}{\\colortbl ;\\red0\\green0\\blue255;  \\red255\\green0\\blue0;}\\f0\\fs16'
 	local path = '\\cf1'..current_path:gsub('\\', '\\\\')
 	local mask = '\\cf2'..file_mask..'}'
-	memo_path:set_text(rtf..path..mask)
+-- 	memo_path:set_text(rtf..path..mask)
+	memo_path:set_text(current_path..file_mask)
 end
 
 ----------------------------------------------------------
@@ -1173,15 +1174,47 @@ list_abbrev:on_key(function(key)
 	end
 end)
 
+--[mhb] 07/08/09 : set background and foreground colors
+local function set_colors()
+	local fg=props['sidebar.fore']
+	local bg=props['sidebar.back']
+	if fg=='' or bg=='' then return end
+	local var_lst={
+	list_dir,list_favorites,proj,list_bookmarks,
+	fcn,list_abbrev,ref,cite,sbf,grk,mth,env,doc
+	}
+	for _,v in ipairs(var_lst) do
+		if v then 
+			v:set_list_colour(fg,bg)
+		end
+	end
+end
+
+local function color2rtf(c)
+	if c:sub(1,1)~='#' then return end
+	local rr=tonumber(c:sub(2,3),16)
+	local gg=tonumber(c:sub(4,5),16)
+	local bb=tonumber(c:sub(6,7),16)
+	return '\\red'..rr..'\\green'..gg..'\\blue'..bb
+end
+local function set_memo_color()
+	local fg=props['sidebar.memo.fore']
+	local bg=props['sidebar.memo.back']
+	if fg~='' and bg~='' then
+		memo_path:set_memo_colour(fg,bg)
+	end
+end
 ----------------------------------------------------------
 -- Events
 ----------------------------------------------------------
 local function OnSwitch()
 	if tonumber(props['sidebar.show'])~=1 then return end
+	set_colors() --[mhb] 07/08/09 : set background and foreground colors
 	if tab_index == 0 then
 		local path = props['FileDir']
 		if path == '' then return end
 		path = path:gsub('\\$','')..'\\'
+		set_memo_color() --[mhb] 07/08/09 
 		if path ~= current_path then
 			current_path = path
 			FileMan_ListFILL()
