@@ -489,12 +489,27 @@ end
 local current_path = ''
 local file_mask = '*.*'
 
+-- [mhb] 07/09/08 : convert RGB color to RTF codes
+local function color2rtf(c)
+	if c:sub(1,1)~='#' then return '' end
+	local rr=tonumber(c:sub(2,3),16)
+	local gg=tonumber(c:sub(4,5),16)
+	local bb=tonumber(c:sub(6,7),16)
+	return '\\red'..rr..'\\green'..gg..'\\blue'..bb
+end
+
 local function FileMan_ShowPath()
-	local rtf = '{\\rtf\\ansi\\ansicpg1251{\\fonttbl{\\f0\\fcharset204 Helv;}}{\\colortbl ;\\red0\\green0\\blue255;  \\red255\\green0\\blue0;}\\f0\\fs16'
-	local path = '\\cf1'..current_path:gsub('\\', '\\\\')
-	local mask = '\\cf2'..file_mask..'}'
--- 	memo_path:set_text(rtf..path..mask)
-	memo_path:set_text(current_path..file_mask)
+--[mhb] 07/09/09 : allow users configure foreground color of path & mask
+	local fg1=props['sidebar.fore.path']
+	local fg2=props['sidebar.fore.mask']
+	local bg=props['sidebar.back']
+	local color_tbl=color2rtf(bg)..';'..color2rtf(fg1)..';'..color2rtf(fg2)..';'
+	
+	local rtf = '{\\rtf\\ansi\\ansicpg1251{\\fonttbl{\\f0\\fcharset204 Helv;}}{\\colortbl;'..color_tbl..'}\\f0\\fs16'
+	local path = '{\\cb1\\cf2 '..current_path:gsub('\\', '\\\\')..'}'
+	local mask = '{\\cb1\\cf3 '..file_mask..'}}'
+	memo_path:set_text(rtf..path..mask)
+	memo_path:set_memo_colour(fg1,bg)
 end
 
 ----------------------------------------------------------
@@ -1190,20 +1205,7 @@ local function set_colors()
 	end
 end
 
-local function color2rtf(c)
-	if c:sub(1,1)~='#' then return end
-	local rr=tonumber(c:sub(2,3),16)
-	local gg=tonumber(c:sub(4,5),16)
-	local bb=tonumber(c:sub(6,7),16)
-	return '\\red'..rr..'\\green'..gg..'\\blue'..bb
-end
-local function set_memo_color()
-	local fg=props['sidebar.memo.fore']
-	local bg=props['sidebar.memo.back']
-	if fg~='' and bg~='' then
-		memo_path:set_memo_colour(fg,bg)
-	end
-end
+
 ----------------------------------------------------------
 -- Events
 ----------------------------------------------------------
