@@ -28,7 +28,7 @@ tab0:add(memo_path, "top", 22)
 
 local list_dir = gui.list()
 -- local list_dir_height = win_height/2 - 80
-local list_dir_height=200
+local list_dir_height=150
 tab0:add(list_dir, "top", list_dir_height)
 
 -- tab0:client(list_favorites)  --[mhb] commented
@@ -39,7 +39,7 @@ proj:add_column(s_("Project"),300)
 tab0:add(proj,"bottom",150)
 -- tab0:client(proj)
 local list_favorites = gui.list(true)
-tab0:add(list_favorites, "top", 100) --[mhb]
+-- tab0:add(list_favorites, "top", 100) --[mhb]
 list_favorites:add_column(s_("Favorites"), 300)
 -- tab0:add(list_favorites, "top", 100) --[qhs] uncommented
 tab0:client(list_favorites)
@@ -816,7 +816,7 @@ local function prj_ListFILL()
 end
 -- prj_ListFILL()
 
-local prj_filters="Project (.prj)|.prj|All (.)|."
+local prj_filters="Project (*.prj)|.prj|All (.)|."
 function prj_SaveTo(fn)
 	io.output(fn)
 	local list_string = table.concat(list_prj_table,'\n')
@@ -824,7 +824,7 @@ function prj_SaveTo(fn)
 	io.close()
 end
 function prj_SaveList()
-	local fn=gui.open_dlg('Save Project File',prj_filters)
+	local fn=gui.open_dlg(s_('Save Project File'),prj_filters)
 	if not fn then return;end
 	prj_filename=fn
 	prj_SaveTo(prj_filename)

@@ -21,7 +21,7 @@ local out_file='c:\\m_spell.out'
 local ini_file=props['SciteDefaultHome']..'\\m_spell.ini'
 
 
-local mspell_dll=props['SciteDefaultHome']..'/m_spell.dll'
+local mspell_dll=props['SciteDefaultHome']..'/lib/m_spell.dll'
 local sp_init=package.loadlib(mspell_dll,'SpellCheckerInit')
 local sp_exit=package.loadlib(mspell_dll,'SpellCheckerExit')
 local spell_suggestions=package.loadlib(mspell_dll,'SpellCheckerSuggestions')

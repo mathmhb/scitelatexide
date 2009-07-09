@@ -6,6 +6,10 @@ for _,v in pairs(_G) do
   if not q then _G[_]=nil; end
 end
 
+package.path = props["SciteDefaultHome"].."\\lib\\?.lua;"..props["SciteDefaultHome"].."\\tools\\?.lua;"..package.path
+package.cpath = props["SciteDefaultHome"].."\\lib\\?.dll;"..package.cpath
+
+
 if tostring(props['PLAT_GTK'])=='1' then
   props['USING_GUI']=''
   props['USING_SHELL']=''
@@ -25,14 +29,12 @@ end
 --Misc common functions and Win32 Support via m_ext.dll: required by most [mathmhb]'s lua scripts 
 require('m_ext')
 
-
 -- by default, the spawner lib sits next to extman.lua
-local spawner_path = props['spawner.extension.path'] or props['SciteDefaultHome']
 local fn
 if GTK then
-    fn,err = package.loadlib(spawner_path..'/unix-spawner-ex.so','luaopen_spawner')
+    fn,err = package.loadlib(props['SciteDefaultHome']..'/lib/unix-spawner-ex.so','luaopen_spawner')
 else
-    fn,err = package.loadlib(spawner_path..'\\spawner-ex.dll','luaopen_spawner')
+    fn,err = package.loadlib(props['SciteDefaultHome']..'\\lib\\spawner-ex.dll','luaopen_spawner')
 end
 if fn then
     fn() -- register spawner
@@ -43,7 +45,8 @@ end
 
 
 --My new extman functions (without loading scripts automatically): required by most [mathmhb]'s lua scripts 
-dofile(props['SciteDefaultHome']..'/'..'m_extman.lua')
+require('m_extman')
+-- dofile(props['SciteDefaultHome']..'/'..'m_extman.lua')
 
 local extman_path = path_of(props['ext.lua.startup.script'])
 local dirsep='\\'
