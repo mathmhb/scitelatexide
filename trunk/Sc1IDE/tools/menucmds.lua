@@ -5,6 +5,7 @@ usercmds={}
 helpcmds={}
 --[mhb] 06/13/09: To support dynamic lexers
 lexer_settings={}
+ftype_patterns={}
 
 --[mhb]added: 01/11/09 To support assigning a main file
 local cn_set_mainfile=props['CN_SET_MAINFILE']
@@ -52,10 +53,6 @@ end
 local last_shortcut=''
 
 --[mhb] added: 01/18/09 To support dynamic file types determined from file contents
-ftype_patterns={
-	tex={'\\documentclass','\\documentstyle'},
-	cpp={'#define','#include','main%s*%(','/*'},
-}
 local dyn_files={} --this table records files with dynamic file types
 function check_ftype_from_line(line)
 	if not line then return nil; end
@@ -66,6 +63,8 @@ function check_ftype_from_line(line)
 		if type(tbl)=='table' then
 			for _,v in ipairs(tbl) do
 				if string.find(line,v) then
+					print('Detected filetype:',typ,'Matching:',v)
+					print('Found line: ',line)
 					return typ
 				end
 			end
@@ -209,7 +208,12 @@ function add_filetype(v)
 	end
 	
 	props['SOURCE_FILES']=props['SOURCE_FILES']..';'..mask --[mhb] 01/09/09
-	props['GET_WILD_FILE_TYPES']=props['GET_WILD_FILE_TYPES']..';'..n --[mhb] 06/23/09 
+	if props['GET_WILD_FILE_TYPES']=='' then  --[mhb] 07/09/09 
+		props['GET_WILD_FILE_TYPES']=n --[mhb] 06/23/09 
+	else
+		props['GET_WILD_FILE_TYPES']=props['GET_WILD_FILE_TYPES']..';'..n --[mhb] 06/23/09 
+	end
+	
 	--[mhb] 06/11/09
 	if (des~='') and (des:sub(1,1)~='#') then
 		local ext=n
@@ -268,13 +272,14 @@ end
 
 --[mhb] 01/19/09: To support using dynamic file type 
 function use_dyn_ftype()
+	if props['FileType']~='' then return; end
 	if tostring(props['AUTO_TEST_FILETYPE'])~='1' then
 		return nil
 	end
 	if props['IGNORE_DYN_FTYPE']=='1' then return; end
 	local fnam=props['FileNameExt']
 	if fnam=='' then return;end
-	local ftyp=dyn_files[fnam]
+	local ftyp=dyn_files[fnam] or test_filetype() --[mhb] 07/09/09 
 	if not ftyp then return; end
 	if ftyp=='text' then return; end
 	local msg=s_('Do you want to use the lexer detected from file contents?')
@@ -284,6 +289,8 @@ function use_dyn_ftype()
 	local old_filepat=props['file.patterns.'..ftyp] or ''
 	if string.find(old_filepat,fnam) then return; end
 	props['file.patterns.'..ftyp]=fnam..';'..old_filepat
+	dyn_files[fnam]=ftyp
+	props['FileType']=ftyp
 	print('Set file ['..fnam..'] to type ['..ftyp..'] via its contents!')
 	local pos=editor.CurrentPos
 	local fn=props['FilePath']
@@ -485,9 +492,6 @@ function run_usercmd(...)
 	print('Done.')
 end
 
---scite_OnOpenSwitch(set_parameters)
---scite_OnSave(set_parameters)
---scite_OnOpen(use_dyn_ftype) -- [mhb] 01/19/09: updates current dynamic file type
 
 
 --To support properties selecting easily (such as FilePath,Date,...)
@@ -726,6 +730,7 @@ function reload_menucmds()
 	relatedexts=prop2table('RELATED_EXTS')
 	websites=prop2table('WEB_SITES')
 	patterns=prop2table('FUNC_PATTERNS')
+	ftype_patterns=prop2table('FTYPE_PATTERNS')
 
 -- 	if f_log then
 	add_filetypes(filetypes)
@@ -743,3 +748,6 @@ props['GEN_MENU_CACHE']='0'
 reload_menucmds()
 props['GEN_MENU_CACHE']='1'
 
+-- scite_OnOpenSwitch(set_parameters)
+-- scite_OnSave(set_parameters)
+scite_OnOpen(use_dyn_ftype) -- [mhb] 01/19/09: updates current dynamic file type

@@ -31,15 +31,17 @@ local list_dir = gui.list()
 local list_dir_height=200
 tab0:add(list_dir, "top", list_dir_height)
 
+-- tab0:client(list_favorites)  --[mhb] commented
+
 --[mhb] added: to support project management
 local proj = gui.list(true)
 proj:add_column(s_("Project"),300)
 tab0:add(proj,"bottom",150)
 -- tab0:client(proj)
-
 local list_favorites = gui.list(true)
+tab0:add(list_favorites, "top", 100) --[mhb]
 list_favorites:add_column(s_("Favorites"), 300)
--- tab0:add(list_favorites, "top", 100) --[mhb]
+-- tab0:add(list_favorites, "top", 100) --[qhs] uncommented
 tab0:client(list_favorites)
 
 tab0:context_menu {
@@ -83,7 +85,7 @@ tab1:add(list_bookmarks, "bottom", 100)
 local fcn = gui.list(true)
 fcn:add_column("#",40)
 fcn:add_column(s_("Functions/Patterns"), 600)
--- tab1:add(fcn,"bottom",200)
+-- tab1:add(fcn,"bottom",200)  --[qhs] uncommented
 tab1:client(fcn)
 
 tab1:context_menu {
@@ -120,10 +122,10 @@ local sbf = gui.list(true)
 ref:add_column(s_('Labels'),width-18)
 cite:add_column(s_('Bibitems'),width-18)
 sbf:add_column(s_('SubFiles'),width-18)
-tab_4:add(ref,"top",200)
-tab_4:add(sbf,"bottom",100)
--- tab_4:add(cite,"bottom",200)
-tab_4:client(cite)
+tab_4:add(ref,"bottom",200)
+tab_4:add(sbf,"bottom",200)
+-- tab_4:add(cite,"bottom",200) --[qhs] uncommented
+tab_4:client(cite) --[qhs]: tab_4:client(ref)
 
 tab_4:context_menu {
 	s_('LaTeX: Refresh Labels')..'|Fill_LaTeX'
@@ -136,10 +138,10 @@ local env = gui.list(true)
 grk:add_column(s_("Greek"),width-18)
 mth:add_column(s_("Math"),width-18)
 env:add_column(s_("Environments"),width-18)
-tab_5:add(grk,"top",200)
+tab_5:add(grk,"top",200) --[qhs]: tab_5:add(grk,"bottom",200)
 tab_5:add(mth,"bottom",200)
 -- tab_5:add(env,"bottom",200)
-tab_5:client(env)
+tab_5:client(env) --[qhs]: tab_5:client(grk)
 
 
 
@@ -170,7 +172,7 @@ end
 local tab_3 = gui.panel(panel_width + 18)
 local doc = gui.list(true)
 doc:add_column(s_("HelpDocs"),width-18)
--- tab_3:add(doc,"bottom",200)
+-- tab_3:add(doc,"bottom",200) --[qhs] uncommented
 tab_3:client(doc)
 
 local function get_helpdocs()
@@ -1208,7 +1210,7 @@ end
 ----------------------------------------------------------
 -- Events
 ----------------------------------------------------------
-local firstopen=true
+local firstopen=true --[qhs] 07/09/09 
 local function OnSwitch()
 	if tonumber(props['sidebar.show'])~=1 then return end
 	set_colors() --[mhb] 07/08/09 : set background and foreground colors
@@ -1216,7 +1218,6 @@ local function OnSwitch()
 		local path = props['FileDir']
 		if path == '' then return end
 		path = path:gsub('\\$','')..'\\'
--- 		set_memo_color() --[mhb] 07/08/09 
 		if path ~= current_path then
 			current_path = path
 			FileMan_ListFILL()
