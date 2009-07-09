@@ -283,15 +283,19 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
     // main loop ---------------------------------------------------------------
     for(running = sc.More(); running; sc.Forward()){
         if (!sc.More()){running = false;}
-        
+
         // current state -------------------------------------------------------
         switch(sc.state){
             // commands -----------------------------
+			case SCE_L_SLASH:
+				sc.ForwardSetState(SCE_L_DEFAULT);
+				group=0;
+			break;
             case SCE_L_COMMAND:
                 // single character 
                 if(sc.chPrev=='\\' && is1cmdletter(sc.ch)){
                      sc.ForwardSetState(SCE_L_DEFAULT);
-                     group=0;                     
+                     group=0;
                 }
                 // word characters
                 else if(!iscmdletter(sc.ch)){
@@ -337,7 +341,7 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
             //------------------------------------------------------------------
             case SCE_L_STRING:
                 if(sc.atLineEnd) sc.ForwardSetState(SCE_L_STRING); 
-                else if((sc.chPrev=='\'' && sc.ch == '\'')||(sc.chPrev=='"')) { //[mhb] 06/14/09: suggested by qsh, to fix latex ``...." coloring bug
+                else if((sc.chPrev=='\'' && sc.ch == '\'')||(sc.ch=='"')) { //[mhb] 06/14/09: suggested by qsh, to fix latex ``...." coloring bug
                     sc.ForwardSetState(SCE_L_DEFAULT);
 				}
             break;            
@@ -420,12 +424,17 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
         if(sc.state==SCE_L_DEFAULT){
             // command
 			if(sc.ch=='\\'){
-                sc.SetState(SCE_L_COMMAND);
-                group = 0;                
+				if (sc.chNext=='\\')
+					sc.SetState(SCE_L_SLASH);
+				else 
+					sc.SetState(SCE_L_COMMAND);
+				group = 0;
             }
             // comment, ...
-            else if(sc.ch=='%' && sc.chPrev!='\\') 
+//            else if(sc.ch=='%' && sc.chPrev!='\\') {
+            else if(sc.ch=='%') {
                 sc.SetState(SCE_L_COMMENT);
+			}
 			// string
             else if(sc.ch=='`' && sc.chNext=='`'){
 				sc.SetState(SCE_L_STRING);
@@ -511,15 +520,14 @@ static void FoldLaTeXDoc(unsigned int startPos, int length, int initStyle, WordL
 	levelPrev       = levelCurrent;
 // --------------------------------------------------------------
 
-	
 	for (unsigned int i=startPos; i < endPos; i++) {
 		char ch=chNext;
 		chNext=styler.SafeGetCharAt(i+1);
-        style = styler.StyleAt(i);        
-
+		style = styler.StyleAt(i);
+		
 		bool atEOL = (ch == '\r' && chNext != '\n') || (ch == '\n');
 		
-		if(!(style==SCE_L_VERBAL)){
+		if(!(style==SCE_L_VERBAL || style==SCE_L_SLASH)){
 			if(ch=='\\' && !InTeXComment(lineCurrent, i+1, styler))
 			{
 				int len=ParseLaTeXCommand(i, styler, buffer);
@@ -560,7 +568,7 @@ static void FoldLaTeXDoc(unsigned int startPos, int length, int initStyle, WordL
 				}
 			}
 		
-			if(ch=='\\' && chNext=='[') levelCurrent+=1;
+			if(ch=='\\' && chNext=='[' ) levelCurrent+=1;
 			if(ch=='\\' && chNext==']') levelCurrent-=1;
 
 			if(ch=='}' && countDefs>0){
