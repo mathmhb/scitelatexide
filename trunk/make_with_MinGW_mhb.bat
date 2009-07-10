@@ -7,9 +7,14 @@ CD ..\..
 CD scite\win32
 make ONEIDE=-DONEIDE
 copy ..\bin\SciTE.exe ..\..\Release
+
+del Sc1Res.o
+make ONEIDE=-DONEIDE ZERO_EMBED=-DZERO_EMBED
+
 cd ..\..
 del Sc1IDE\Sc1.exe
 upx -o Sc1IDE\Sc1.exe scite\bin\SciTE.exe
 cd iconlib
-cmd.exe /c mymake.cmd
+cmd.exe /c call make.cmd
 cd ..
+

@@ -748,6 +748,6 @@ props['GEN_MENU_CACHE']='0'
 reload_menucmds()
 props['GEN_MENU_CACHE']='1'
 
--- scite_OnOpenSwitch(set_parameters)
+scite_OnOpenSwitch(set_parameters)
 -- scite_OnSave(set_parameters)
 scite_OnOpen(use_dyn_ftype) -- [mhb] 01/19/09: updates current dynamic file type

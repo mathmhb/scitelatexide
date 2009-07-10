@@ -3302,7 +3302,11 @@ void SciTEBase::SetTextProperties(
 
 	SString ro = localiser.Text("READ");
 	ps.Set("ReadOnly", isReadOnly ? ro.c_str() : "");
-
+	
+	//[mhb] 07/10/09 : add property MonoFont
+	SString mo = localiser.Text("MONO");
+	ps.Set("MonoFont", CurrentBuffer()->useMonoFont ? mo.c_str() : "");
+	
 	int eolMode = SendEditor(SCI_GETEOLMODE);
 	ps.Set("EOLMode", eolMode == SC_EOL_CRLF ? "CR+LF" : (eolMode == SC_EOL_LF ? "LF" : "CR"));
 
@@ -4551,6 +4555,7 @@ void SciTEBase::MenuCommand(int cmdID, int source) {
 		CurrentBuffer()->useMonoFont = !CurrentBuffer()->useMonoFont;
 		ReadFontProperties();
 		Redraw();
+		SetTextProperties(props);//[mhb] 07/10/09 
 		break;
 
 	case IDM_MACROLIST:
