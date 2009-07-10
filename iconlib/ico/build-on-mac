@@ -22,8 +22,8 @@ done
 
 rm resfile.o
 
-cp ./toolbar.dll ../../Sc1IDE
-cp ./toolbar.constant ../../Sc1IDE
+cp ./toolbar.dll ../../Sc1IDE/lib
+cp ./toolbar.constant ../../Sc1IDE/lib
 
 mv ./toolbar.dll ../../Release
 mv ./toolbar.constant ../../Release
