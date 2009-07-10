@@ -271,6 +271,8 @@ static IFaceConstant ifaceConstants[] = {
 	{"IDM_TOGGLEPARAMETERS",412},
 	{"IDM_TOGGLE_FOLDALL",236},
 	{"IDM_TOGGLE_FOLDRECURSIVE",237},
+	{"IDM_TOOLS",9000},
+	{"IDM_TOOLSMAX",9300},
 	{"IDM_TOOLWIN",352},
 	{"IDM_UNDO",201},
 	{"IDM_UPRCASE",240},
@@ -1936,7 +1938,7 @@ static IFaceConstant ifaceConstants[] = {
 	{"SCLEX_MSSQL",55},
 	{"SCLEX_MYSQL",89},
 	{"SCLEX_NIMROD",96},
-	{"SCLEX_BiBTeX",100},
+	{"SCLEX_BiBTeX",49},
 	{"SCLEX_NNCRONTAB",26},
 	{"SCLEX_NSIS",43},
 	{"SCLEX_NULL",1},
@@ -2555,7 +2557,7 @@ static IFaceProperty ifaceProperties[] = {
 
 enum {
 	ifaceFunctionCount = 261,
-	ifaceConstantCount = 2006,
+	ifaceConstantCount = 2008,
 	ifacePropertyCount = 147
 };
 

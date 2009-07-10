@@ -2136,6 +2136,7 @@ val SCLEX_CLW=45
 val SCLEX_CLWNOCASE=46
 val SCLEX_LOT=47
 val SCLEX_YAML=48
+val SCLEX_BIBTEX=49
 val SCLEX_METAPOST=50
 val SCLEX_POWERBASIC=51
 val SCLEX_FORTH=52
@@ -2190,7 +2191,6 @@ val SCLEX_EUPHORIA=98
 ##!-start-[ABAP]
 val SCLEX_ABAP=99
 ##!-end-[ABAP]
-val SCLEX_BIBTEX=100
 
 # When a lexer specifies its language as SCLEX_AUTOMATIC it receives a
 # value assigned in sequence from SCLEX_AUTOMATIC+1.
