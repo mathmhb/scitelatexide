@@ -8,7 +8,6 @@
 //[mhb] added: to support easy changing of application name 
 #include "_config.h"
 
-#include <time.h> //!-change-[close_on_dbl_clk]
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>

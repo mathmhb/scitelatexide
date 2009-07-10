@@ -1848,7 +1848,8 @@ bool SciTEBase::GoMessage(int dir) { //!-change-[GoMessageImprovement]
 			SendOutput(SCI_MARKERSETFORE, 0, ColourOfProperty(props,
 			        "error.marker.fore", ColourDesired(0x7f, 0, 0)));
 			SendOutput(SCI_MARKERSETBACK, 0, ColourOfProperty(props,
-			        "error.marker.back", ColourDesired(0xff, 0xff, 0)));
+//!			        "error.marker.back", ColourDesired(0xff, 0xff, 0)));
+			        "error.line.back", ColourOfProperty(props, "error.marker.back", ColourDesired(0xff, 0xff, 0)))); //!-change-[ErrorLineBack]
 			SendOutput(SCI_MARKERADD, lookLine, 0);
 			SendOutput(SCI_SETSEL, startPosLine, startPosLine);
 			SString message = GetRange(wOutput, startPosLine, startPosLine + lineLength);
@@ -1975,5 +1976,4 @@ bool SciTEBase::GoMessage(int dir) { //!-change-[GoMessageImprovement]
 	}
 	return false; //!-add-[GoMessageImprovement]
 }
-
 
