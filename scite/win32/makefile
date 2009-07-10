@@ -304,7 +304,7 @@ SciTERes.o:	SciTERes.rc SciTE.h PlatformRes.h
 # Also depends on ../src/Embedded.properties but may not want to build everywhere
 # so must explicitly ask to build it.
 Sc1Res.o:	SciTERes.rc SciTE.h PlatformRes.h
-	$(WINDRES) $(ONEIDE) $(RCINCLUDEDIRS) SciTERes.rc --define STATIC_BUILD $@
+	$(WINDRES) $(ONEIDE) $(ZERO_EMBED) $(RCINCLUDEDIRS) SciTERes.rc --define STATIC_BUILD $@
 
 # Make sure SciTEBase gets rebuilt (so its about box gets a new
 # date stamp) when any of the other objects are updated.

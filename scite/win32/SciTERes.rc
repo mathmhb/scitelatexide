@@ -588,7 +588,14 @@ IDR_BUTTONS BITMAP "buttons.bmp"	//!-add-[user.toolbar]
 
 //The embedded properties file is to allow a one file distribution of Sc1.EXE
 #ifdef STATIC_BUILD
+
+//[mhb] 07/10/09 : to support whether to use ZeroEmbedded.properties (0 byte)
+#ifdef ZERO_EMBED
+Embedded Properties ZeroEmbedded.properties
+#else
 Embedded Properties Embedded.properties
+#endif
+
 IDC_MARGIN         CURSOR  DISCARDABLE     "Margin.cur"
 #endif
 IDC_DRAGDROP       CURSOR  DISCARDABLE     "DragDrop.cur"

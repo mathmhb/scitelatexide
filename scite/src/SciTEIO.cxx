@@ -117,6 +117,8 @@ void SciTEBase::SetFileName(FilePath openName, bool fixCase) {
 	
 	delete[] filename; //[mhb] 06/23/09 added
 	
+	SetTextProperties(props); //[mhb] 07/10/09 : to support extra property MonoFont
+	
 	SetFileProperties(props);	//!-add-[FileAttr in PROPS]
 	SetWindowName();
 	if (buffers.buffers)
