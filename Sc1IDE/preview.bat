@@ -5,6 +5,7 @@ setlocal
 
 set E=%2
 set FP=%1.%E%
+if #%E%==#htm for %%a in (%1.%E%?) do set FP="%%a"
 if not exist %FP%  for %%a in (%1-*.%E%) do set FP="%%a"
 
 if not #%2==# goto Next
