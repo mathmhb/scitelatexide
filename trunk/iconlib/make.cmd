@@ -17,8 +17,8 @@ windres -o resfile.o toolbar.rc
 gcc -s -shared -nostdlib -o toolbar.dll resfile.o
 
 echo Copying toolbar.constant and toolbar.dll to Release and Sc1IDE folders ...
-copy toolbar.constant ..\..\Release
-copy toolbar.dll ..\..\Release
+copy toolbar.constant ..\..\LaTeXIDE
+copy toolbar.dll ..\..\LaTeXIDE
 copy toolbar.constant ..\..\Sc1IDE\lib
 copy toolbar.dll ..\..\Sc1IDE\lib
 
