@@ -1,14 +1,14 @@
 @echo off
 setlocal
 echo Usage: RUN_TEX [-1] [-2] texcmd folder texfilename texfileext 
+PATH %~dp0;%PATH%
+call set_env.bat
 if #%1==#-1   set ONCE=1
 if #%1==#-1   shift
 if #%1==#-2   set ONCE=2
 if #%1==#-2   shift
 if #%4==# goto END
 
-PATH %~dp0;%PATH%
-call set_env.bat
 echo TeXing command: %1
 echo Working folder: %2
 echo Tex file: %3.%4

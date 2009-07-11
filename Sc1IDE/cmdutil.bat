@@ -1,5 +1,5 @@
 @echo off
-call set_env.bat
+call %~dp0set_env.bat
 echo Running: %*
 %*
-pause
+nircmdc.exe wait 1500
