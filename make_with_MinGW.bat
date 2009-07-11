@@ -1,12 +1,20 @@
 @ECHO OFF
-SET PATH=C:\MinGW\bin;D:\MinGW\bin;C:\MSys\bin;D:\MSys\bin;%~dp0;%PATH%;
+PATH c:\mingw\bin;d:\mingw\bin;c:\msys\bin;d:\msys\bin;%~dp0;%PATH%
 
 CD scintilla\win32
 make
 CD ..\..
 CD scite\win32
-make
-copy ..\bin\SciTE.exe ..\..\Release
-cd ..\..\iconlib
-make.cmd
-copy toolbar.dll ..\Release
+make ONEIDE=-DONEIDE
+copy ..\bin\SciTE.exe ..\..\LaTeXIDE
+
+del Sc1Res.o
+make ONEIDE=-DONEIDE ZERO_EMBED=-DZERO_EMBED
+
+cd ..\..
+del Sc1IDE\Sc1.exe
+upx -o Sc1IDE\Sc1.exe scite\bin\SciTE.exe
+cd iconlib
+cmd.exe /c call make.cmd
+cd ..
+

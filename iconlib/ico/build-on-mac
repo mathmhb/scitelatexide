@@ -25,8 +25,8 @@ rm resfile.o
 cp ./toolbar.dll ../../Sc1IDE/lib
 cp ./toolbar.constant ../../Sc1IDE/lib
 
-mv ./toolbar.dll ../../Release
-mv ./toolbar.constant ../../Release
+mv ./toolbar.dll ../../LaTeXIDE
+mv ./toolbar.constant ../../LaTeXIDE
 
 for a in toolbar.* 
 do
