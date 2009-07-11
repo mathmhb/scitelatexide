@@ -1,0 +1,97 @@
+Can not find bounding box.
+ please check your TeX source, the Tex2ps setting for this tool (while calling dvips please use the option -E), path setting(gswin32c).
+Input the dir£º
+Executable file search path£º
+It will run the following commands£º[
+Can not find the file 
+.bmp£¡
+Set commands
+Maybe you have changed the settings, do you want to apply and save the current setting?
+Save as:
+Open:
+Please select dir:
+Exe file(
+This software needs latex, dvips, gswin32c etc, please specify their paths respectively.
+The following path will be used:
+Apply
+This software can be considered as the replacement of TexPoint, but it can be used more widely, 
+it can make you easily apply LaTeX/TeX, the powerful  typesetting tool (espectially the mathematical equations), to other documents.
+TexPoint is good, but it can only used in Office2000 with PowerPoint, 
+and VBA is required.
+This software can work with any softwares supporting picture paste, of course, 
+including Wordpad/Word/Excel/PowerPoint/WpsOffice/CCED2000/FrontPage/Maple/¡­¡­:)
+LaTeX, dvips and GhostScript are required for this tool (these are all included in CTeX).
+Do not need VBA, hence the popular Office97 mini version (with most functions but only about 20MB) and other word processing softwares can use LaTeX! :)
+This tool supports both CJK and CCT, the two Chinese LaTeX, which is TexPoint can not do (this tool may support TianYuan in the future).
+By the way, the file size of slides made by TexPoint may be big, but using this tool it may be small.
+This software is portable, without installation, it has small size, and can be run directly.
+In addition, this software works with freeware LaTeX macros, which makes it more easy to use!
+When you use this software for the first time, please do not forget to do the necessarty settings first. 
+If the commands latex, dvips, and gswin32c are not included in the search path, please click [Set paths].
+If it still does not work, it is needed to click [Set commands] to set convertint a .tex file to a .ps file.
+(do not forget to click [Apply] to enable the changed settings).
+If there is no question after setting, please save the settings. 
+You may say: I can not use it! It is very simple:-) 
+Please copy (or type directly) your LaTeX source to the right textbox, 
+then click [Compiled to BMP], the source will be compiled automatically, 
+If there is no error, a figure will be created automatically (you can preview it below) and be copied to the clipboard, 
+Now the only thing you need to do is to paste the figure from the clipboard  to the other softwares (you can press Ctrl+V)!
+You feel troublesome? Please select a program in the top program list, then the figure will be sent to the corresponding program automatically!
+I need the color! Check the [Color] box, then use your mouse to left-click or right-click [abc], do you see? Please try: 
+\pagecolor{blue}\color{red}$\sqrt{2}=?$. Then what do you get?
+You may ask: I want to include Chinese! Please click [Chi/Eng] to switch between Chinese and English support.
+Maybe someone will ask: can I edit the BMP created before? The answer is no problem!
+For example, there are many mathematical equations in your slides, they can also be created by this software. 
+And then you need to modify the created equations, how to do? 
+Click [Back] repeatedly or select the equation number from the dropdown list, now you can edit it! 
+now you can edit and re-compile it! Of course, if you want to use these equations in the future, 
+you can click [Save as] to save them in your computer.
+Please discover the other functions by yourself! If you really do not know what the button\'s function is, you can hover your mouse on it, and then a hint will be displayed.
+TeX Bitmap Tool version 0.98
+Welcome the LaTeX/TeX users free to use.
+Copyright 2004--2008 Hongbin Ma.
+All rights reserved by the author
+If you have any question or advice, please join in the MTeX-suite forum.
+Exe file (*.exe;*.com;*.bat;*.cmd)|*.exe;*.com;*.bat;*.cmd
+TeX Bitmap [mhb]
+Arial,12
+Compiled to BMP
+New TeX BMP
+Set to new TeX template
+Back
+Save as¡­
+Open¡­
+Help
+About¡­
+Symbols
+Editor
+Chi/Eng
+On the top
+Debugging
+Color
+Resolution
+Bitmap format
+Set paths
+Save TeX template and settings
+Refresh
+This software can help you to use power LaTeX math typesetting in any windows applications! Move mouse cursor to any button to see its function here:-)
+Compile the latex code in the box into a bitmap, and the copy the bitmap to clipboard or send it to the application you have chosen.
+Put the default latex template in the box.
+Regard the latex code in the box as the default latex template.
+Go back to the latex code in your comilation history.
+Save the history of latex codes into a txl (TeX List) file for future reuse.
+Reload a txl file so as you can reuse latex codes you ever used.
+Display simple help hints for using this software.
+Display simple license information for using this software.
+Setup paths of some programs such as latex,dvips,gswin32c.
+Setup batch commands for compiling latex codes.
+Save your settings on latex template, program paths and batch commands into tex-bmp.ini so as I can load your settings automatically next time. 
+Refress the list of current running applications for you to choose.
+Open TMac for your convenience in inputting various latex symbols.
+Open the latex code in the box with default editor.
+Switch the latex template so as to support Chinese typesetting.
+Check it so as to make this software always stay on top.
+Check it so as to enter debug mode, showing more information during the compilation.
+Check it so as to colorise the bitmap. Left/Right click the text [abc] to change background/foreground color.
+Resolution determines the pixel resolution and scale of the generated bitmap.
+Default generated bitmap is transparent black/white bitmap (bmpmono). Change it to other format so as support more latex colors (with larger bitmap data).
