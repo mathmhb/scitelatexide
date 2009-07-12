@@ -4593,6 +4593,37 @@ void SciTEBase::MenuCommand(int cmdID, int source) {
 		}
 		break;
 
+	//[mhb] 07/12/09 added: to provide extra commands for MenuCommand()
+	case IDM_REDRAWMENU:
+		RedrawMenu();
+		break;
+	case IDM_SET_MAINFILE:
+		if (filePath.IsSet()) {
+			bool is_mainfile=filePath.SameNameAs(mainFilePath);
+			is_mainfile=!is_mainfile;
+			mainFilePath=is_mainfile?filePath:"";
+			props.Set("MainFile", mainFilePath.AsFileSystem()); 
+			CheckAMenuItem(IDM_SET_MAINFILE, is_mainfile); 
+		}
+		break;
+	case IDM_COMPILE_MAINFILE: {
+			if (SaveIfUnsureForBuilt() != IDCANCEL) {
+				FilePath f=mainFilePath.Name();
+				SelectionIntoProperties();
+				const SString do_cmd=props.GetWild("command.compilemain.", f.AsFileSystem());
+				const SString do_dir=props.GetNewExpand("command.compilemain.directory.", f.AsFileSystem());
+				const SString do_subsys=props.GetNewExpand("command.compilemain.subsystem.", f.AsFileSystem());
+				AddCommand(do_cmd,do_dir,SubsystemType(do_subsys[0]));
+				if (jobQueue.commandCurrent > 0) {
+					jobQueue.isBuilding = true;
+					mainFilePath.Directory().SetWorkingDirectory();
+					Execute();
+					filePath.Directory().SetWorkingDirectory();
+				}
+			}
+		}
+		break;
+
 	default:
 		if ((cmdID >= bufferCmdID) &&
 		        (cmdID < bufferCmdID + buffers.size)) {

@@ -115,6 +115,12 @@ void SciTEBase::SetFileName(FilePath openName, bool fixCase) {
 	props.Set("FileExt", filePath.Extension().AsFileSystem());
 	props.Set("FileNameExt", filename); //[mhb] 06/23/09 changed: FileNameExt().AsFileSystem()
 	
+	//[mhb] 07/12/09 added: to support new menu "Set Main File" 
+	bool is_mainfile=filePath.IsSet() && filePath.SameNameAs(mainFilePath);
+	CheckAMenuItem(IDM_SET_MAINFILE, is_mainfile); 
+	props.Set("MainFile", mainFilePath.AsFileSystem());
+	props.Set("CurMainFile", mainFilePath.IsSet()?mainFilePath.AsFileSystem():filePath.AsFileSystem());
+	
 	delete[] filename; //[mhb] 06/23/09 added
 	
 	SetTextProperties(props); //[mhb] 07/10/09 : to support extra property MonoFont

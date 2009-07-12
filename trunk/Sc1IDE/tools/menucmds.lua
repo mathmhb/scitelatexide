@@ -8,23 +8,38 @@ lexer_settings={}
 ftype_patterns={}
 
 --[mhb]added: 01/11/09 To support assigning a main file
-local cn_set_mainfile=props['CN_SET_MAINFILE']
 local mainfile=''
+local p_setmainfile='IS_MAINFILE'
+--[mhb] 07/11/09 : to check whether current file is mainfile
+function check_mainfile()
+	local curfile=props['FilePath']
+	local cn='0'..props['CN_SET_MAINFILE']
+    local p='command.checked.'..tonumber(cn)..'.*'
+	if mainfile==curfile and mainfile~='' then
+		props[p_setmainfile]=1
+		props[p]=1
+	else
+		props[p_setmainfile]=0
+		props[p]=0
+	end
+end
+
 function set_mainfile()
 	local curfile=props['FilePath']
-	local s='command.checked.'..tostring(cn_set_mainfile)..'.*'
 	if mainfile==curfile then
 		print('Unsetting Mainfile: '..mainfile)
 		mainfile=''
-		props[s]='0'
 	else
 		mainfile=curfile
-		props[s]='1'
 		print('Setting Mainfile: '..mainfile)
 	end
+	check_mainfile()
 end
+
 --[mhb] 06/28/09 : to support compiling mainfile via corresponding compile command
 function compile_mainfile()
+	mainfile=props['MainFile']
+	print(mainfile)
 	if mainfile=='' then
 		print('Please Set Mainfile first!')
 		return
@@ -35,7 +50,7 @@ function compile_mainfile()
 	end
 	local typ=props['FileType']
 	print('Compiling Mainfile: ',props['FilePath'],typ)
-	local cmd=props['COMPILEMAIN_'..typ]
+	local cmd=props['COMPILE_MAIN_'..typ]
 	if cmd=='' then
 		scite.MenuCommand(IDM_COMPILE)
 	elseif cmd=='@build' then
@@ -135,7 +150,7 @@ local abbr_path=scite_GetProp('ABBR_PATH','$(SciteDefaultHome)/')
 function set_compiler_typ(typ)
 	local m='.$(file.patterns.'..typ..')'
 	if typ=='*' then m='.*' end
-	local tbl={'compile','build','go','help','print'}
+	local tbl={'compile','build','go','help','print','compilemain'} --[mhb] 07/12/09 add 'compilemain'
 	for _,v in ipairs(tbl) do
 		local p=string.upper(v)..'_'..typ
 		local res=prop2table(p) or {}
@@ -733,6 +748,7 @@ function reload_menucmds()
 	ftype_patterns=prop2table('FTYPE_PATTERNS')
 
 -- 	if f_log then
+	set_compiler_typ('*')
 	add_filetypes(filetypes)
 	update_menus()
 -- 	end
@@ -748,6 +764,7 @@ props['GEN_MENU_CACHE']='0'
 reload_menucmds()
 props['GEN_MENU_CACHE']='1'
 
-scite_OnOpenSwitch(set_parameters)
+-- scite_OnOpenSwitch(set_parameters)
+-- scite_OnOpenSwitch(check_mainfile)
 -- scite_OnSave(set_parameters)
 scite_OnOpen(use_dyn_ftype) -- [mhb] 01/19/09: updates current dynamic file type

@@ -463,6 +463,9 @@ protected:
 	FilePath filePath;
 	FilePath dirNameAtExecute;
 	FilePath dirNameForExecute;
+	
+	//[mhb] 07/12/09 : to provide new property "MainFile" and "CurMainFile"
+	FilePath mainFilePath;
 
 //!	enum { fileStackMax = 10 };
 	enum { fileStackMax = 30 }; //!-change-[MoreRecentFiles]
