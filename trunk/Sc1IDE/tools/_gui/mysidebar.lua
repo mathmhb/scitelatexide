@@ -122,10 +122,10 @@ local sbf = gui.list(true)
 ref:add_column(s_('Labels'),width-18)
 cite:add_column(s_('Bibitems'),width-18)
 sbf:add_column(s_('SubFiles'),width-18)
+tab_4:add(cite,"top",200)
 tab_4:add(ref,"bottom",200)
-tab_4:add(sbf,"bottom",200)
 -- tab_4:add(cite,"bottom",200) --[qhs] uncommented
-tab_4:client(cite) --[qhs]: tab_4:client(ref)
+tab_4:client(sbf) --[qhs]: tab_4:client(ref)
 
 tab_4:context_menu {
 	s_('LaTeX: Refresh Labels')..'|Fill_LaTeX'
@@ -816,7 +816,7 @@ local function prj_ListFILL()
 end
 -- prj_ListFILL()
 
-local prj_filters="Project (*.prj)|.prj|All (.)|."
+local prj_filters="Project (*.prj)|*.prj|All (*.*)|*.*"
 function prj_SaveTo(fn)
 	io.output(fn)
 	local list_string = table.concat(list_prj_table,'\n')
@@ -825,7 +825,7 @@ function prj_SaveTo(fn)
 end
 function prj_SaveList()
 	local fn=gui.open_dlg(s_('Save Project File'),prj_filters)
-	if not fn then return;end
+	if not fn then return end
 	prj_filename=fn
 	prj_SaveTo(prj_filename)
 end
@@ -1215,6 +1215,14 @@ local function OnSwitch()
 	if tonumber(props['sidebar.show'])~=1 then return end
 	set_colors() --[mhb] 07/08/09 : set background and foreground colors
 	if tab_index == 0 then
+		if firstopen then
+			firstopen=false
+			list_favorites:clear()
+			Favorites_ListFILL()
+			proj:clear()
+			prj_ListFILL()
+			list_dir:clear()
+		end
 		local path = props['FileDir']
 		if path == '' then return end
 		path = path:gsub('\\$','')..'\\'
@@ -1222,13 +1230,7 @@ local function OnSwitch()
 			current_path = path
 			FileMan_ListFILL()
 		end
-		if firstopen then
-			firstopen=false
-			list_favorites:clear()
-			Favorites_ListFILL()
-			proj:clear()
-			prj_ListFILL()
-		end
+
 	elseif tab_index == 1 then
 --~ 		Functions_GetNames() Functions_ListFILL() --[mhb] uncommented
 		Bookmarks_ListFILL()
