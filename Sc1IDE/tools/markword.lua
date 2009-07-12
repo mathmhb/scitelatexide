@@ -5,9 +5,10 @@ end
 
 function markOccurrences()
     clearOccurrences()
-    scite.SendEditor(SCI_INDICSETSTYLE, 0, INDIC_ROUNDBOX)
-    scite.SendEditor(SCI_INDICSETFORE, 0, 255)
+    scite.SendEditor(SCI_INDICSETSTYLE, 0, INDIC_CONTAINER)
+    scite.SendEditor(SCI_INDICSETFORE, 0, 0x0000FF)
     local txt = GetCurrentWord()
+	if(txt == nil) then return; end;
     local flags = SCFIND_WHOLEWORD
     local s,e = editor:findtext(txt,flags,0)
     while s do
@@ -34,12 +35,17 @@ function GetCurrentWord()
     local endPos = beginPos
     if editor.SelectionStart ~= editor.SelectionEnd then
         return editor:GetSelText()
-    end
-    while isWordChar(editor.CharAt[beginPos-1]) do
-        beginPos = beginPos - 1
-    end
-    while isWordChar(editor.CharAt[endPos]) do
-        endPos = endPos + 1
-    end
-    return editor:textrange(beginPos,endPos)
+    else
+		while isWordChar(editor.CharAt[beginPos-1]) do
+			beginPos = beginPos - 1
+		end
+		while isWordChar(editor.CharAt[endPos]) do
+			endPos = endPos + 1
+		end
+		if(beginPos ~= endPos) then
+			return editor:textrange(beginPos,endPos)
+		else
+			return nil
+		end
+	end
 end
