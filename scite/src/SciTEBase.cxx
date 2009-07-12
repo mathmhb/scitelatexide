@@ -4606,20 +4606,31 @@ void SciTEBase::MenuCommand(int cmdID, int source) {
 			CheckAMenuItem(IDM_SET_MAINFILE, is_mainfile); 
 		}
 		break;
-	case IDM_COMPILE_MAINFILE: {
-			if (SaveIfUnsureForBuilt() != IDCANCEL) {
+	case IDM_COMPILE_MAINFILE:
+		if (SaveIfUnsureForBuilt() != IDCANCEL) {
+			if (!mainFilePath.IsSet()) {
+				//simply invoke compiling current file if MainFile is not set
+				MenuCommand(IDM_COMPILE);
+			} else {
+				Open(mainFilePath, ofQuiet);
+				mainFilePath.Directory().SetWorkingDirectory();
 				FilePath f=mainFilePath.Name();
 				SelectionIntoProperties();
 				const SString do_cmd=props.GetWild("command.compilemain.", f.AsFileSystem());
 				const SString do_dir=props.GetNewExpand("command.compilemain.directory.", f.AsFileSystem());
 				const SString do_subsys=props.GetNewExpand("command.compilemain.subsystem.", f.AsFileSystem());
-				AddCommand(do_cmd,do_dir,SubsystemType(do_subsys[0]));
-				if (jobQueue.commandCurrent > 0) {
-					jobQueue.isBuilding = true;
-					mainFilePath.Directory().SetWorkingDirectory();
-					Execute();
-					filePath.Directory().SetWorkingDirectory();
+				if (!do_cmd.length()) {
+					//simply invoke compiling current file if corresponding command.compilemain is empty
+					MenuCommand(IDM_COMPILE);
+				} else {
+					AddCommand(do_cmd,do_dir,SubsystemType(do_subsys[0]));
+					if (jobQueue.commandCurrent > 0) {
+						jobQueue.isBuilding = true;
+						Execute();
+					}
 				}
+				Open(filePath, ofQuiet);
+				filePath.Directory().SetWorkingDirectory();
 			}
 		}
 		break;

@@ -310,7 +310,10 @@ SString PropSetFile::GetWild(const char *keybase, const char *filename) {
 		if (ext) {s=GetPropExt("%s*%s",keybase,ext);}
 	}
 	if (s.length()==0) {
-		SString typ=GetExpanded("FileType");//automatically set when open/switch file
+		SString typ="";
+		if (wild_mode.value()>1) {//[mhb] 07/12/09 : use prop FileType only when get.wild.mode>1
+			typ=GetExpanded("FileType");//automatically set when open/switch file
+		}
         if (typ.length()==0) {
             typ=GetFileType(filename);//if FileType is not set, try to detect by using GetFileType
         }
