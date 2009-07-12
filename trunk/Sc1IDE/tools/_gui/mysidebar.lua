@@ -831,11 +831,11 @@ function prj_SaveList()
 end
 
 function prj_OpenList()
-	local fn=gui.open_dlg('Open Project File',prj_filters)
+	local fn=gui.open_dlg(s_('Open Project File'),prj_filters)
 	if not fn then return;end	
 	prj_filename=fn
 	prj_ListFILL()
-	local ans=gui.message('Do you want to close all buffers and automatically open files in the project?',"query")
+	local ans=gui.message(s_('Do you want to close all buffers and automatically open files in the project?'),"query")
 	if ans then
 		scite.MenuCommand(IDM_CLOSEALL)
 		for _,v in ipairs(list_prj_table) do
