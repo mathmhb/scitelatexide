@@ -7,5 +7,6 @@ while=while () {\n|\n}
 switch=switch () {case 1:\n|break;}
 struct=struct {\n|\n}
 class=class {\n|\n}
+dpr=Platform::DebugPrintf("Opening %s\n", file);
 dstr=\nif (MessageBox(NULL,"Error!|","DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]\n
 dint=\n{char s[1000];sprintf(s,"Value:%d",|);if (MessageBox(NULL,s,"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}}//[mhb]\n
