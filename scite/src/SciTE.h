@@ -132,6 +132,13 @@
 #define IDM_STATUSWIN		353
 #define IDM_TABWIN			354
 
+//[mhb] 07/12/09 added : to provide extra commands for MenuCommand()
+#define IDM_REDRAWMENU		360
+//[mhb] 07/12/09 added : to provide extra tools menu
+#define IDM_SET_MAINFILE		422
+#define IDM_COMPILE_MAINFILE		423
+
+
 // Options
 #define IDM_SPLITVERTICAL		401
 #define IDM_VIEWSPACE		402

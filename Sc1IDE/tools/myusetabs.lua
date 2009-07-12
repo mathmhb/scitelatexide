@@ -1,8 +1,8 @@
 --[mhb] 06/24/09 : to enable the users toggle whether to use tabs at any time
 
 function toggle_use_tabs()
-    local cn=props['CN_USE_TABS']
-    local p='command.checked.'..cn..'.*'
+	local cn='0'..props['CN_USE_TABS']
+    local p='command.checked.'..tonumber(cn)..'.*'
     local use_tabs=props[p]
     if editor.UseTabs then
         props[p]='0'
