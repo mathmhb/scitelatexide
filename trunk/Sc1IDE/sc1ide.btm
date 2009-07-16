@@ -1,0 +1,4 @@
+@echo off
+setlocal
+set USE_MTEX=1
+start %@path[%0]sc1.exe -goto:%1 %2&
