@@ -9,7 +9,6 @@ local function GotoLine(line)
 	editor:EnsureVisible(line)
 end
 
-
 -- you can choose to make it a stand-alone window; just uncomment this line:
 -- local win = true
 
@@ -1254,6 +1253,11 @@ local function OnSwitch()
 			sbf:clear()
 		end
 	end
+	
+	local _,_,_,cur_width,_=tab0:bounds()
+	if cur_width~=panel_width then 
+		props['sidebar.width']=cur_width
+	end
 end
 
 tabs:on_select(function(ind)
@@ -1282,7 +1286,7 @@ function SideBar_ShowHide()
 end
 
 show_hide=SideBar_ShowHide
-props['sidebar.show']=1
+-- props['sidebar.show']=1
 scite_OnOpen(OnSwitch)
 scite_OnSwitchFile(OnSwitch)
 
