@@ -462,7 +462,8 @@ scite_OnChar(function(char)
   local res
   if not editor.Focus then return false;end
   local sel=editor:GetSelText()
-  
+  local charcode='0'..props['CharCode']
+  if tonumber(charcode)>=256 then return false;end --[mhb] 07/21/09 : to avoid mis-handling chinese chars in UTF8 mode; this feature require Sc1IDE r117+
   local brace_auto=props['AUTO_COMPLETE_BRACE']
   if brace_auto~='0' then
     if(char=="(") then 

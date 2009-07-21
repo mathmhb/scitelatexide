@@ -4882,6 +4882,19 @@ void SciTEBase::Notify(SCNotification *notification) {
 //!-end-[autocompleteword.incremental]
 
 	case SCN_CHARADDED:
+		
+		//[mhb] 07/21/09 : provide new properties CharBeforeCaret,CharCode and CharHexCode
+		{
+			int charcode=(notification->ch);
+			char buf[100];
+			sprintf(buf,"%1c",charcode);
+			props.Set("CharBeforeCaret",(charcode>=0 && charcode<128)?buf:"**");
+			sprintf(buf,"%03u",charcode);
+			props.Set("CharCode",buf);
+			sprintf(buf,"0x%02X",charcode);
+			props.Set("CharHexCode",buf);
+		}
+		
 		if (extender)
 			handled = extender->OnChar(static_cast<char>(notification->ch));
 		if (!handled) {
@@ -4968,6 +4981,22 @@ void SciTEBase::Notify(SCNotification *notification) {
 //!-end-[OnMouseButtonUp][GoMessageImprovement]
 
 	case SCN_UPDATEUI:
+		
+		//[mhb] 07/21/09 : provide new properties CharBeforeCaret, CharCode and CharHexCode
+		{
+			int pos=SendEditor(SCI_GETCURRENTPOS);
+			int charcode=SendEditor(SCI_GETCHARAT,pos>0?pos-1:0);
+			if (charcode>=0) {
+				char buf[100];
+				sprintf(buf,"%1c",charcode);
+				props.Set("CharBeforeCaret",(charcode<128)?buf:"**");
+				sprintf(buf,"%03u",charcode);
+				props.Set("CharCode",buf);
+				sprintf(buf,"0x%02X",charcode);
+				props.Set("CharHexCode",buf);
+			}
+		}
+		
 		if (extender)
 			handled = extender->OnUpdateUI();
 		if (!handled) {
