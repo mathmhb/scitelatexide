@@ -421,7 +421,7 @@ function split_s(s,re) --[mhb] revised 05/31/09: split-->split_s
 		end
 		append(ls,s:sub(i1,i2-1))
 		i1 = i3+1
-		if i1 >= sz then return ls end
+		if i1 > sz then return ls end --[mhb] 07/21/09  fix a bug: >=sz
 	end
 end
 
