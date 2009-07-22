@@ -267,6 +267,9 @@ function HexEdit()
       jmpPos = math.floor(jmpPos / WIDTH)
     end
     scite.Open("")                      -- create an "Untitled" file
+    if props['MonoFont']=='' then --[mhb] 07/22/09 : auto set to MonoFont mode
+      scite.MenuCommand(IDM_MONOFONT) 
+    end
     HexHeader(origFile, origSize, blkPos, blkSize)
     local startPos = HexBody(data, origSize, blkPos, blkSize)
     if JUMPTO then

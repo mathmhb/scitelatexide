@@ -112,3 +112,14 @@ blk=\\begin{columns}\n  \\begin{column}{0.45\\textwidth}\n  \\pause\n    \\begin
 
 (=\\left(|\\right)
 
+\lim=\\lim\\limits_{|}
+\max=\\max\\limits_{|}
+\min=\\min\\limits_{|}
+\sum=\\sum\\limits_{|}^{}
+\prod=\\prod\\limits_{|}^{}
+\int=\\int\\limits_{|}^{}
+\oint=\\oint\\limits_{|}^{}
+\bigcap=\\bigcap\\limits_{|}^{}
+\bigcup=\\bigcup\\limits_{|}^{}
+\frac=\\frac{|}{}
+\forall=\forall\epsilon
