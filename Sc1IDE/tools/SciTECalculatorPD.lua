@@ -542,10 +542,12 @@ end
 -- calculator initialization (opens a new file and set up handlers)
 ------------------------------------------------------------------------
 function Calculator()
-  scite.MenuCommand(IDM_MONOFONT) --[mhb] 05/28/09: auto 
   scite_OnDoubleClick(HandleClick)      -- set up handlers
   scite_OnChar(HandleChar)
   scite.Open("")                        -- create a new buffer
+  if props['MonoFont']=='' then --[mhb] 07/22/09 : set to MonoFont mode automatically
+    scite.MenuCommand(IDM_MONOFONT)
+  end
   buffer[SIG] = true;
   buffer.Help = false
   CalcInit()                            -- initialize calculator
@@ -554,7 +556,6 @@ function Calculator()
   -- uncomment if you normally use proportional fonts; get the
   -- script from: http://lua-users.org/wiki/SciteMakeMonospace
   --------------------------------------------------------------------
-  if UseMonoFont then UseMonoFont() end
 end
 
 -- end of script

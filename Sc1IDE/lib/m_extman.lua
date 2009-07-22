@@ -649,6 +649,12 @@ function OnOpen(file)
     files_cache[file]=file
     set_files_in_session()
   end
+  if props['start.in.monospaced.mode']=='1' then --[mhb] 07/22/09 : to provide new property to allow starting editing in monosp
+    local ee=props['start.in.monospaced.ext']
+    if ee=='' or (ee~='' and string.find(';'..ee..';',';'..props['FileExt']..';')) then
+        scite.MenuCommand(IDM_MONOFONT)
+    end
+  end
   return DispatchOne(_Open,file)
 end
 

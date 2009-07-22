@@ -1,20 +1,6 @@
-local use_monofont=0
-
-local old_OnMenuCommand = OnMenuCommand
-function OnMenuCommand(cmd, source)
-	local result
-	if old_OnMenuCommand then result = old_OnMenuCommand(cmd, source) end
-	if cmd == IDM_MONOFONT then
-		use_monofont=1-use_monofont
-		props['use.monofont']=use_monofont
--- 		print('mono',props['use.monofont'])
-		scite.UpdateStatusBar()
-	end
-	return result
-end
-
+--[mhb] 07/22/09 : monofont support via new property "MonoFont" existed in Sc1IDE r93+
 function UseMonoFont()
-	if use_monofont==0 then
+	if props['MonoFont']=='' then
 		scite.MenuCommand(IDM_MONOFONT)
 	end
 end
