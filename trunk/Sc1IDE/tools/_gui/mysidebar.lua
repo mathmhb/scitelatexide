@@ -1265,7 +1265,6 @@ tabs:on_select(function(ind)
 	OnSwitch()
 end)
 
-
 function SideBar_ShowHide()
 	if tonumber(props['sidebar.show'])==1 then
 		if win then
@@ -1284,6 +1283,19 @@ function SideBar_ShowHide()
 		OnSwitch()
 	end
 end
+
+function SideBar_LeftRight() --[mhb] 07/23/09 : toggle left/right sidebar
+	if props['sidebar.position']~='right' then
+		props['sidebar.position']='right'
+	else
+		props['sidebar.position']='left'
+	end
+	SideBar_ShowHide()
+	if tostring(props['sidebar.show'])=='0' then
+		SideBar_ShowHide()
+	end
+end
+
 
 show_hide=SideBar_ShowHide
 -- props['sidebar.show']=1
