@@ -1,4 +1,6 @@
---[[--------------------------------------------------
+--[[
+[mhb] modified 07/23/09 : to allow saving file as untitiled?.*
+--------------------------------------------------
 new_file.lua
 mozers™ (при активном участии dB6)
 version 2.1
@@ -29,10 +31,12 @@ local function CreateUntitledFile()
 	until false
 end
 
-
+--[mhb] 07/23/09 : modify SaveUntitledFile() to allow saving under name Untitled?
+local saved_files={} 
 local function SaveUntitledFile()
-	if string.find(props['FileName'],'Untitled') then
+	if string.find(props['FileName'],'Untitled') and not saved_files[props['FilePath']] then
 		scite.MenuCommand(IDM_SAVEAS)
+		saved_files[props['FilePath']]=true
 		return true
 	else
 		return false
