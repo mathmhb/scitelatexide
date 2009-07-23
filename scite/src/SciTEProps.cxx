@@ -118,7 +118,9 @@ void SciTEBase::ReadGlobalPropFile() {
 #else
 	char **e=_environ;
 #endif
-	for (; *e; e++) {
+	static bool bFirstLoadEnv=true; //[mhb] 07/23/09 : only load env vars once
+	if (bFirstLoadEnv) {//[mhb] 07/23/09 : only load env vars once
+	for (; *e; e++) { 
 		char key[1024];
 		char *k=*e;
 		char *v=strchr(k,'=');
@@ -126,8 +128,16 @@ void SciTEBase::ReadGlobalPropFile() {
 			memcpy(key, k, v-k);
 			key[v-k] = '\0';
 			propsEmbed.Set(key, v+1);
+			
+			//[mhb] 07/23/09 : save also original environment var XXX in env_XXX (case sensitive!); useful when user property override original environment var
+			char buf[5000];
+			sprintf(buf,"env_%s",key);
+			propsEmbed.Set(buf, v+1);
+			
 		}
 	}
+	bFirstLoadEnv=false; //[mhb] 07/23/09 : only load env vars once
+	} //[mhb] 07/23/09 : only load env vars once
 
 	for (int stackPos = 0; stackPos < importMax; stackPos++) {
 		importFiles[stackPos] = "";
@@ -151,7 +161,23 @@ void SciTEBase::ReadGlobalPropFile() {
 	if (!localiser.read) {
 		ReadLocalization();
 	}
+	
+	//[mhb] 07/23/09 : set environment vars local to the editor
+	char *env_vars=StringDup(props.GetExpanded("set.env.vars").c_str());
+	char *p=env_vars,*del;
+	char buf[5000],nam[100];
+	do {
+		del = strchr(p, ';');
+		if (del) {*del=0;} 
+		sprintf(nam,"env.%s",p);
+		sprintf(buf,"%s=%s",p,props.GetExpanded(nam).c_str());
+		putenv(buf);
+		if (del) {p=del+1;}
+	} while(del);
+	delete[] env_vars;
+
 }
+
 
 void SciTEBase::ReadAbbrevPropFile() {
 	propsAbbrev.Clear();
