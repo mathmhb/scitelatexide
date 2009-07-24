@@ -900,8 +900,20 @@ static char ColourisePropsLine( // return last style //!-change-[PropsColouriseF
 			styler.ColourTo(endPos, SCE_PROPS_COMMENT);
 			return SCE_PROPS_COMMENT; //!-add-[PropsColouriseFix]
 		} else if (lineBuffer[i] == '[') {
+			
+			//[mhb] 07/24/09 : colourise chars after last ']' as comments
+			char *p=strrchr(lineBuffer,']');
+			if (p) {
+			styler.ColourTo(p-lineBuffer+startLine, SCE_PROPS_SECTION);
+			styler.ColourTo(endPos, SCE_PROPS_COMMENT);
+			return SCE_PROPS_COMMENT;
+			} else {
+				
 			styler.ColourTo(endPos, SCE_PROPS_SECTION);
 			return SCE_PROPS_SECTION; //!-add-[PropsColouriseFix]
+			
+			} //[mhb] 07/24/09 
+			
 		} else if (lineBuffer[i] == '@') {
 			styler.ColourTo(startLine + i, SCE_PROPS_DEFVAL);
 			if (isassignchar(lineBuffer[i++]))
