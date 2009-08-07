@@ -802,7 +802,7 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		}
 #endif
 		AddStyledText(wsci, GetTranslationToAbout("Version").c_str(), trsSty);
-		AddStyledText(wsci, " 1.79 .65\n", 1);
+		AddStyledText(wsci, " 1.79 .66\n", 1);
 		AddStyledText(wsci, "    " __DATE__ " " __TIME__ "\n", 1);
 //		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f)); 
 		SetAboutStyle(wsci, 2, ColourDesired(0, 0, 0));
@@ -814,7 +814,7 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		AddStyledText(wsci, GetTranslationToAbout("by").c_str(), trsSty);
 		AddStyledText(wsci, " Neil Hodgson.\n", 2);
 		AddStyledText(wsci, GetTranslationToAbout("and").c_str(), trsSty);
-		AddStyledText(wsci, " SciTE-Ru 1.79.65Ru\n",1); 
+		AddStyledText(wsci, " SciTE-Ru 1.79.66Ru\n",1); 
 		SetAboutStyle(wsci, 3, ColourDesired(0, 0, 0));
 		AddStyledText(wsci, "December 1998-July 2009.\n", 3);
 		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f));
