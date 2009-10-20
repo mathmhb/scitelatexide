@@ -12,6 +12,13 @@
 #include <fcntl.h>
 #include <time.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4786)
+#endif
+
+#include <string>
+#include <map>
+
 #include "Platform.h"
 
 #if PLAT_GTK
@@ -22,6 +29,13 @@
 #endif
 
 #if PLAT_WIN
+
+#ifdef __BORLANDC__
+// Borland includes Windows.h for STL and defaults to different API number
+#ifdef _WIN32_WINNT
+#undef _WIN32_WINNT
+#endif
+#endif
 
 #ifndef _WIN32_WINNT //!-add-[SubMenu]
 #define _WIN32_WINNT  0x0400
@@ -49,6 +63,7 @@
 
 #include "SciTE.h"
 #include "PropSet.h"
+#include "SString.h"
 #include "StringList.h"
 #include "Accessor.h"
 #include "WindowAccessor.h"
@@ -344,9 +359,10 @@ void SciTEBase::DiscoverIndentSetting() {
 	}
 }
 
-
 void SciTEBase::OpenFile(int fileSize, bool suppressMessage) {
+//!-[utf8.auto.check]	Utf8_16_Read convert;
 
+	CurrentBuffer()->fileOpenMethod = Buffer::omOpenNonExistent; //!-add-[OpenNonExistent]
 	FILE *fp = filePath.Open(fileRead);
 	if (fp) {
 		CurrentBuffer()->SetTimeFromFile();
@@ -356,7 +372,7 @@ void SciTEBase::OpenFile(int fileSize, bool suppressMessage) {
 		size_t lenFile = fread(data, 1, sizeof(data), fp);
 		UniMode codingCookie = CodingCookieValue(data, lenFile);
 
-		//[mhb] 07/07/09 
+//!-start-[utf8.auto.check] //[mhb] 07/07/09
 		int check_utf8=props.GetInt("utf8.auto.check");
 		if (codingCookie==uni8Bit && check_utf8==2) {
 			if (Has_UTF8_Char((unsigned char*)(data),lenFile)) {
@@ -364,7 +380,8 @@ void SciTEBase::OpenFile(int fileSize, bool suppressMessage) {
 			}
 		}
 		Utf8_16_Read convert(codingCookie==uni8Bit && check_utf8==1);//[mhb] 07/05/09 : Utf8_16_Read convert;
-		
+//!-end-[utf8.auto.check]
+
 		SendEditor(SCI_ALLOCATE, fileSize + 1000);
 		SString languageOverride;
 		bool firstBlock = true;
@@ -405,11 +422,13 @@ void SciTEBase::OpenFile(int fileSize, bool suppressMessage) {
 		if (props.GetInt("indent.auto")) {
 			DiscoverIndentSetting();
 		}
+		CurrentBuffer()->fileOpenMethod = Buffer::omOpenExistent; //!-add-[OpenNonExistent]
 
 	} else if (!suppressMessage) {
 		if (props.GetInt("warning.couldnotopenfile.disable") != 1) { //!-add-[warning.couldnotopenfile.disable]
 			SString msg = LocaliseMessage("Could not open file '^0'.", filePath.AsFileSystem());
 			WindowMessageBox(wSciTE, msg, MB_OK | MB_ICONWARNING);
+			CurrentBuffer()->fileOpenMethod = Buffer::omOpenNonExistentWarned; //!-add-[OpenNonExistent]
 		}
 	}
 	if (!SendEditor(SCI_GETUNDOCOLLECTION)) {
@@ -651,12 +670,32 @@ void SciTEBase::Revert() {
 }
 
 void SciTEBase::CheckReload() {
-	if (props.GetInt("load.on.activate")) {
+//!	if (props.GetInt("load.on.activate")) {
+//!-start-[CheckFileExist]
+	if ( filePath.IsUntitled() || 
+		(CurrentBuffer()->fileOpenMethod > Buffer::omOpenExistent)) return; //!-change-[OpenNonExistent]
+	if (CurrentBuffer()->fileMovedAsked) CurrentBuffer()->fileMovedAsked = CurrentBuffer()->isDirty;
+	if ((!CurrentBuffer()->fileMovedAsked)&&(!filePath.Exists())) {
+		CurrentBuffer()->fileMovedAsked = true;
+		CurrentBuffer()->isDirty = true;
+		SString msg = LocaliseMessage(
+				"File '^0' is missing or not available.\nDo you wish to keep the file open in the editor?",
+				filePath.AsFileSystem());
+		int decision = WindowMessageBox(wSciTE, msg, MB_YESNO + MB_DEFBUTTON1);
+		if (decision == IDNO) {
+			Close();
+			return;
+		}
+		CheckMenus();
+		SetWindowName();
+		BuffersMenu();
+	} else
+	if (filePath.Exists()&&props.GetInt("load.on.activate")) {
+//!-end-[CheckFileExist]
 		// Make a copy of fullPath as otherwise it gets aliased in Open
 		time_t newModTime = filePath.ModifiedTime();
 		//Platform::DebugPrintf("Times are %d %d\n", CurrentBuffer()->fileModTime, newModTime);
-//!		if (newModTime > CurrentBuffer()->fileModTime) {
-		if (newModTime != CurrentBuffer()->fileModTime) {	//!-chg-[Reloads if old time]
+		if (newModTime != CurrentBuffer()->fileModTime) {
 			RecentFile rf = GetFilePosition();
 			OpenFlags of = props.GetInt("reload.preserves.undo") ? ofPreserveUndo : ofNone;
 			if (CurrentBuffer()->isDirty || props.GetInt("are.you.sure.on.reload") != 0) {
@@ -676,6 +715,14 @@ void SciTEBase::CheckReload() {
 						Open(filePath, static_cast<OpenFlags>(of | ofForceLoad));
 						DisplayAround(rf);
 					}
+					//!-start-[CheckFileExist]
+					else {
+						CurrentBuffer()->isDirty = true;
+						CheckMenus();
+						SetWindowName();
+						BuffersMenu();
+					}
+					//!-end-[CheckFileExist]
 					CurrentBuffer()->fileModLastAsk = newModTime;
 				}
 			} else {
@@ -893,13 +940,15 @@ void SciTEBase::ReloadProperties() {
 
 // Returns false if cancelled or failed to save
 bool SciTEBase::Save() {
-	if (!filePath.IsUntitled()) {
+//!	if (!filePath.IsUntitled()) {
+	if (!filePath.IsUntitled()&&(CurrentBuffer()->fileOpenMethod < Buffer::omOpenNonExistent)) {//!-change-[OpenNonExistent]
 		if (props.GetInt("save.deletes.first")) {
 			filePath.Remove();
 		}
 
 		if (SaveBuffer(filePath)) {
 			CurrentBuffer()->SetTimeFromFile();
+			CurrentBuffer()->fileOpenMethod = Buffer::omOpenExistent; //!-add-[OpenNonExistent]
 			SendEditor(SCI_SETSAVEPOINT);
 			if (IsPropertiesFile(filePath)) {
 				ReloadProperties();
@@ -915,6 +964,15 @@ bool SciTEBase::Save() {
 		}
 		return true;
 	} else {
+//!-start-[OpenNonExistent]
+		if (CurrentBuffer()->fileOpenMethod == Buffer::omOpenNonExistent) {
+			CurrentBuffer()->fileOpenMethod = Buffer::omOpenNonExistentWarned;
+			if (!SaveAsDialog()) {
+				CurrentBuffer()->fileOpenMethod = Buffer::omOpenNonExistent; // return method back
+				return false;
+			} else return true;
+		} else
+//!-end-[OpenNonExistent]
 		return SaveAsDialog();
 	}
 }

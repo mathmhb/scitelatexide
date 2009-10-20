@@ -34,9 +34,10 @@ INCLUDEDIRS=-I ../include -I ../src
 CXXBASEFLAGS=-Wall -Wno-missing-braces -Wno-char-subscripts -pedantic $(INCLUDEDIRS) -Os -fexceptions $(THUNKFLAGS) -fno-rtti -mno-cygwin
 
 ifdef DEBUG
-CXXFLAGS=-DDEBUG $(CXXBASEFLAGS)
+CXXFLAGS=-DDEBUG -g $(CXXBASEFLAGS)
 else
-CXXFLAGS=-DNDEBUG $(CXXBASEFLAGS)
+CXXFLAGS=-DNDEBUG -Os $(CXXBASEFLAGS)
+STRIPFLAG=-s
 endif
 
 .cxx.o:
@@ -55,7 +56,7 @@ deps:
 ifdef LESS_LEXERS
 LEXERS=Ada Asm ASY AU3 Bash Basic BiB Cmake COBOL Conf CPP \
 Crontab CSS D Eiffel Erlang EScript Euphoria Flagship Forth Fortran Gui4Cli \
-HTML Inno Kix Latex Lisp Lout Lua Matlab Metapost MSSQL MySQL Nsis Others\
+HTML Inno Kix Latex Lisp Lout Lua Markdown Matlab Metapost MSSQL MySQL Nsis Others\
 Pascal PB Perl PowerPro PowerShell PS Python R Rebol Ruby Smalltalk SQL TCL VB
 else
 LEXERS=\
@@ -65,7 +66,7 @@ CLW Cmake COBOL Conf CPP Crontab Csound \
 CSS D Eiffel Erlang EScript Euphoria \
 Flagship Forth Fortran GAP Gui4Cli Haskell \
 HTML Inno Kix Latex Lisp Lout Lua \
-Magik Matlab Metapost MMIXAL MPT MSSQL \
+Magik Markdown Matlab Metapost MMIXAL MPT MSSQL \
 MySQL Nimrod Nsis Opal Others Pascal PB \
 Perl PLM POV PowerPro PowerShell Progress \
 PS Python R Rebol Ruby Scriptol Smalltalk \
@@ -99,24 +100,24 @@ LEXNAMS:=$(LEXNAMS:VB=VB VBScript)
 gen_lexers:
 	rm -f KeyWords.o
 	rm -f ../src/_lexers.inc
-	for lex in $(LEXNAMS); do echo "LINK_LEXER(lm$$lex);">>../src/_lexers.inc; done 
+	for lex in $(LEXNAMS); do echo "LINK_LEXER(lm$$lex);">>../src/_lexers.inc; done
 # KeyWords.o: KeyWords.cxx _lexers.inc
 
 
 SOBJS	= ScintillaWin.o ScintillaBase.o Editor.o CharClassify.o Decoration.o \
 	Document.o ContractionState.o CellBuffer.o CallTip.o \
 	ScintRes.o PlatWin.o PositionCache.o KeyMap.o Indicator.o LineMarker.o RESearch.o RunStyles.o \
-	Style.o ViewStyle.o AutoComplete.o UniConversion.o PropSet.o XPM.o PerLine.o
+	Selection.o Style.o ViewStyle.o AutoComplete.o UniConversion.o PropSet.o XPM.o PerLine.o
 $(COMPONENT): $(SOBJS) Scintilla.def
-	$(DLLWRAP) --add-stdcall-alias --target i386-mingw32 -o $@ $(SOBJS) $(LDFLAGS) -s --relocatable
+	$(DLLWRAP) --add-stdcall-alias --target i386-mingw32 -o $@ $(SOBJS) $(LDFLAGS) $(STRIPFLAG) --relocatable
 
 LOBJS	= ScintillaWinL.o ScintillaBaseL.o Editor.o CharClassify.o Decoration.o \
 	Document.o ContractionState.o CellBuffer.o CallTip.o \
 	ScintRes.o PlatWin.o PositionCache.o KeyMap.o Indicator.o LineMarker.o RESearch.o RunStyles.o \
-	Style.o ViewStyle.o AutoComplete.o UniConversion.o KeyWords.o \
+	Selection.o Style.o ViewStyle.o AutoComplete.o UniConversion.o KeyWords.o \
 	DocumentAccessor.o PropSet.o ExternalLexer.o StyleContext.o XPM.o PerLine.o $(LEXOBJS)
 $(LEXCOMPONENT): $(LOBJS) Scintilla.def
-	$(DLLWRAP) --add-stdcall-alias --target i386-mingw32 -o $@ $(LOBJS) $(LDFLAGS) -s --relocatable
+	$(DLLWRAP) --add-stdcall-alias --target i386-mingw32 -o $@ $(LOBJS) $(LDFLAGS) $(STRIPFLAG) --relocatable
 
 $(LEXLIB): $(LEXOBJS)
 	$(AR) rc $@ $^
@@ -129,12 +130,12 @@ include deps.mak
 ScintillaBaseL.o: ScintillaBase.cxx Platform.h Scintilla.h SciLexer.h \
  ContractionState.h CellBuffer.h CallTip.h KeyMap.h Indicator.h \
  LineMarker.h Style.h AutoComplete.h ViewStyle.h Document.h Editor.h \
- ScintillaBase.h PropSet.h SString.h Accessor.h DocumentAccessor.h \
+ ScintillaBase.h PropSet.h Accessor.h DocumentAccessor.h \
  KeyWords.h ExternalLexer.h PerLine.h
 ScintillaWinL.o: ScintillaWin.cxx Platform.h Scintilla.h SciLexer.h \
  ContractionState.h CellBuffer.h CallTip.h KeyMap.h Indicator.h \
  LineMarker.h Style.h AutoComplete.h ViewStyle.h Document.h Editor.h \
- ScintillaBase.h PropSet.h SString.h Accessor.h KeyWords.h \
+ ScintillaBase.h PropSet.h Accessor.h KeyWords.h \
  ExternalLexer.h UniConversion.h PerLine.h
 ScintillaWinS.o: ScintillaWin.cxx Platform.h Scintilla.h \
  ContractionState.h CellBuffer.h CallTip.h KeyMap.h Indicator.h \

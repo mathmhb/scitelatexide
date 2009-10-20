@@ -13,6 +13,9 @@
 #include <assert.h>
 #include <limits.h>
 
+#include <string>
+#include <vector>
+
 #define _WIN32_WINNT  0x0500
 #include <windows.h>
 #include <commctrl.h>
@@ -22,10 +25,10 @@
 #include "Platform.h"
 
 #include "Scintilla.h"
-#include "SString.h"
 #ifdef SCI_LEXER
 #include "SciLexer.h"
 #include "PropSet.h"
+#include "PropSetSimple.h"
 #include "Accessor.h"
 #include "KeyWords.h"
 #endif
@@ -45,6 +48,7 @@
 #include "CharClassify.h"
 #include "Decoration.h"
 #include "Document.h"
+#include "Selection.h"
 #include "PositionCache.h"
 #include "Editor.h"
 #include "ScintillaBase.h"
@@ -238,7 +242,8 @@ class ScintillaWin :
 	virtual bool GetScrollInfo(int nBar, LPSCROLLINFO lpsi);
 	void ChangeScrollPos(int barType, int pos);
 
-	void InsertPasteText(const char *text, int len, int selStart, bool isRectangular, bool isLine);
+	void InsertPasteText(const char *text, int len, SelectionPosition selStart, bool isRectangular, bool isLine);
+	void InsertMultiPasteText(const char *text, int len); //!-add- [InsertMultiPasteText]
 
 public:
 	// Public for benefit of Scintilla_DirectFunction
@@ -340,7 +345,6 @@ void ScintillaWin::Finalise() {
 	ScintillaBase::Finalise();
 	SetTicking(false);
 	SetIdle(false);
-	DestroySystemCaret();
 	::RevokeDragDrop(MainHWND());
 	if (SUCCEEDED(hrOle)) {
 		::OleUninitialize();
@@ -377,7 +381,7 @@ void ScintillaWin::StartDrag() {
 		}
 	}
 	inDragDrop = ddNone;
-	SetDragPosition(invalidPosition);
+	SetDragPosition(SelectionPosition(invalidPosition));
 }
 
 // Avoid warnings everywhere for old style casts by concentrating them here
@@ -523,7 +527,7 @@ sptr_t ScintillaWin::HandleComposition(uptr_t wParam, sptr_t lParam) {
 				}
 			}
 			// Set new position after converted
-			Point pos = LocationFromPosition(currentPos);
+			Point pos = PointMainCaret();
 			COMPOSITIONFORM CompForm;
 			CompForm.dwStyle = CFS_POINT;
 			CompForm.ptCurrentPos.x = pos.x;
@@ -907,7 +911,7 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 				Point pt = Point::FromLong(lParam);
 				if ((pt.x == -1) && (pt.y == -1)) {
 					// Caused by keyboard so display menu near caret
-					pt = LocationFromPosition(currentPos);
+					pt = PointMainCaret();
 					POINT spt = {pt.x, pt.y};
 					::ClientToScreen(MainHWND(), &spt);
 					pt = Point(spt.x, spt.y);
@@ -951,7 +955,7 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 
 		case EM_LINEFROMCHAR:
 			if (static_cast<int>(wParam) < 0) {
-				wParam = SelectionStart();
+				wParam = SelectionStart().Position();
 			}
 			return pdoc->LineFromPosition(wParam);
 
@@ -960,20 +964,20 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 
 		case EM_GETSEL:
 			if (wParam) {
-				*reinterpret_cast<int *>(wParam) = SelectionStart();
+				*reinterpret_cast<int *>(wParam) = SelectionStart().Position();
 			}
 			if (lParam) {
-				*reinterpret_cast<int *>(lParam) = SelectionEnd();
+				*reinterpret_cast<int *>(lParam) = SelectionEnd().Position();
 			}
-			return MAKELONG(SelectionStart(), SelectionEnd());
+			return MAKELONG(SelectionStart().Position(), SelectionEnd().Position());
 
 		case EM_EXGETSEL: {
 				if (lParam == 0) {
 					return 0;
 				}
 				Sci_CharacterRange *pCR = reinterpret_cast<Sci_CharacterRange *>(lParam);
-				pCR->cpMin = SelectionStart();
-				pCR->cpMax = SelectionEnd();
+				pCR->cpMin = SelectionStart().Position();
+				pCR->cpMax = SelectionEnd().Position();
 			}
 			break;
 
@@ -1000,14 +1004,14 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 					return 0;
 				}
 				Sci_CharacterRange *pCR = reinterpret_cast<Sci_CharacterRange *>(lParam);
-				selType = selStream;
+				sel.selType = Selection::selStream;
 				if (pCR->cpMin == 0 && pCR->cpMax == -1) {
 					SetSelection(pCR->cpMin, pdoc->Length());
 				} else {
 					SetSelection(pCR->cpMin, pCR->cpMax);
 				}
 				EnsureCaretVisible();
-				return pdoc->LineFromPosition(SelectionStart());
+				return pdoc->LineFromPosition(SelectionStart().Position());
 			}
 
 		case SCI_GETDIRECTFUNCTION:
@@ -1139,7 +1143,7 @@ void ScintillaWin::UpdateSystemCaret() {
 			DestroySystemCaret();
 			CreateSystemCaret();
 		}
-		Point pos = LocationFromPosition(currentPos);
+		Point pos = PointMainCaret();
 		::SetCaretPos(pos.x, pos.y);
 	}
 }
@@ -1278,7 +1282,7 @@ void ScintillaWin::NotifyDoubleClick(Point pt, bool shift, bool ctrl, bool alt) 
 
 void ScintillaWin::Copy() {
 	//Platform::DebugPrintf("Copy\n");
-	if (currentPos != anchor) {
+	if (!sel.Empty()) {
 		SelectionText selectedText;
 		CopySelectionRange(&selectedText);
 		CopyToClipboard(selectedText);
@@ -1340,7 +1344,7 @@ public:
 	}
 };
 
-void ScintillaWin::InsertPasteText(const char *text, int len, int selStart, bool isRectangular, bool isLine) {
+void ScintillaWin::InsertPasteText(const char *text, int len, SelectionPosition selStart, bool isRectangular, bool isLine) {
 	if (isRectangular) {
 		PasteRectangular(selStart, text, len);
 	} else {
@@ -1351,7 +1355,7 @@ void ScintillaWin::InsertPasteText(const char *text, int len, int selStart, bool
 			text = convertedText;
 		}
 		if (isLine) {
-			int insertPos = pdoc->LineStart(pdoc->LineFromPosition(currentPos));
+			int insertPos = pdoc->LineStart(pdoc->LineFromPosition(sel.MainCaret()));
 			pdoc->InsertString(insertPos, text, len);
 			// add the newline if necessary
 			if ((len > 0) && (text[len-1] != '\n' && text[len-1] != '\r')) {
@@ -1359,25 +1363,86 @@ void ScintillaWin::InsertPasteText(const char *text, int len, int selStart, bool
 				pdoc->InsertString(insertPos + len, endline, strlen(endline));
 				len += strlen(endline);
 			}
-			if (currentPos == insertPos) {
-				SetEmptySelection(currentPos + len);
+			if (sel.MainCaret() == insertPos) {
+				SetEmptySelection(sel.MainCaret() + len);
 			}
-		} else if (pdoc->InsertString(currentPos, text, len)) {
-			SetEmptySelection(currentPos + len);
+		} else {
+			selStart = SelectionPosition(InsertSpace(selStart.Position(), selStart.VirtualSpace()));
+			if (pdoc->InsertString(selStart.Position(), text, len)) {
+				SetEmptySelection(selStart.Position() + len);
+			}
 		}
 		delete []convertedText;
 	}
 }
 
+//!-start- [InsertMultiPasteText]
+void ScintillaWin::InsertMultiPasteText(const char *text, int len) {
+	char *convertedText = 0;
+	if (convertPastes) {
+		// Convert line endings of the paste into our local line-endings mode
+		convertedText = Document::TransformLineEnds(&len, text, len, pdoc->eolMode);
+		text = convertedText;
+	}
+	FilterSelections();
+	UndoGroup ug(pdoc, (sel.Count() > 1) || !sel.Empty());
+	for (size_t r=0; r<sel.Count(); r++) {
+		if (!RangeContainsProtected(sel.Range(r).Start().Position(),
+			sel.Range(r).End().Position())) {
+			int positionInsert = sel.Range(r).Start().Position();
+			if (!sel.Range(r).Empty()) {
+				if (sel.Range(r).Length()) {
+					pdoc->DeleteChars(positionInsert, sel.Range(r).Length());
+					sel.Range(r).ClearVirtualSpace();
+				} else {
+					// Range is all virtual so collapse to start of virtual space
+					sel.Range(r).MinimizeVirtualSpace();
+				}
+			}
+			positionInsert = InsertSpace(positionInsert, sel.Range(r).caret.VirtualSpace());
+			if (pdoc->InsertString(positionInsert, text, len)) {
+				sel.Range(r).caret.SetPosition(positionInsert + len);
+				sel.Range(r).anchor.SetPosition(positionInsert + len);
+			}
+			sel.Range(r).ClearVirtualSpace();
+			// If in wrap mode rewrap current line so EnsureCaretVisible has accurate information
+			if (wrapState != eWrapNone) {
+				AutoSurface surface(this);
+				if (surface) {
+					WrapOneLine(surface, pdoc->LineFromPosition(positionInsert));
+				}
+			}
+		}
+	}
+	delete []convertedText;
+}
+//!-end- [InsertMultiPasteText]
+
 void ScintillaWin::Paste() {
 	if (!::OpenClipboard(MainHWND()))
 		return;
-	pdoc->BeginUndoAction();
+/*!
+	UndoGroup ug(pdoc);
 	bool isLine = SelectionEmpty() && (::IsClipboardFormatAvailable(cfLineSelect) != 0);
 	ClearSelection();
-	int selStart = SelectionStart();
+	SelectionPosition selStart = sel.IsRectangular() ?
+		sel.Rectangular().Start() :
+		sel.Range(sel.Main()).Start();
 	bool isRectangular = ::IsClipboardFormatAvailable(cfColumnSelect) != 0;
-
+*/
+//!-start- [InsertMultiPasteText]
+	bool isLine = SelectionEmpty() && (::IsClipboardFormatAvailable(cfLineSelect) != 0);
+	SelectionPosition selStart;
+	bool isRectangular = ::IsClipboardFormatAvailable(cfColumnSelect) != 0; 
+	bool isMultiPaste = (!isRectangular)&&(!isLine)&&(sel.Count()>1); 
+	if(!isMultiPaste) {
+		UndoGroup ug(pdoc);
+		ClearSelection();
+		selStart = sel.IsRectangular() ?
+			sel.Rectangular().Start() :
+			sel.Range(sel.Main()).Start();
+	}
+//!-end- [InsertMultiPasteText]
 	// Always use CF_UNICODETEXT if available
 	GlobalMemory memUSelection(::GetClipboardData(CF_UNICODETEXT));
 	if (memUSelection) {
@@ -1390,9 +1455,7 @@ void ScintillaWin::Paste() {
 				unsigned int bytes = memUSelection.Size();
 				len = UTF8Length(uptr, bytes / 2);
 				putf = new char[len + 1];
-				if (putf) {
-					UTF8FromUTF16(uptr, bytes / 2, putf, len);
-				}
+				UTF8FromUTF16(uptr, bytes / 2, putf, len);
 			} else {
 				// CF_UNICODETEXT available, but not in Unicode mode
 				// Convert from Unicode to current Scintilla code page
@@ -1401,16 +1464,19 @@ void ScintillaWin::Paste() {
 				len = ::WideCharToMultiByte(cpDest, 0, uptr, -1,
 				                            NULL, 0, NULL, NULL) - 1; // subtract 0 terminator
 				putf = new char[len + 1];
-				if (putf) {
-					::WideCharToMultiByte(cpDest, 0, uptr, -1,
+				::WideCharToMultiByte(cpDest, 0, uptr, -1,
 					                      putf, len + 1, NULL, NULL);
-				}
 			}
 
-			if (putf) {
+//!			InsertPasteText(putf, len, selStart, isRectangular, isLine);
+//!-start- [InsertMultiPasteText]
+			if(!isMultiPaste) {
 				InsertPasteText(putf, len, selStart, isRectangular, isLine);
-				delete []putf;
+			} else {
+				InsertMultiPasteText(putf, len);
 			}
+//!-end- [InsertMultiPasteText]
+			delete []putf;
 		}
 		memUSelection.Unlock();
 	} else {
@@ -1443,19 +1509,31 @@ void ScintillaWin::Paste() {
 					delete []uptr;
 
 					if (putf) {
-						InsertPasteText(putf, mlen, selStart, isRectangular, isLine);
+//!						InsertPasteText(putf, mlen, selStart, isRectangular, isLine);
+//!-begin-[InsertMultiPasteText]
+						if(!isMultiPaste) {
+							InsertPasteText(putf, mlen, selStart, isRectangular, isLine);
+						} else {
+							InsertMultiPasteText(putf, mlen);
+						}
+//!-end-[InsertMultiPasteText]
 						delete []putf;
 					}
 				} else {
-					InsertPasteText(ptr, len, selStart, isRectangular, isLine);
+//!					InsertPasteText(ptr, len, selStart, isRectangular, isLine);
+//!-begin-[InsertMultiPasteText]
+					if(!isMultiPaste) {
+						InsertPasteText(ptr, len, selStart, isRectangular, isLine);
+					} else {
+						InsertMultiPasteText(ptr, len);
+					}
+//!-end-[InsertMultiPasteText]
 				}
 			}
 			memSelection.Unlock();
 		}
 	}
 	::CloseClipboard();
-	pdoc->EndUndoAction();
-	NotifyChange();
 	Redraw();
 }
 
@@ -1835,7 +1913,7 @@ void ScintillaWin::ImeStartComposition() {
 	if (caret.active) {
 		// Move IME Window to current caret position
 		HIMC hIMC = ::ImmGetContext(MainHWND());
-		Point pos = LocationFromPosition(currentPos);
+		Point pos = PointMainCaret();
 		COMPOSITIONFORM CompForm;
 		CompForm.dwStyle = CFS_POINT;
 		CompForm.ptCurrentPos.x = pos.x;
@@ -1847,7 +1925,7 @@ void ScintillaWin::ImeStartComposition() {
 		if (stylesValid) {
 			// Since the style creation code has been made platform independent,
 			// The logfont for the IME is recreated here.
-			int styleHere = (pdoc->StyleAt(currentPos)) & 31;
+			int styleHere = (pdoc->StyleAt(sel.MainCaret())) & 31;
 			LOGFONTA lf = {0,0,0,0,0,0,0,0,0,0,0,0,0, ""};
 			int sizeZoomed = vs.styles[styleHere].size + vs.zoomLevel;
 			if (sizeZoomed <= 2)	// Hangs if sizeZoomed <= 1
@@ -2182,7 +2260,7 @@ STDMETHODIMP ScintillaWin::DragOver(DWORD grfKeyState, POINTL pt, PDWORD pdwEffe
 		// Update the cursor.
 		POINT rpt = {pt.x, pt.y};
 		::ScreenToClient(MainHWND(), &rpt);
-		SetDragPosition(PositionFromLocation(Point(rpt.x, rpt.y)));
+		SetDragPosition(SPositionFromLocation(Point(rpt.x, rpt.y), false, false, UserVirtualSpace()));
 
 		return S_OK;
 	} catch (...) {
@@ -2193,7 +2271,7 @@ STDMETHODIMP ScintillaWin::DragOver(DWORD grfKeyState, POINTL pt, PDWORD pdwEffe
 
 STDMETHODIMP ScintillaWin::DragLeave() {
 	try {
-		SetDragPosition(invalidPosition);
+		SetDragPosition(SelectionPosition(invalidPosition));
 		return S_OK;
 	} catch (...) {
 		errorStatus = SC_STATUS_FAILURE;
@@ -2209,7 +2287,7 @@ STDMETHODIMP ScintillaWin::Drop(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
 		if (pIDataSource == NULL)
 			return E_POINTER;
 
-		SetDragPosition(invalidPosition);
+		SetDragPosition(SelectionPosition(invalidPosition));
 
 		STGMEDIUM medium={0,{0},0};
 
@@ -2225,10 +2303,8 @@ STDMETHODIMP ScintillaWin::Drop(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
 				// Convert UTF-16 to UTF-8
 				int dataLen = UTF8Length(udata, tlen/2);
 				data = new char[dataLen+1];
-				if (data) {
-					UTF8FromUTF16(udata, tlen/2, data, dataLen);
-					dataAllocated = true;
-				}
+				UTF8FromUTF16(udata, tlen/2, data, dataLen);
+				dataAllocated = true;
 			} else {
 				// Convert UTF-16 to ANSI
 				//
@@ -2240,12 +2316,10 @@ STDMETHODIMP ScintillaWin::Drop(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
 				int tlen = ::WideCharToMultiByte(cpDest, 0, udata, -1,
 					NULL, 0, NULL, NULL) - 1; // subtract 0 terminator
 				data = new char[tlen + 1];
-				if (data) {
-					memset(data, 0, (tlen+1));
-					::WideCharToMultiByte(cpDest, 0, udata, -1,
-							data, tlen + 1, NULL, NULL);
-					dataAllocated = true;
-				}
+				memset(data, 0, (tlen+1));
+				::WideCharToMultiByte(cpDest, 0, udata, -1,
+						data, tlen + 1, NULL, NULL);
+				dataAllocated = true;
 			}
 		}
 
@@ -2267,7 +2341,7 @@ STDMETHODIMP ScintillaWin::Drop(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
 
 		POINT rpt = {pt.x, pt.y};
 		::ScreenToClient(MainHWND(), &rpt);
-		int movePos = PositionFromLocation(Point(rpt.x, rpt.y));
+		SelectionPosition movePos = SPositionFromLocation(Point(rpt.x, rpt.y), false, false, UserVirtualSpace()); 
 
 		DropAt(movePos, data, *pdwEffect == DROPEFFECT_MOVE, hrRectangular == S_OK);
 

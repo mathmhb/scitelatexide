@@ -14,6 +14,13 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4786)
+#endif
+
+#include <string>
+#include <map>
+
 #include "Platform.h"
 
 #if PLAT_GTK
@@ -24,6 +31,13 @@
 #endif
 
 #if PLAT_WIN
+
+#ifdef __BORLANDC__
+// Borland includes Windows.h for STL and defaults to different API number
+#ifdef _WIN32_WINNT
+#undef _WIN32_WINNT
+#endif
+#endif
 
 #ifndef _WIN32_WINNT //!-add-[SubMenu]
 #define _WIN32_WINNT  0x0400
@@ -53,10 +67,10 @@
 
 #include "SciTE.h"
 #include "PropSet.h"
+#include "SString.h"
 #include "StringList.h"
 #include "Accessor.h"
 #include "WindowAccessor.h"
-#include "KeyWords.h"
 #include "Scintilla.h"
 #include "ScintillaWidget.h"
 #include "SciLexer.h"
@@ -279,7 +293,7 @@ const char *contributors[] = {
             "Enrico Tr\xc3\xb6ger",
             "Todd Whiteman",
             "Yuval Papish",
-            "Instanton",
+            "instanton",
             "Mathmhb",
             "Sergio Lucato",
             "VladVRO",
@@ -312,6 +326,8 @@ const char *contributors[] = {
             "Mike Lischke",
             "Eric Kidd",
             "maXmo",
+            "David Severwright",
+            "Jon Strait",
 //!-start-[SciTE-Ru]
             "HSolo",
             "Midas",
@@ -802,21 +818,20 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		}
 #endif
 		AddStyledText(wsci, GetTranslationToAbout("Version").c_str(), trsSty);
-		AddStyledText(wsci, " 1.79 .66\n", 1);
+		AddStyledText(wsci, " 2.01 .71Ru\n", 1);
 		AddStyledText(wsci, "    " __DATE__ " " __TIME__ "\n", 1);
-//		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f)); 
+		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f)); //!-add-[SciTE-Ru]
+		//: AddStyledText(wsci, "http://scite.net.ru\n", 4); //!-add-[SciTE-Ru]
 		SetAboutStyle(wsci, 2, ColourDesired(0, 0, 0));
 		AddStyledText(wsci, "Instanton (soft_share@126.com)\n", 4);
 		AddStyledText(wsci, "Mathmhb (mathmhb@163.com)\n", 4);
 		Platform::SendScintilla(wsci, SCI_STYLESETITALIC, 2, 1);
-		AddStyledText(wsci, GetTranslationToAbout("Based on").c_str(), trsSty); 
-		AddStyledText(wsci, " SciTE 1.79 ", 1); //!-add-[SciTE-Ru]
+		AddStyledText(wsci, GetTranslationToAbout("Based on version").c_str(), trsSty); //!-add-[SciTE-Ru]
+		AddStyledText(wsci, " 2.01 ", 1); //!-add-[SciTE-Ru]
 		AddStyledText(wsci, GetTranslationToAbout("by").c_str(), trsSty);
 		AddStyledText(wsci, " Neil Hodgson.\n", 2);
-		AddStyledText(wsci, GetTranslationToAbout("and").c_str(), trsSty);
-		AddStyledText(wsci, " SciTE-Ru 1.79.66Ru\n",1); 
 		SetAboutStyle(wsci, 3, ColourDesired(0, 0, 0));
-		AddStyledText(wsci, "December 1998-July 2009.\n", 3);
+		AddStyledText(wsci, "December 1998-August 2009.\n", 3);
 		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f));
 		AddStyledText(wsci, "http://www.scintilla.org\n", 4);
 		AddStyledText(wsci, "Lua scripting language by TeCGraf, PUC-Rio\n", 3);
@@ -1424,7 +1439,8 @@ SString SciTEBase::SelectionWord(bool stripEol /*=true*/) {
 }
 
 SString SciTEBase::SelectionFilename() {
-	return SelectionExtend(&SciTEBase::isfilenamecharforsel);
+	//! return SelectionExtend(&SciTEBase::isfilenamecharforsel);
+	return EncodeString(SelectionExtend(&SciTEBase::isfilenamecharforsel)); //!-add-[OpenSelFilenameWithNationalCharsErr]
 }
 
 void SciTEBase::SelectionIntoProperties() {
@@ -1496,51 +1512,49 @@ SString SciTEBase::EncodeString(const SString &s) {
  */
 char *Slash(const char *s, bool quoteQuotes) {
 	char *oRet = new char[strlen(s) * 4 + 1];
-	if (oRet) {
-		char *o = oRet;
-		while (*s) {
-			if (*s == '\a') {
-				*o++ = '\\';
-				*o++ = 'a';
-			} else if (*s == '\b') {
-				*o++ = '\\';
-				*o++ = 'b';
-			} else if (*s == '\f') {
-				*o++ = '\\';
-				*o++ = 'f';
-			} else if (*s == '\n') {
-				*o++ = '\\';
-				*o++ = 'n';
-			} else if (*s == '\r') {
-				*o++ = '\\';
-				*o++ = 'r';
-			} else if (*s == '\t') {
-				*o++ = '\\';
-				*o++ = 't';
-			} else if (*s == '\v') {
-				*o++ = '\\';
-				*o++ = 'v';
-			} else if (*s == '\\') {
-				*o++ = '\\';
-				*o++ = '\\';
-			} else if (quoteQuotes && (*s == '\'')) {
-				*o++ = '\\';
-				*o++ = '\'';
-			} else if (quoteQuotes && (*s == '\"')) {
-				*o++ = '\\';
-				*o++ = '\"';
-			} else if (isascii(*s) && (*s < ' ')) {
-				*o++ = '\\';
-				*o++ = static_cast<char>((*s >> 6) + '0');
-				*o++ = static_cast<char>((*s >> 3) + '0');
-				*o++ = static_cast<char>((*s & 0x7) + '0');
-			} else {
-				*o++ = *s;
-			}
-			s++;
+	char *o = oRet;
+	while (*s) {
+		if (*s == '\a') {
+			*o++ = '\\';
+			*o++ = 'a';
+		} else if (*s == '\b') {
+			*o++ = '\\';
+			*o++ = 'b';
+		} else if (*s == '\f') {
+			*o++ = '\\';
+			*o++ = 'f';
+		} else if (*s == '\n') {
+			*o++ = '\\';
+			*o++ = 'n';
+		} else if (*s == '\r') {
+			*o++ = '\\';
+			*o++ = 'r';
+		} else if (*s == '\t') {
+			*o++ = '\\';
+			*o++ = 't';
+		} else if (*s == '\v') {
+			*o++ = '\\';
+			*o++ = 'v';
+		} else if (*s == '\\') {
+			*o++ = '\\';
+			*o++ = '\\';
+		} else if (quoteQuotes && (*s == '\'')) {
+			*o++ = '\\';
+			*o++ = '\'';
+		} else if (quoteQuotes && (*s == '\"')) {
+			*o++ = '\\';
+			*o++ = '\"';
+		} else if (isascii(*s) && (*s < ' ')) {
+			*o++ = '\\';
+			*o++ = static_cast<char>((*s >> 6) + '0');
+			*o++ = static_cast<char>((*s >> 3) + '0');
+			*o++ = static_cast<char>((*s & 0x7) + '0');
+		} else {
+			*o++ = *s;
 		}
-		*o = '\0';
+		s++;
 	}
+	*o = '\0';
 	return oRet;
 }
 
@@ -1835,10 +1849,8 @@ int SciTEBase::DoReplaceAll(bool inSelection) {
 	int startPosition = cr.cpMin;
 	int endPosition = cr.cpMax;
 	int selType = SC_SEL_STREAM;
+	int countSelections = SendEditor(SCI_GETSELECTIONS);
 	if (inSelection) {
-		if (startPosition == endPosition) {
-			return -2;
-		}
 		selType = SendEditor(SCI_GETSELECTIONMODE);
 		if (selType == SC_SEL_LINES) {
 			// Take care to replace in whole lines
@@ -1846,6 +1858,14 @@ int SciTEBase::DoReplaceAll(bool inSelection) {
 			startPosition = SendEditor(SCI_POSITIONFROMLINE, startLine);
 			int endLine = SendEditor(SCI_LINEFROMPOSITION, endPosition);
 			endPosition = SendEditor(SCI_POSITIONFROMLINE, endLine + 1);
+		} else {
+			for (int i=0; i<countSelections; i++) {
+				startPosition = Platform::Minimum(startPosition, SendEditor(SCI_GETSELECTIONNSTART, i));
+				endPosition = Platform::Maximum(endPosition, SendEditor(SCI_GETSELECTIONNEND, i));
+			}
+		}
+		if (startPosition == endPosition) {
+			return -2;
 		}
 	} else {
 		endPosition = LengthDocument();
@@ -1877,15 +1897,17 @@ int SciTEBase::DoReplaceAll(bool inSelection) {
 		// Replacement loop
 		while (posFind != -1) {
 			int lenTarget = SendEditor(SCI_GETTARGETEND) - SendEditor(SCI_GETTARGETSTART);
-			if (inSelection && selType == SC_SEL_RECTANGLE) {
-				// We must check that the found target is entirely inside the rectangular selection:
-				// it must fit in one line, and inside the selection bounds of this line.
-				int line = SendEditor(SCI_LINEFROMPOSITION, posFind);
-				int startPos = SendEditor(SCI_GETLINESELSTARTPOSITION, line);
-				int endPos = SendEditor(SCI_GETLINESELENDPOSITION, line);
-				if (startPos == INVALID_POSITION ||	// No selection on this line (?)
-				        posFind < startPos || posFind + lenTarget > endPos) {
-					// Found target is totally or partly outside the rectangular selection
+			if (inSelection && countSelections > 1) {
+				// We must check that the found target is entirely inside a selection
+				bool insideASelection = false;
+				for (int i=0; i<countSelections && !insideASelection; i++) {
+					int startPos= SendEditor(SCI_GETSELECTIONNSTART, i);
+					int endPos = SendEditor(SCI_GETSELECTIONNEND, i);
+					if (posFind >= startPos && posFind + lenTarget <= endPos)
+						insideASelection = true;
+				}
+				if (!insideASelection) {
+					// Found target is totally or partly outside the selections
 					lastMatch = posFind + 1;
 					if (lastMatch >= endPosition) {
 						// Run off the end of the document/selection with an empty match
@@ -1926,7 +1948,8 @@ int SciTEBase::DoReplaceAll(bool inSelection) {
 			replacements++;
 		}
 		if (inSelection) {
-			SetSelection(startPosition, endPosition);
+			if (countSelections == 1) 
+				SetSelection(startPosition, endPosition);
 		} else {
 			SetSelection(lastMatch, lastMatch);
 		}
@@ -2267,6 +2290,42 @@ bool SciTEBase::StartCallTip() {
 	return true;
 }
 
+//!-start-[BetterCalltips]
+static inline char MakeUpperCase(char ch) {
+//!-start-[LowerUpperCase]
+//#if PLAT_WIN
+//	char str[2] = {ch, 0};
+//	::CharUpper(str);
+//	return str[0];
+//#else
+//!-end-[LowerUpperCase]
+	if (ch < 'a' || ch > 'z')
+		return ch;
+	else
+		return static_cast<char>(ch - 'a' + 'A');
+//#endif //!-add-[LowerUpperCase]
+}
+
+static int CompareNCaseInsensitive(const char *a, const char *b, size_t len) {
+	while (*a && *b && len) {
+		if (*a != *b) {
+			char upperA = MakeUpperCase(*a);
+			char upperB = MakeUpperCase(*b);
+			if (upperA != upperB)
+				return upperA - upperB;
+		}
+		a++;
+		b++;
+		len--;
+	}
+	if (len == 0)
+		return 0;
+	else
+		// Either *a or *b is nul
+		return *a - *b;
+}
+//!-end-[BetterCalltips]
+
 void SciTEBase::ContinueCallTip() {
 	SString line = GetLine();
 	int current = GetCaretInLine();
@@ -2409,9 +2468,10 @@ bool SciTEBase::StartAutoComplete() {
 */
 //!-start-[AutoComplete]
 bool SciTEBase::StartAutoComplete() {
+/* Collected content of StartAutoComplete and StartAutoCompleteWord */
 
 	SString line = GetLine();
-	int current = GetCaretInLine();
+	int current = GetCaretInLine();//Current column
 //	if (current >= line.size())
 //		return false;
 
@@ -2462,7 +2522,7 @@ bool SciTEBase::StartAutoComplete() {
 		wordstart[0] = ' ';
 		GetRange(wEditor, posFind, Platform::Minimum(posFind + wordMaxSize - 3, doclen), wordstart + 1);
 		char *wordend = wordstart + 1 + root.length();
-		while (iswordcharforsel(*wordend)) { 
+		while (iswordcharforsel(*wordend)) { //Check for separator
 			wordend++;
 		}
 		*wordend++ = ' ';
@@ -2545,7 +2605,7 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 	// at the start and end. This makes it easy to search for words.
 	SString wordsNear;
 	wordsNear.setsizegrowth(1000);
-	wordsNear.append(" ");
+	wordsNear.append("\n");
 
 	int posFind = SendEditorString(SCI_FINDTEXT, flags, reinterpret_cast<char *>(&ft));
 	WindowAccessor acc(wEditor.GetID(), props);
@@ -2557,8 +2617,8 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 			size_t wordLength = wordEnd - posFind;
 			if (wordLength > root.length()) {
 				SString word = GetRange(wEditor, posFind, wordEnd);
-				word.insert(0, " ");
-				word.append(" ");
+				word.insert(0, "\n");
+				word.append("\n");
 				if (!wordsNear.contains(word.c_str())) {	// add a new entry
 					wordsNear += word.c_str() + 1;
 					if (minWordLength < wordLength)
@@ -2576,10 +2636,18 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 	}
 	size_t length = wordsNear.length();
 	if ((length > 2) && (!onlyOneWord || (minWordLength > root.length()))) {
-		StringList wl;
+		// Protect spaces by temporrily transforming to \001
+		wordsNear.substitute(' ', '\001');
+		StringList wl(true);
 		wl.Set(wordsNear.c_str());
 		char *words = wl.GetNearestWords("", 0, autoCompleteIgnoreCase);
-		SendEditorString(SCI_AUTOCSHOW, root.length(), words);
+		SString acText(words);
+		// Use \n as word separator
+		acText.substitute(' ', '\n');
+		// Return spaces from \001
+		acText.substitute('\001', ' ');
+		SendEditor(SCI_AUTOCSETSEPARATOR, '\n');
+		SendEditorString(SCI_AUTOCSHOW, root.length(), acText.c_str());
 		delete []words;
 	} else {
 		SendEditor(SCI_AUTOCCANCEL);
@@ -3072,6 +3140,18 @@ bool SciTEBase::StartBlockComment() {
 	return true;
 }
 
+static const char *LineEndString(int eolMode) {
+	switch (eolMode) {
+		case SC_EOL_CRLF:
+			return "\r\n";
+		case SC_EOL_CR:
+			return "\r";
+		case SC_EOL_LF:
+		default:
+			return "\n";
+	}
+}
+
 bool SciTEBase::StartBoxComment() {
 	// Get start/middle/end comment strings from options file(s)
 	SString fileNameForExtension = ExtensionFileName();
@@ -3080,6 +3160,7 @@ bool SciTEBase::StartBoxComment() {
 	SString middle_base("comment.box.middle.");
 	SString end_base("comment.box.end.");
 	SString white_space(" ");
+	SString eol(LineEndString(SendEditor(SCI_GETEOLMODE)));
 	start_base += lexerName;
 	middle_base += lexerName;
 	end_base += lexerName;
@@ -3180,7 +3261,7 @@ bool SciTEBase::StartBoxComment() {
 			GetRange(wEditor, lineStart, lineStart + (int) end_comment_length, tempString);
 			tempString[end_comment_length] = '\0';
 			if (end_comment != tempString) {
-				end_comment.append("\n");
+				end_comment += eol;
 				SendEditorString(SCI_INSERTTEXT, lineStart, end_comment.c_str());
 			}
 		}
@@ -3302,7 +3383,7 @@ void SciTEBase::SetTextProperties(
 
 	SString ro = localiser.Text("READ");
 	ps.Set("ReadOnly", isReadOnly ? ro.c_str() : "");
-	
+
 	//[mhb] 07/10/09 : add property MonoFont
 	SString mo = localiser.Text("MONO");
 	ps.Set("MonoFont", CurrentBuffer()->useMonoFont ? mo.c_str() : "");
@@ -3487,6 +3568,10 @@ unsigned int SciTEBase::GetLinePartsInStyle(int line, int style1, int style2, SS
 		sv[part++] = s;
 	}
 	return part;
+}
+
+inline bool IsAlphabetic(unsigned int ch) {
+	return ((ch >= 'A') && (ch <= 'Z')) || ((ch >= 'a') && (ch <= 'z'));
 }
 
 static bool includes(const StyleAndWords &symbols, const SString value) {
@@ -3721,13 +3806,13 @@ void SciTEBase::CharAddedOutput(int ch) {
 		int selStart = SendOutput(SCI_GETSELECTIONSTART);
 		if ((selStart > 1) && (SendOutput(SCI_GETCHARAT, selStart - 2, 0) == '$')) {
 			SString symbols;
-			char *key = NULL;
-			char *val = NULL;
-			bool b = props.GetFirst(&key, &val);
+			const char *key = NULL;
+			const char *val = NULL;
+			bool b = props.GetFirst(key, val);
 			while (b) {
 				symbols.append(key);
 				symbols.append(") ");
-				b = props.GetNext(&key, &val);
+				b = props.GetNext(key, val);
 			}
 			StringList symList;
 			symList.Set(symbols.c_str());
@@ -4854,21 +4939,6 @@ void SciTEBase::Notify(SCNotification *notification) {
 					styler.Flush();
 				}
 			}
-			// Colourisation is now normally performed by the SciLexer DLL
-#ifdef OLD_CODE
-			if (notification->nmhdr.idFrom == IDM_SRCWIN) {
-				int endStyled = SendEditor(SCI_GETENDSTYLED);
-				int lineEndStyled = SendEditor(SCI_LINEFROMPOSITION, endStyled);
-				endStyled = SendEditor(SCI_POSITIONFROMLINE, lineEndStyled);
-				Colourise(endStyled, notification->position);
-			} else {
-				int endStyled = SendOutput(SCI_GETENDSTYLED);
-				int lineEndStyled = SendOutput(SCI_LINEFROMPOSITION, endStyled);
-				endStyled = SendOutput(SCI_POSITIONFROMLINE, lineEndStyled);
-				Colourise(endStyled, notification->position, false);
-			}
-#endif
-
 		}
 		break;
 
@@ -5571,8 +5641,8 @@ static bool IsSwitchCharacter(char ch) {
 
 // Called by SciTEBase::PerformOne when action="enumproperties:"
 void SciTEBase::EnumProperties(const char *propkind) {
-	char *key = NULL;
-	char *val = NULL;
+	const char *key = NULL;
+	const char *val = NULL;
 	PropSetFile *pf = NULL;
 
 	if (!extender)
@@ -5594,10 +5664,10 @@ void SciTEBase::EnumProperties(const char *propkind) {
 		pf = &propsAbbrev;
 
 	if (pf != NULL) {
-		bool b = pf->GetFirst(&key, &val);
+		bool b = pf->GetFirst(key, val);
 		while (b) {
 			SendOneProperty(propkind, key, val);
-			b = pf->GetNext(&key, &val);
+			b = pf->GetNext(key, val);
 		}
 	}
 }
@@ -5605,15 +5675,13 @@ void SciTEBase::EnumProperties(const char *propkind) {
 void SciTEBase::SendOneProperty(const char *kind, const char *key, const char *val) {
 	size_t keysize = strlen(kind) + 1 + strlen(key) + 1 + strlen(val) + 1;
 	char *m = new char[keysize];
-	if (m) {
-		strcpy(m, kind);
-		strcat(m, ":");
-		strcat(m, key);
-		strcat(m, "=");
-		strcat(m, val);
-		extender->SendProperty(m);
-		delete []m;
-	}
+	strcpy(m, kind);
+	strcat(m, ":");
+	strcat(m, key);
+	strcat(m, "=");
+	strcat(m, val);
+	extender->SendProperty(m);
+	delete []m;
 }
 
 void SciTEBase::PropertyFromDirector(const char *arg) {
@@ -5782,7 +5850,7 @@ void SciTEBase::ExecuteMacroCommand(const char *command) {
 	if (*params == 'S') {
 		// string answer
 		if (message == SCI_GETSELTEXT) {
-			l = SendEditor(SCI_GETSELECTIONEND) - SendEditor(SCI_GETSELECTIONSTART);
+			l = SendEditor(SCI_GETSELTEXT, 0, 0);
 			wParam = 0;
 		} else if (message == SCI_GETCURLINE) {
 			int line = SendEditor(SCI_LINEFROMPOSITION, SendEditor(SCI_GETCURRENTPOS));
@@ -5922,12 +5990,10 @@ sptr_t SciTEBase::Send(Pane p, unsigned int msg, uptr_t wParam, sptr_t lParam) {
 char *SciTEBase::Range(Pane p, int start, int end) {
 	int len = end - start;
 	char *s = new char[len + 1];
-	if (s) {
-		if (p == paneEditor)
-			GetRange(wEditor, start, end, s);
-		else
-			GetRange(wOutput, start, end, s);
-	}
+	if (p == paneEditor)
+		GetRange(wEditor, start, end, s);
+	else
+		GetRange(wOutput, start, end, s);
 	return s;
 }
 
@@ -5957,8 +6023,7 @@ void SciTEBase::Trace(const char *s) {
 char *SciTEBase::Property(const char *key) {
 	SString value = props.GetExpanded(key);
 	char *retval = new char[value.length() + 1];
-	if (retval)
-		strcpy(retval, value.c_str());
+	strcpy(retval, value.c_str());
 	return retval;
 }
 
