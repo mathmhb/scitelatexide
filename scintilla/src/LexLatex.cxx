@@ -13,6 +13,7 @@
 
 #include "Platform.h"
 
+#include "CharClassify.h"
 #include "PropSet.h"
 #include "Accessor.h"
 #include "KeyWords.h"
@@ -568,7 +569,7 @@ static void FoldLaTeXDoc(unsigned int startPos, int length, int initStyle, WordL
 				}
 			}
 		
-			if(ch=='\\' && chNext=='[' ) levelCurrent+=1;
+			if(ch=='\\' && chNext=='[') levelCurrent+=1;
 			if(ch=='\\' && chNext==']') levelCurrent-=1;
 
 			if(ch=='}' && countDefs>0){

@@ -7,24 +7,19 @@
 // The License.txt file describes the conditions under which this software may be distributed.
 
 #ifdef SCI_NAMESPACE
-using namespace Scintilla;
-#endif
-
-#include "SString.h" //!-add-[FindResultListStyle]
-
-#ifdef SCI_NAMESPACE
 namespace Scintilla {
 #endif
 
 /**
  */
+
 class WindowAccessor : public Accessor {
 	// Private so WindowAccessor objects can not be copied
 	WindowAccessor(const WindowAccessor &source) : Accessor(), props(source.props) {}
 	WindowAccessor &operator=(const WindowAccessor &) { return *this; }
 protected:
 	WindowID id;
-	PropSet &props;
+	PropertyGet &props;
 	int lenDoc;
 
 	char styleBuf[bufferSize];
@@ -36,7 +31,7 @@ protected:
 	bool InternalIsLeadByte(char ch);
 	void Fill(int position);
 public:
-	WindowAccessor(WindowID id_, PropSet &props_) : 
+	WindowAccessor(WindowID id_, PropertyGet &props_) : 
 		Accessor(), id(id_), props(props_), 
 		lenDoc(-1), validLen(0), chFlags(0), chWhile(0) {
 	}
@@ -54,8 +49,8 @@ public:
 		return props.GetInt(key, defaultValue); 
 	}
 //!-start-[FindResultListStyle]
-	SString GetProperty(const char *key) { 
-		return props.Get(key); 
+	const char *GetProperty(const char *key) {
+		return props.GetString(key);
 	}
 //!-end-[FindResultListStyle]
 	char *GetProperties() {

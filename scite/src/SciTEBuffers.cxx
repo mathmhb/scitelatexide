@@ -11,6 +11,13 @@
 #include <stdio.h>
 #include <time.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4786)
+#endif
+
+#include <string>
+#include <map>
+
 #include "Platform.h"
 
 #if PLAT_GTK
@@ -21,6 +28,13 @@
 #endif
 
 #if PLAT_WIN
+
+#ifdef __BORLANDC__
+// Borland includes Windows.h for STL and defaults to different API number
+#ifdef _WIN32_WINNT
+#undef _WIN32_WINNT
+#endif
+#endif
 
 #ifndef _WIN32_WINNT //!-add-[SubMenu]
 #define _WIN32_WINNT  0x0400
@@ -51,10 +65,10 @@
 
 #include "SciTE.h"
 #include "PropSet.h"
+#include "SString.h"
 #include "StringList.h"
 #include "Accessor.h"
 #include "WindowAccessor.h"
-#include "KeyWords.h"
 #include "Scintilla.h"
 #include "SciLexer.h"
 #include "Extender.h"
@@ -516,9 +530,8 @@ void SciTEBase::RestoreSession() {
 //!-start-[session.load.forced]	
 	props.Set("scite.state.loadsession", "0");
 	if (props.GetInt("session.load.forced", 0) == 1 && curr != -1) {
-		ReadProperties();
-		SetIndentSettings();
 		RestoreState(buffers.buffers[curr]);
+		SetIndentSettings();
 		SizeSubWindows();
 		SetWindowName();
 		if (lineNumbers && lineNumbersExpand)
@@ -576,6 +589,7 @@ void SciTEBase::SaveSessionFile(const char *sessionName) {
 		}
 	}
 
+	if (props.GetInt("session.load.forced", 0) == 1) UpdateBuffersCurrent(); //!-add-[session.load.forced]
 	if (props.GetInt("buffers") && (!defaultSession || props.GetInt("save.session"))) {
 		int curr = buffers.Current();
 		for (int i = 0; i < buffers.length; i++) {
@@ -583,6 +597,12 @@ void SciTEBase::SaveSessionFile(const char *sessionName) {
 				SString propKey = IndexPropKey("buffer", i, "path");
 				fprintf(sessionFile, "\n%s=%s\n", propKey.c_str(), buffers.buffers[i].AsInternal());
 
+//!-start-[session.load.forced]
+				if (props.GetInt("session.load.forced", 0) == 1) {
+					SendEditor(SCI_SETDOCPOINTER, 0, buffers.buffers[i].doc);
+					DisplayAround(buffers.buffers[i]);
+				} else
+//!-end-[session.load.forced]
 				SetDocumentAt(i);
 				int pos = SendEditor(SCI_GETCURRENTPOS) + 1;
 				propKey = IndexPropKey("buffer", i, "position");
@@ -610,6 +630,7 @@ void SciTEBase::SaveSessionFile(const char *sessionName) {
 				}
 
 				if (props.GetInt("fold") && props.GetInt("session.folds")) {
+					if (props.GetInt("session.load.forced", 0) != 1) { //!-add-[session.load.forced]
 					int maxLine = SendEditor(SCI_GETLINECOUNT);
 					bool found = false;
 					for (int line = 0; line < maxLine; line++) {
@@ -626,6 +647,23 @@ void SciTEBase::SaveSessionFile(const char *sessionName) {
 					}
 					if (found)
 						fprintf(sessionFile, "\n");
+//!-start-[session.load.forced]
+					} else {
+						const Buffer &buffer = buffers.buffers[i];
+						bool found = false;
+						for (int fold = 0; fold < buffer.foldState.Folds(); fold++) {
+								if (!found) {
+									propKey = IndexPropKey("buffer", i, "folds");
+									fprintf(sessionFile, "%s=%d", propKey.c_str(), buffer.foldState.Line(fold) + 1);
+									found = true;
+								} else {
+									fprintf(sessionFile, ",%d", buffer.foldState.Line(fold) + 1);
+								}
+						}
+						if (found)
+							fprintf(sessionFile, "\n");
+					}
+//!-end-[session.load.forced]
 				}
 			}
 		}

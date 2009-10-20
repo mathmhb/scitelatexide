@@ -318,12 +318,15 @@ public:
 	UniMode unicodeMode;
 	time_t fileModTime;
 	time_t fileModLastAsk;
+	bool fileMovedAsked; //!-add-[CheckFileExist]
+	enum { omOpenExistent, omOpenNonExistentWarned, omOpenNonExistent} fileOpenMethod; //!-add-[OpenNonExistent]
 	enum { fmNone, fmMarked, fmModified} findMarks;
 	SString overrideExtension;	///< User has chosen to use a particular language
 	FoldState foldState;
 	Buffer() :
 			RecentFile(), doc(0), isDirty(false), ROMarker(0), useMonoFont(false),  //!-change-[ReadOnlyTabMarker]
-			unicodeMode(uni8Bit), fileModTime(0), fileModLastAsk(0), findMarks(fmNone), foldState() {}
+			unicodeMode(uni8Bit), fileModTime(0), fileModLastAsk(0), findMarks(fmNone), foldState(),
+			fileMovedAsked(false), fileOpenMethod(omOpenExistent) {} //!-add-[CheckFileExist, OpenNonExistent]
 
 	void Init() {
 		RecentFile::Init();
@@ -1084,8 +1087,11 @@ const int blockSize = 131072;
 
 int ControlIDOfCommand(unsigned long);
 void LowerCaseString(char *s);
-long ColourOfProperty(PropSet &props, const char *key, ColourDesired colourDefault);
+long ColourOfProperty(PropSetFile &props, const char *key, ColourDesired colourDefault);
 char *Slash(const char *s, bool quoteQuotes);
 unsigned int UnSlash(char *s);
 void WindowSetFocus(Window &w);
 
+inline bool isspacechar(unsigned char ch) {
+    return (ch == ' ') || ((ch >= 0x09) && (ch <= 0x0d));
+}

@@ -33,9 +33,10 @@ Utf8_16_Read::Utf8_16_Read() {
 	m_nBufSize = 0;
 	m_pNewBuf = NULL;
 	m_bFirstRead = true;
-	m_nAutoCheckUtf8 = false;//[mhb] 07/05/09: by default, not auto check utf8 
+	m_nAutoCheckUtf8 = false;//!-[utf8.auto.check] [mhb] 07/05/09: by default, not auto check utf8 
 }
 
+//!-start-[utf8.auto.check]
 Utf8_16_Read::Utf8_16_Read(bool AutoCheckUtf8) {
 	m_eEncoding = eUnknown;
 	m_nBufSize = 0;
@@ -43,6 +44,7 @@ Utf8_16_Read::Utf8_16_Read(bool AutoCheckUtf8) {
 	m_bFirstRead = true;
 	m_nAutoCheckUtf8 = AutoCheckUtf8;//[mhb] 07/05/09: by default, not auto check utf8 
 }
+//!-end-[utf8.auto.check]
 
 Utf8_16_Read::~Utf8_16_Read() {
 	if ((m_eEncoding != eUnknown) && (m_eEncoding != eUtf8)) {
@@ -96,6 +98,7 @@ size_t Utf8_16_Read::convert(char* buf, size_t len) {
 	return pCur - m_pNewBuf;
 }
 
+//!-start-[utf8.auto.check]
 //[mhb] 07/05/09 : check whether a data block contains UTF8 chars
 int Has_UTF8_Char(unsigned char *buf,int size) {
 	if (!buf||size<2) {return 0;}
@@ -138,7 +141,7 @@ int Has_UTF8_Char(unsigned char *buf,int size) {
 	}
 	return cnt>0 ? 1 : 0;
 }
-
+//!-end-[utf8.auto.check]
 
 int Utf8_16_Read::determineEncoding() {
 	m_eEncoding = eUnknown;
@@ -156,6 +159,7 @@ int Utf8_16_Read::determineEncoding() {
 			m_eEncoding = eUtf8;
 			nRet = 3;
 		}
+//!-start-[utf8.auto.check]
 		//[mhb] 07/05/09 :to support checking utf-8 from raw chars; 07/07/09 : method 1
 		else if (m_nLen>2 && m_nAutoCheckUtf8==1 ) {
 			if (Has_UTF8_Char(m_pBuf,m_nLen)) {
@@ -163,6 +167,7 @@ int Utf8_16_Read::determineEncoding() {
 				nRet=0;
 			}
 		}
+//!-end-[utf8.auto.check]
 	}
 
 	return nRet;

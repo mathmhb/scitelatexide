@@ -463,75 +463,75 @@ struct BarButtonIn {
 };
 
 void SciTEWin::SetToolBar() {
-	ToolBarTips.RemoveAll();
-	toolbarUsersPressableButtons.RemoveAll(); //!-add-[ToolbarButtonPressed]
-	wToolBar.Destroy();
-	HWND hwndToolBar = ::CreateWindowEx( 0,
-										 TOOLBARCLASSNAME,
-										 "",
-										 WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS |
-										 TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NORESIZE,
-										 0, 0,
-										 100, heightTools,
-										 MainHWND(),
-										 reinterpret_cast<HMENU>(IDM_TOOLWIN),
-										 hInstance,
-										 0 );
-	wToolBar = hwndToolBar;
+	HWND hwndToolBar = (HWND)wToolBar.GetID();
+	if ( hwndToolBar == 0 ) return;
 
-	::SendMessage(hwndToolBar, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+	ToolBarTips.RemoveAll();
+	toolbarUsersPressableButtons.RemoveAll();
+
+	// erasing all buttons
+	while ( ::SendMessage(hwndToolBar,TB_DELETEBUTTON,0,0) );
 
 	SString fileNameForExtension = ExtensionFileName();
 
-	//[mhb] 06/19/09 revised: to use only one iconlib from property user.toolbar.iconlib; no obvious reasons to use multiple iconlibs
-	//SString sIconlib = props.GetNewExpand("user.toolbar.iconlib.", fileNameForExtension.c_str());
-	SString sIconlib = props.GetExpanded("user.toolbar.iconlib");
-	
-	//[mhb] 06/19/09 : to reuse existing iconlib so as to make the editor faster
-	static HICON icons[1000];//allow max 1000 icons
-	static int icons_count=0;
-	int reload_icons= (icons_count==0);
-	
-	
+	SString sIconlib = props.GetNewExpand("user.toolbar.iconlib.", fileNameForExtension.c_str());
 	HICON hIcon = NULL;
 	HICON hIconBig = NULL;
-	int iCount = 0;
-	HDC hDesktopDC = ::GetDC( NULL );
-	RECT rect = { 0, 0, 16, 16 };
-	HBRUSH hBrashBack = ::GetSysColorBrush( COLOR_BTNFACE );
-	
-	//while ( (int)::ExtractIconEx( sIconlib.c_str(), iCount++, &hIconBig, &hIcon, 1 ) > 0 ) { //[mhb] 06/19/09 commented
-	while ( 1 ) { //[mhb] 06/19/09  revised: (int) ... >0
-		
-		//[mhb] 06/19/09 added: allow to reuse saved icons which are saved in memory when loaded first time
-		if (reload_icons) {
-			if ((int)::ExtractIconEx( sIconlib.c_str(), iCount, &hIconBig, &hIcon, 1 ) <= 0) break;
-			icons[iCount]=CopyIcon(hIcon);
-			icons_count=++iCount;
-		} else {
-			if (iCount>=icons_count) break;
-			hIcon=CopyIcon(icons[iCount]);
-			iCount++;
-		}
-	
-		if ( hIconBig != NULL )::DestroyIcon( hIconBig );
-		if ( hIcon != NULL ) {
-			HDC hDC = ::CreateCompatibleDC( hDesktopDC );
-			HBITMAP hbm = ::CreateCompatibleBitmap( hDesktopDC, 16, 16 );
-			::SelectObject( hDC, hbm );
-			::FillRect( hDC, &rect, hBrashBack );
-			::DrawIconEx( hDC, 0, 0, hIcon, 16, 16, 0, NULL, DI_NORMAL );
-			::DeleteDC( hDC );
-			::DestroyIcon( hIcon );
-			TBADDBITMAP bitmap = { NULL, (UINT)hbm };
-			::SendMessage( hwndToolBar, TB_ADDBITMAP, 1, (LPARAM)&bitmap );
-		}
+	int iIconsCount = 0;
+	TArray<HICON,HICON> arrIcons;
+	while ( (int)::ExtractIconEx( sIconlib.c_str(), iIconsCount++, &hIconBig, &hIcon, 1 ) > 0 ) { 
+		if ( hIconBig != NULL ) ::DestroyIcon( hIconBig );
+		if ( hIcon != NULL ) arrIcons.Add( hIcon );
 	}
-	::DeleteDC( hDesktopDC );
-	if ( iCount == 1 )
-	{
-		TBADDBITMAP addbmp = { hInstance, IDR_BUTTONS };
-		::SendMessage( hwndToolBar, TB_ADDBITMAP, 31, (LPARAM)&addbmp );
+
+	HBITMAP hToolbarBitmapNew = 0;
+	iIconsCount = arrIcons.GetSize();
+	if (iIconsCount>0) {
+		SIZE szIcon = {16, 16};
+		SIZE szBitmap = {szIcon.cx*iIconsCount, szIcon.cy};
+		RECT rcBitmap = {0, 0, szBitmap.cx, szBitmap.cy};
+		HBRUSH hBrashBack = ::GetSysColorBrush(COLOR_BTNFACE);
+		HDC hDesktopDC = ::GetDC(NULL);
+		HDC hCompatibleDC = ::CreateCompatibleDC(hDesktopDC);
+		hToolbarBitmapNew = ::CreateCompatibleBitmap(hDesktopDC, szBitmap.cx, szBitmap.cy);
+		::SelectObject(hCompatibleDC,hToolbarBitmapNew);
+		::FillRect(hCompatibleDC,&rcBitmap,hBrashBack);
+		for (int iIcon=0;iIcon<iIconsCount;iIcon++) {
+			hIcon = arrIcons.GetAt(iIcon);
+			::DrawIconEx(hCompatibleDC,szIcon.cx*iIcon,0,hIcon,szIcon.cx,szIcon.cy,0,NULL,DI_NORMAL);
+			::DestroyIcon(hIcon);
+		}
+		::DeleteDC(hCompatibleDC);
+		::DeleteDC(hDesktopDC);
+		if ( oldToolbarBitmapID == 0 ) {
+			TBADDBITMAP addbmp = {0,(UINT)hToolbarBitmapNew};
+			if ( ::SendMessage(hwndToolBar,TB_ADDBITMAP,iIconsCount,(LPARAM)&addbmp) != (LRESULT)-1 ) {
+				oldToolbarBitmapID = (UINT)hToolbarBitmapNew;
+			}
+		} else {
+			HINSTANCE hInstanceOld = 0;
+			if ( oldToolbarBitmapID == IDR_BUTTONS ) hInstanceOld = hInstance;
+			TBREPLACEBITMAP repBmp = { hInstanceOld, oldToolbarBitmapID, 0, (UINT)hToolbarBitmapNew, iIconsCount };
+			if ( ::SendMessage(hwndToolBar,TB_REPLACEBITMAP,0,(LPARAM)&repBmp) ) {
+				oldToolbarBitmapID = (UINT)hToolbarBitmapNew;
+			}
+		}
+		if ( hToolbarBitmap != 0 ) ::DeleteObject( hToolbarBitmap );
+		hToolbarBitmap = hToolbarBitmapNew;
+	} else {
+		if ( oldToolbarBitmapID == 0 ) {
+			TBADDBITMAP addbmp = { hInstance, IDR_BUTTONS };
+			if ( ::SendMessage( hwndToolBar, TB_ADDBITMAP, 31, (LPARAM)&addbmp ) != (LRESULT)-1 ) {
+				oldToolbarBitmapID = (UINT)IDR_BUTTONS;
+			}
+		} else if ( oldToolbarBitmapID != IDR_BUTTONS ) {
+			TBREPLACEBITMAP repBmp = { 0, oldToolbarBitmapID, hInstance, IDR_BUTTONS, 31 };
+			if ( ::SendMessage(hwndToolBar,TB_REPLACEBITMAP,0,(LPARAM)&repBmp) ) {
+				oldToolbarBitmapID = (UINT)IDR_BUTTONS;
+			}
+		}
+		if ( hToolbarBitmap != 0 ) ::DeleteObject( hToolbarBitmap );
+		hToolbarBitmap = 0;
 	}
 
 	TArray<BarButtonIn,BarButtonIn> barbuttons;
@@ -606,11 +606,9 @@ void SciTEWin::SetToolBar() {
 		tbb[i].dwData = 0;
 		tbb[i].iString = 0;
 	}
-	::SendMessage( hwndToolBar, TB_ADDBUTTONS, barbuttons.GetSize(), reinterpret_cast<LPARAM>(tbb) );
+	::SendMessage(hwndToolBar, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+	::SendMessage(hwndToolBar, TB_ADDBUTTONS, barbuttons.GetSize(), reinterpret_cast<LPARAM>(tbb));
 	delete []tbb;
-
-	wToolBar.Show();
-	SizeSubWindows();
 }
 //!-end-[user.toolbar]
 
@@ -618,12 +616,10 @@ void SciTEWin::SetMenuItem(int menuNumber, int position, int itemID,
                            const char *text, const char *mnemonic) {
 	// On Windows the menu items are modified if they already exist or are created
 	HMENU hmenu = ::GetSubMenu(::GetMenu(MainHWND()), menuNumber);
-	
-	//[mhb] 06/14/09: to put user properties files in a submenu
+        //[mhb] 06/14/09: to put user properties files in a submenu
 	if ((menuNumber==menuOptions) && (position>=IMPORT_START)) {
 		hmenu = ::GetSubMenu(hmenu, IMPORT_START);
 	}
-	
 	SString sTextMnemonic = text;
 	long keycode = 0;
 	if (mnemonic && *mnemonic) {

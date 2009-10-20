@@ -198,6 +198,8 @@
  *  matches:    foo-foo fo-fo fob-fob foobar-foobar ...
  */
 
+#include <stdlib.h>
+
 #include "CharClassify.h"
 #include "RESearch.h"
 
@@ -294,6 +296,13 @@ void RESearch::ChSet(unsigned char c) {
 	bittab[((c) & BLKIND) >> 3] |= bitarr[(c) & BITIND];
 }
 
+//!-start-[LowerUpperCase]
+//static inline bool IsInRange( unsigned char ch, unsigned char ch_min, unsigned char cm_max )
+//{
+//	return ((ch >= ch_min) && (ch <= cm_max));
+//}
+//!-end-[LowerUpperCase]
+
 void RESearch::ChSetWithCase(unsigned char c, bool caseSensitive) {
 	if (caseSensitive) {
 		ChSet(c);
@@ -304,6 +313,14 @@ void RESearch::ChSetWithCase(unsigned char c, bool caseSensitive) {
 		} else if ((c >= 'A') && (c <= 'Z')) {
 			ChSet(c);
 			ChSet(static_cast<unsigned char>(c - 'A' + 'a'));
+//!-start-[LowerUpperCase]
+//		} else if (IsInRange(c, static_cast<unsigned char>('à'), static_cast<unsigned char>('ÿ'))) {
+//			ChSet(c);
+//			ChSet(static_cast<unsigned char>(c - 'à' + 'À'));
+//		} else if (IsInRange(c, static_cast<unsigned char>('À'), static_cast<unsigned char>('ß'))) {
+//			ChSet(c);
+//			ChSet(static_cast<unsigned char>(c - 'À' + 'à'));
+//!-end-[LowerUpperCase]
 		} else {
 			ChSet(c);
 		}
@@ -416,6 +433,7 @@ int RESearch::GetBackslashExpression(
 				ChSet(static_cast<unsigned char>(c));
 			}
 		}
+		break;
 	case 'w':
 		for (c = 0; c < MAXCHR; c++) {
 			if (iswordc(static_cast<unsigned char>(c))) {

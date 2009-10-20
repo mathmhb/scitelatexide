@@ -41,11 +41,23 @@ static inline bool IsADigit(char ch) {
 }
 
 static inline bool IsLowerCase(char ch) {
+//!-start-[LowerUpperCase]
+//#if PLAT_WIN
+//	return IsCharLowerA(ch)!=0;
+//#else
+//!-end-[LowerUpperCase]
 	return isascii(ch) && islower(ch);
+//#endif //!-add-[LowerUpperCase]
 }
 
 static inline bool IsUpperCase(char ch) {
+//!-start-[LowerUpperCase]
+//#if PLAT_WIN
+//	return IsCharUpperA(ch)!=0;
+//#else
+//!-end-[LowerUpperCase]
 	return isascii(ch) && isupper(ch);
+//#endif //!-add-[LowerUpperCase]
 }
 
 Document::Document() {
@@ -215,6 +227,10 @@ int Document::LineFromPosition(int pos) const {
 
 int Document::LineEndPosition(int position) const {
 	return LineEnd(LineFromPosition(position));
+}
+
+bool Document::IsLineEndPosition(int position) const {
+	return LineEnd(LineFromPosition(position)) == position;
 }
 
 int Document::VCHomePosition(int position) const {
@@ -778,10 +794,9 @@ void Document::SetLineIndentation(int line, int indent) {
 		CreateIndentation(linebuf, sizeof(linebuf), indent, tabInChars, !useTabs);
 		int thisLineStart = LineStart(line);
 		int indentPos = GetLineIndentPosition(line);
-		BeginUndoAction();
+		UndoGroup ug(this);
 		DeleteChars(thisLineStart, indentPos - thisLineStart);
 		InsertCString(thisLineStart, linebuf);
-		EndUndoAction();
 	}
 }
 
@@ -888,7 +903,7 @@ char *Document::TransformLineEnds(int *pLenOut, const char *s, size_t len, int e
 }
 
 void Document::ConvertLineEnds(int eolModeSet) {
-	BeginUndoAction();
+	UndoGroup ug(this);
 
 	for (int pos = 0; pos < Length(); pos++) {
 		if (cb.CharAt(pos) == '\r') {
@@ -923,7 +938,6 @@ void Document::ConvertLineEnds(int eolModeSet) {
 		}
 	}
 
-	EndUndoAction();
 }
 
 bool Document::IsWhiteLine(int line) const {
@@ -1086,21 +1100,19 @@ bool Document::IsWordAt(int start, int end) {
 	return IsWordStartAt(start) && IsWordEndAt(end);
 }
 
-// The comparison and case changing functions here assume ASCII
-// or extended ASCII such as the normal Windows code page.
-
-static inline char MakeUpperCase(char ch) {
-	if (ch < 'a' || ch > 'z')
-		return ch;
-	else
-		return static_cast<char>(ch - 'a' + 'A');
-}
-
 static inline char MakeLowerCase(char ch) {
+//!-start-[LowerUpperCase]
+//#if PLAT_WIN
+//	char str[2] = {ch, 0};
+//	::CharLower(str);
+//	return str[0];
+//#else
+//!-end-[LowerUpperCase]
 	if (ch < 'A' || ch > 'Z')
 		return ch;
 	else
 		return static_cast<char>(ch - 'A' + 'a');
+//#endif //!-add-[LowerUpperCase]
 }
 
 /**
@@ -1412,8 +1424,6 @@ bool Document::AddWatcher(DocWatcher *watcher, void *userData) {
 			return false;
 	}
 	WatcherWithUserData *pwNew = new WatcherWithUserData[lenWatchers + 1];
-	if (!pwNew)
-		return false;
 	for (int j = 0; j < lenWatchers; j++)
 		pwNew[j] = watchers[j];
 	pwNew[lenWatchers].watcher = watcher;
@@ -1434,8 +1444,6 @@ bool Document::RemoveWatcher(DocWatcher *watcher, void *userData) {
 				lenWatchers = 0;
 			} else {
 				WatcherWithUserData *pwNew = new WatcherWithUserData[lenWatchers];
-				if (!pwNew)
-					return false;
 				for (int j = 0; j < lenWatchers - 1; j++) {
 					pwNew[j] = (j < i) ? watchers[j] : watchers[j + 1];
 				}
@@ -1796,8 +1804,6 @@ const char *BuiltinRegex::SubstituteByPosition(Document* doc, const char *text, 
 		}
 	}
 	substituted = new char[lenResult + 1];
-	if (!substituted)
-		return 0;
 	char *o = substituted;
 	for (int j = 0; j < *length; j++) {
 		if (text[j] == '\\') {
