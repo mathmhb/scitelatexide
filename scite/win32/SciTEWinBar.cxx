@@ -267,15 +267,42 @@ void SciTEWin::Notify(SCNotification *notification) {
 				//[mhb] 07/21/09 : allow showing tool shortcut in tooltip
 				int id=notification->nmhdr.idFrom;
 				int show_shortcut=props.GetInt("tooltip.show.shortcut");
-				char buf[100];
-				if (id>=IDM_TOOLS && id<IDM_TOOLSMAX) {
-					sprintf(buf,"command.shortcut.%d.",id-IDM_TOOLS);
-					SString key=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
-					if (show_shortcut>0) {sprintf(buf,"  %s",key.c_str());}
-				} else {
-					if (show_shortcut>1) {sprintf(buf,"  (#%d)",id);}
+				if (show_shortcut > 0) {
+					char buf[100];
+					memset(buf, 0, 100);
+					if (id < IDM_TOOLS) {
+						HMENU hMenu = ::GetMenu(MainHWND());
+						char buff[100];
+						memset(buff, 0, 100);
+						MENUITEMINFO mii;
+						memset(&mii, 0, sizeof(mii));
+						mii.cbSize = 44;
+						mii.fMask = MIIM_TYPE;
+						mii.dwTypeData = buff;
+						mii.cch = sizeof(buff) - 1;
+						if (::GetMenuItemInfo(hMenu, id, FALSE, &mii)) {
+							if (mii.fType == MFT_STRING) {
+								if (mii.dwTypeData) {
+									SString accel(mii.dwTypeData);
+									int tab = accel.search("\t");
+									if (tab != -1) {
+										accel.remove(0, tab + 1);
+										sprintf(buf,"  %s",accel.c_str());
+									}
+								}
+							}
+						}
+					}
+					else if (id>=IDM_TOOLS && id<IDM_TOOLSMAX) {
+						sprintf(buf,"command.shortcut.%d.",id-IDM_TOOLS);
+						SString key=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+						memset(buf, 0, 100);
+						if (key!="") {sprintf(buf,"  %s",key.c_str());}
+					} else {
+						if (show_shortcut>1) {sprintf(buf,"  (#%d)",id);}
+					}
+					strcat(ttt, buf);
 				}
-				if (show_shortcut>0) {strcat(ttt, buf);}
 				
 				pDispInfo->lpszText = ttt;
 			}
