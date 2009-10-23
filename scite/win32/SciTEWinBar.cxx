@@ -173,7 +173,7 @@ void SciTEWin::Notify(SCNotification *notification) {
 				subMenu[0].Add(localiser.Text("Save As").c_str(), IDM_SAVEAS, IsMenuItemEnabled(IDM_SAVEAS));
 				subMenu[0].Add();
 				subMenu[0].Add(localiser.Text("Print").c_str(), IDM_PRINT, IsMenuItemEnabled(IDM_PRINT));
-			}	
+			}
 
 			subMenu[0].Show(ptCursor, wSciTE);
 //!-end-[ExtendedContextMenu]
@@ -202,7 +202,7 @@ void SciTEWin::Notify(SCNotification *notification) {
 	case TTN_GETDISPINFO:
 		// Ask for tooltip text
 		{
-			static char ttt[MAX_PATH*2 + 1];
+			static char ttt[1000];//[mhb] 10/22/09 : static char ttt[MAX_PATH*2 + 1];
 //!			const char *ttext = 0; //!-change-[user.toolbar]
 			NMTTDISPINFO *pDispInfo = (NMTTDISPINFO *)notification;
 			// Toolbar tooltips
@@ -267,44 +267,89 @@ void SciTEWin::Notify(SCNotification *notification) {
 				//[mhb] 07/21/09 : allow showing tool shortcut in tooltip
 				int id=notification->nmhdr.idFrom;
 				int show_shortcut=props.GetInt("tooltip.show.shortcut");
-				if (show_shortcut > 0) {
-					char buf[100];
-					memset(buf, 0, 100);
-					if (id < IDM_TOOLS) {
-						HMENU hMenu = ::GetMenu(MainHWND());
-						char buff[100];
-						memset(buff, 0, 100);
-						MENUITEMINFO mii;
-						memset(&mii, 0, sizeof(mii));
-						mii.cbSize = 44;
-						mii.fMask = MIIM_TYPE;
-						mii.dwTypeData = buff;
-						mii.cch = sizeof(buff) - 1;
-						if (::GetMenuItemInfo(hMenu, id, FALSE, &mii)) {
-							if (mii.fType == MFT_STRING) {
-								if (mii.dwTypeData) {
-									SString accel(mii.dwTypeData);
-									int tab = accel.search("\t");
-									if (tab != -1) {
-										accel.remove(0, tab + 1);
-										sprintf(buf,"  %s",accel.c_str());
-									}
+				char buf[100];
+				if (id>=IDM_TOOLS && id<IDM_TOOLSMAX) {
+					sprintf(buf,"command.shortcut.%d.",id-IDM_TOOLS);
+					SString key=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+					if (show_shortcut>0) {sprintf(buf,"  %s",key.c_str());}
+				} else {
+					buf[0]=0;//[mhb] 10/22/09 added: to fix a bug of showing strange chars in tooltips
+					
+					//[mhb] 10/23/09 added: to show compiler name in tooltips of Compile/Build/Go toolbars
+					int show_compiler=props.GetInt("tooltip.show.compiler");
+					SString s1,s2,s3;
+					if (show_compiler>0) {
+						switch(id) {
+						case IDM_COMPILE:
+							s1="compile.";
+							break;
+						case IDM_BUILD:
+							s1="build.";
+							break;
+						case IDM_GO:
+							s1="go.";
+							break;
+						}
+						if (s1.length()>0) {
+							s2=s1+"*."+props.Get("FileExt");
+							s3=props.Get(s2.c_str());
+							if (s3.length()==0) {
+								s3=props.GetNewExpand(s1.c_str(),ExtensionFileName().c_str());
+								if (s3.length()==0) {
+									s2=s1+props.Get("FileType");
+									s3=props.Get(s2.c_str());
 								}
+							}
+							if (s3.length()>0) {
+								strcat(buf," [");
+								strcat(buf,s3.c_str());
+								strcat(buf,"]");
 							}
 						}
 					}
-					else if (id>=IDM_TOOLS && id<IDM_TOOLSMAX) {
-						sprintf(buf,"command.shortcut.%d.",id-IDM_TOOLS);
-						SString key=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
-						memset(buf, 0, 100);
-						if (key!="") {sprintf(buf,"  %s",key.c_str());}
-					} else {
-						if (show_shortcut>1) {sprintf(buf,"  (#%d)",id);}
+					
+					//[mhb] 10/23/09 added: to show keys defined in prop user.shortcuts
+					for (int cut_i = 0; cut_i < shortCutItems; cut_i++) {
+						int commandNum = SciTEBase::GetMenuCommandAsInt(shortCutItemList[cut_i].menuCommand);
+						if (commandNum == id) {
+							strcat(buf,"  ");
+							strcat(buf,shortCutItemList[cut_i].menuKey.c_str());
+							break;
+						}
 					}
-					strcat(ttt, buf);
+					
+					//[qhs] 10/22/09 contributed, [mhb] 10/23/09 modified
+					if (id < IDM_TOOLS) { 
+						HMENU hMenu = ::GetMenu(MainHWND()); 
+						char buff[100]; 
+						memset(buff, 0, 100); 
+						MENUITEMINFO mii; 
+						memset(&mii, 0, sizeof(mii)); 
+						mii.cbSize = 44; 
+						mii.fMask = MIIM_TYPE; 
+						mii.dwTypeData = buff; 
+						mii.cch = sizeof(buff) - 1; 
+						if (::GetMenuItemInfo(hMenu, id, FALSE, &mii)) { 
+							if (mii.fType == MFT_STRING) { 
+								if (mii.dwTypeData) { 
+									SString accel(mii.dwTypeData); 
+									int tab = accel.search("\t"); 
+									if (tab != -1) { 
+									accel.remove(0, tab + 1);
+									strcat(buf,"  ");
+									strcat(buf,accel.c_str());
+									} 
+								} 
+							}
+                        } 
+					}
+					
+					if (show_shortcut>1) {sprintf(buf,"  (#%d)",id);}
+					
 				}
+				if (show_shortcut>0) {strcat(ttt, buf);}
 				
-				pDispInfo->lpszText = ttt;
+				pDispInfo->lpszText = const_cast<char *>(ttt);//[mhb] 10/22/09 : pDispInfo->lpszText = ttt;
 			}
 			else {
 //!-end-[user.toolbar]

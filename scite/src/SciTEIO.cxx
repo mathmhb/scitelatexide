@@ -936,6 +936,9 @@ void SciTEBase::ReloadProperties() {
 	SetWindowName();
 	BuffersMenu();
 	Redraw();
+	
+	ShowToolBar();//[mhb] 10/22/09 added: to force updating toolbars
+	
 }
 
 // Returns false if cancelled or failed to save
