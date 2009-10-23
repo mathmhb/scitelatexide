@@ -32,9 +32,10 @@ function CheckBlock()
 	str=''
 	for i=line,line+10 do
 		str=editor:GetLine(i);
+		if not str then break;end --[mhb] 10/17/09 
 		if string.find(str,'\\end{(%w-)}') then break;end
 	end
-	if string.find(str,'\\end{'..senv..'}') then return;end
+	if string.find(str or '','\\end{'..senv..'}') then return;end --[mhb] 10/17/09 fixed 
 	
 	-- add \end{foo}
 	if(senv) then
