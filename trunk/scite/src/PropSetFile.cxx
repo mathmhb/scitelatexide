@@ -182,6 +182,10 @@ SString PropSetFile::Expand(const char *withVars, int maxExpands) const {
 }
 
 int PropSetFile::GetInt(const char *key, int defaultValue) const {
+	//[mhb] 10/24/09 added: to support extracting value of a nonnegative number
+	if (isdigit(*key)) 
+		return atoi(key);
+	
 	SString val = GetExpanded(key);
 	if (val.length())
 		return val.value();
@@ -271,6 +275,22 @@ bool PropSetFile::ReadLine(const char *lineBuffer, bool ifIsTrue, FilePath direc
 	if (isPrefix(lineBuffer, "if ")) {
 		const char *expr = lineBuffer + strlen("if") + 1;
 		ifIsTrue = GetInt(expr) != 0;
+		
+		//[mhb] 10/24/09 added: to support syntax like "if XXX=YYY"
+		char *p=strchr(expr,'=');
+		if (p) {
+			int op=0;
+			*p=0;
+			if (*(p-1)=='!') {
+				op=1;
+				*(p-1)=0;
+			}
+			ifIsTrue = GetInt(expr) == GetInt(++p);
+			if (op) {
+				ifIsTrue = !ifIsTrue;
+			}
+		}
+		
 	} else if (isPrefix(lineBuffer, "import ") && directoryForImports.IsSet()) {
 		SString importName(lineBuffer + strlen("import") + 1);
 		//!importName += ".properties";
