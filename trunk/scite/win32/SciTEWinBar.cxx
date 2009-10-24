@@ -5,6 +5,9 @@
 // Copyright 1998-2003 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
+//[mhb] 10/24/09 added: 
+#include "IFaceTable.h"
+
 #include "SciTEWin.h"
 
 /**
@@ -343,11 +346,45 @@ void SciTEWin::Notify(SCNotification *notification) {
 							}
                         } 
 					}
-					
-					if (show_shortcut>1) {sprintf(buf,"  (#%d)",id);}
-					
 				}
 				if (show_shortcut>0) {strcat(ttt, buf);}
+
+				//[mhb] 10/24/09 moved to here so as to show id number in any case
+				if (show_shortcut>1) {
+					//[mhb] 10/24/09 deleted: sprintf(buf,"  (#%d)",id);
+					
+					//[mhb] 10/24/09 refined: allow to show shortcut and id number together
+					char bbb[100];
+					sprintf(bbb,"  (#%d)",id);
+					strcat(ttt,bbb);
+					
+				}
+				
+				//[mhb] 10/24/09 added: to show tool commands in tooltips of toolbuttons
+				int show_command=props.GetInt("tooltip.show.command");
+				if (show_command>0) {
+					SString kkk;
+					strcat(ttt,"\n");
+					if (id>=IDM_TOOLS && id<IDM_TOOLSMAX) {
+						sprintf(buf,"command.%d.",id-IDM_TOOLS);
+						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+					} else if (id==IDM_COMPILE) {
+						strcpy(buf,"command.compile.");
+						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+					} else if (id==IDM_BUILD) {
+						strcpy(buf,"command.build.");
+						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+					} else if (id==IDM_GO) {
+						strcpy(buf,"command.go.");
+						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+					} else {
+						if (IFaceTable::GetConstantName(id, buf, 100) > 0) {
+							kkk=buf;
+						}
+					}
+					strcat(ttt,kkk.c_str());
+				}
+				
 				
 				pDispInfo->lpszText = const_cast<char *>(ttt);//[mhb] 10/22/09 : pDispInfo->lpszText = ttt;
 			}
