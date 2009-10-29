@@ -461,7 +461,7 @@ else
 end
 
 local tabs = gui.tabbar(win_parent)
-tabs:add_tab(s_('File'), tab0)
+tabs:add_tab(s_('Files'), tab0)
 tabs:add_tab(s_('Outline'), tab1)
 tabs:add_tab(s_('Abbrev'), tab2)
 tabs:add_tab(s_('Docs'), tab_3)
