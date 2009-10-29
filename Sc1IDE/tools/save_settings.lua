@@ -49,6 +49,13 @@ local function SaveSettings()
 	SaveKey('print.magnification') -- параметр изменяется в Zoom.lua
 	SaveKey('sidebar.show') -- параметр изменяется в SideBar.lua
 	SaveKey('sidebar.width')
+	
+	--[mhb] 10/24/09 added: to allow users to specify extra properties to save when finalise
+	local tbl=prop2table('save.properties')
+	for _,v in ipairs(tbl) do
+		if type(v)=='string' then SaveKey(v) end
+	end
+	
 	io.output(file)
 	io.write(text)
 	io.close()
