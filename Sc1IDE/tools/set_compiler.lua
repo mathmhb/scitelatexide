@@ -11,13 +11,13 @@ function set_compiler()
         print('Example settings: compilers.cpp=GCC|BCC32|TURBOC')
         return
     end
-    local v=props[c..'.'..props['FileType']]
+    local n=c..'.'..props['FileType']
+    local v=props[n]
     local s='CMD_'..c
     print('Current compiler ['..v..']:',s..'='..props[s])
     local kk=get_choice('Please choose new default compiler:',tbl,140)
-    local cc=tbl[kk]
-    local nn=cc..'.'..props['FileType']
-    local ss='CMD_'..cc
-    props[nn]=cc
-    print('New default compiler ['..cc..']:',ss..'='..props[ss])
+    local vv=tbl[kk]
+    local ss='CMD_'..vv
+    props[n]=vv
+    print('New default compiler ['..vv..']:',ss..'='..props[ss])
 end
