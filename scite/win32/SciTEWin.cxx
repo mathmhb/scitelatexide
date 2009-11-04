@@ -1711,6 +1711,9 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 
 		case SCITE_TRAY:
 			if (lParam == WM_LBUTTONDBLCLK) {
+				//[qhs] 11/04/09 added : to avoid sometimes the main window can not restore from tray
+				::SetForegroundWindow(reinterpret_cast<HWND>(wSciTE.GetID()));
+				
 				RestoreFromTray();
 				::ShowWindow(MainHWND(), SW_RESTORE);
 				::FlashWindow(MainHWND(), FALSE);
@@ -1721,12 +1724,11 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 				POINT pt;
 				HMENU popup = ::CreatePopupMenu();
 				GetCursorPos(&pt);
-            		
+
 				SString restore=props.Get("tray.menu.restore");
 				SString quit=props.Get("tray.menu.quit");
 				if(restore=="") restore="Restore";
 				if(quit=="") quit="Quit";
-				
 
 				::AppendMenu(popup, MF_STRING, SW_RESTORE, restore.c_str());
 				::AppendMenu(popup, MF_STRING, IDM_QUIT, quit.c_str());
