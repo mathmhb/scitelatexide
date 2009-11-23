@@ -8,7 +8,7 @@ function set_compiler()
     local tbl=prop2table(p)
     if #tbl==0 then
         print('Not found compiler list for current file type! Please define the following property:',p)
-        print('Example settings: compilers.cpp=GCC|BCC32|TURBOC')
+        print('Example settings: menu.compile.cpp=GCC|BCC32|TURBOC')
         return
     end
     local n=c..'.'..props['FileType']
@@ -20,4 +20,7 @@ function set_compiler()
     local ss='CMD_'..vv
     props[n]=vv
     print('New default compiler ['..vv..']:',ss..'='..props[ss])
+    if reload_menucmds then
+        reload_menucmds()
+    end
 end
