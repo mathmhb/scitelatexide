@@ -19,14 +19,14 @@ local text = ''
 -- установить в text текущее значение проперти key
 local function SaveKey(key)
 	local value = props[key]
-	if tonumber(value) then
+	-- [mhb] 11/23/09 commented: if tonumber(value) then 
 		local regex = '([^%w.]'..key..'=)%-?%d+'
 		if text:find(regex) == nil then
 			text = text..'\n'..key..'='..value
 			return
 		end
 		text = text:gsub(regex, "%1"..value)
-	end
+	-- [mhb] 11/23/09 commented:  end
 	return
 end
 
