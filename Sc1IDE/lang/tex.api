@@ -81,6 +81,8 @@ DeclareInputMath
 DeclareInputText
 DeclareMathAccent
 DeclareMathAlphabet
+DeclareMathOperator{\cmd}{opname}
+DeclareMathOperator*{\cmd}{opname}
 DeclareMathSizes
 DeclareMathSymbol
 DeclareOption
@@ -221,7 +223,7 @@ address[name]{...}
 addtime
 addto
 addtocontents{toc}{...}
-addtocounter
+addtocounter{cntr}{n} increment by n
 addtolength{\lngth}{dimen}
 addtoreset
 addtoversion
@@ -282,8 +284,8 @@ bezier
 bfseries
 bibindent
 bibitem[label]{name}
-bibliography
-bibliographystyle
+bibliography{bib database file(s)}
+bibliographystyle{bib style file}
 bibliographyunit
 bibname
 bibpunct
@@ -303,7 +305,7 @@ bigtriangleup
 bigtype
 biguplus
 bigwedge
-binom
+binom{n}{d} binomial coefficient
 binoppenalty
 blacklozenge
 blacksquare
@@ -351,7 +353,7 @@ cdot
 cdots
 centering
 centerline
-cfrac
+cfrac{...}{...} continued fraction
 changebarsep
 changebarwidth
 changes
@@ -464,7 +466,7 @@ depth
 description
 descriptionlabel
 det
-dfrac
+dfrac{n}{d} displaystyle fraction
 diagdown
 diagup
 diamond
@@ -556,7 +558,7 @@ enlargethispage{\baselineskip}
 enlargethispage*
 enskip
 enspace
-ensuremath
+ensuremath{...}
 entrylabel
 enumerate
 epsfig
@@ -656,6 +658,7 @@ footrulewidth
 footskip
 forall
 frac
+frac{n}{d}
 fracwithdelims
 frak
 frakfamily
@@ -676,6 +679,7 @@ gathered
 gcd
 gdef
 generateFile
+genfrac{ldelim}{rdelim}{thick}{style}{num}{den}
 geq
 geqq
 geqslant
@@ -787,6 +791,14 @@ includeonly
 includeversion
 indent
 index
+index{entry} main entry
+index{entry!entry} subentry
+index{entry!entry!entry} subsubentry
+index{text@entry} with placement info
+index{entry|see{entry}} cross referenced entry
+index{entry|modiffier} entry with page modiffier
+index{gnats|textbf} give bold page number
+index{entry|(}...\index{entry|)} page range Special Characters: "! "@ "| ""
 indexentry
 indexname
 indexproofstyle
@@ -850,6 +862,7 @@ lastpenalty
 lastskip
 latexerr
 layout
+lbrack
 lbrace
 lccode
 lceil
@@ -1079,11 +1092,17 @@ nearrow
 negmedspace
 negthickspace
 negthinspace
-newcommand
+newcommand{\cmdname}{replacement text} new command
+newcommand*{\cmdname}{} command with one par arg
+newcommand{\cmdname}[n]{text with #1,#2,...,#n} new command with n arguments
+newcommand{\cmdname}[n][default]{...} command with args and default value for #1
 newcount
-newcounter
+newcounter{cntr} create new counter named cntr
+newcounter{cntr}[cntr1] reset cntr when cntr1 changes
 newdimen
-newenvironment
+newenvironment{name}{pretext}{posttext} new environment with material before and after
+newenvironment[n]{name}{...}{...} environment with n arguments
+newenvironment[n][default]{name}{...}{...} environment with default value for #1
 newfloat
 newfont
 newhelp
@@ -1092,7 +1111,7 @@ newindex
 newinsert
 newlabel
 newlanguage
-newlength{\lngth}
+newlength{\length}
 newletter
 newline
 newlinechar
@@ -1126,7 +1145,8 @@ noalign
 noboundary
 nobreak
 nochangebars
-nocite
+nocite{label} include ref in bib without citation
+nocite{*} include all references in bibliography
 nocorr
 nocorrlist
 noexpand
@@ -1207,6 +1227,7 @@ openin
 openout
 openup
 operatorname
+operatorname*
 operatornamewithlimits
 oplus
 options
@@ -1224,7 +1245,7 @@ overfullrule
 overleftarrow{...}
 overline{...}
 overrightarrow{...}
-overset
+overset{top}{bottom} stacked symbol (amsmath)
 overwithdelims
 owns
 pacs
@@ -1311,7 +1332,7 @@ prod
 proofmodetrue
 propto
 protect
-providecommand
+providecommand{\cmdname}{} redefine if doesn't exist
 psboxit
 psfig
 psfigdriver
@@ -1348,7 +1369,7 @@ real
 ref{name}
 reflectbox
 refname
-refstepcounter
+refstepcounter{cntr} increment and reset \label
 reftextafter
 reftextbefore
 reftextcurrent
@@ -1360,8 +1381,8 @@ relax
 relbar
 relpenalty
 removelastskip
-renewcommand
-renewenvironment
+renewcommand{\cmdname}{} redefine existing command
+renewenvironment{name}{...}{...} redefine environment
 renewindex
 repeat
 resizebox
@@ -1433,11 +1454,11 @@ selectlanguage
 seriesdefault
 setboolean
 setbox
-setcounter
+setcounter{cntr}{value} set value of cntr
 setdepth
 sethapace
 setlanguage
-setlength{\lngth}{dimen}
+setlength{\length}{dimen}
 setlinestyle
 setlongtables
 setmargins
@@ -1488,7 +1509,7 @@ showhyphens
 showlists
 showprogress
 showthe
-sideset
+sideset{_{ll}^{ul}}{_{lr}^{ur}}{largeop} large operator with left/right sub/supscripts
 sigma
 signature
 signed
@@ -1541,6 +1562,7 @@ sptilde
 sqcap
 sqcup
 sqrt
+sqrt[n]{}
 sqsubset
 sqsubseteq
 sqsupset
@@ -1548,11 +1570,11 @@ sqsupseteq
 square
 squarepar
 ssfsize
-stackrel
+stackrel{top}{bottom} stacked relation
 star
 startsection
 starttoc
-stepcounter
+stepcounter{cntr} increment cntr
 stop
 stretch
 string
@@ -1570,6 +1592,7 @@ subseteq
 subseteqq
 subsetneq
 subsetneqq
+substack{xxx\\ yyy} stacked sub or superscripts
 subsubitem
 subsubsection
 succ
@@ -1686,7 +1709,7 @@ textunderscore
 textup{...}
 textvisiblespace
 textwidth
-tfrac
+tfrac{n}{d} textstyle fraction
 tfsize
 thanks{...}
 thechapter
@@ -1733,10 +1756,10 @@ tightenlines
 tilde
 times
 tiny
-title [head]{...}
+title[head]{...}
 titlepage
 tocrmarg
-today
+today{} current date
 tolerance
 topcaption
 topfigrule
@@ -1797,7 +1820,7 @@ underleftarrow
 underleftrightarrow
 underline{...}
 underrightarrow
-underset
+underset{bottom}{top} stacked relation (amsmath)
 unhbox
 unhcopy
 unitlength
@@ -1823,12 +1846,12 @@ upuparrows
 urcorner
 usage
 usebox
-usecounter
+usecounter{counter name}
 usefont
 usepackage[options]{packages}
 vadjust
 valign
-value
+value{cntr}{n} value stored in \cntr
 varaupaetneq
 varepsilon
 varinjlim
