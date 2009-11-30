@@ -91,7 +91,8 @@ DeclareTextAccentDefault
 DeclareTextCommand
 DeclareTextFontCommand
 DeclareTextSymbol
-DeclareTextSymbolDefaultDelta
+DeclareTextSymbolDefault
+Delta
 DescribeEnvironment
 DescribeMacro
 Diamond
@@ -484,8 +485,8 @@ displaywidth
 divide
 divideontimes
 document
-documentclass
-documentstyle
+documentclass[options]{class}
+documentstyle[options]{class}
 dominitoc
 doteq
 doteqdot
@@ -526,7 +527,8 @@ emergencystretch
 empty
 emptyset
 encapchar
-enclenclname
+encl
+enclname
 encodingdefault
 end
 endabstract
@@ -772,7 +774,8 @@ ifvmode
 ifvoid
 ignorespaces
 iiiint
-iiintiint
+iiint
+iint
 imath
 immediate
 inaccessible
@@ -1729,7 +1732,7 @@ tightenlines
 tilde
 times
 tiny
-title
+title [running-head]{...}
 titlepage
 tocrmarg
 today
@@ -1821,7 +1824,7 @@ usage
 usebox
 usecounter
 usefont
-usepackage
+usepackage[options]{packages}
 vadjust
 valign
 value
