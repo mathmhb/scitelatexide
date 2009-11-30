@@ -25,7 +25,10 @@ function select_block(line_,s1_,s2_)
 		if n2<=n1+1 then
 			return
 		end
-		props['Message']='select_block:'..(n1+1)..'--'..(n2)
+		
+		----[mhb] 11/28/09 : 'select_block'==>scite.GetTranslation('block:')
+		props['Message']=scite.GetTranslation('block:')..(n1+1)..'-'..(n2) 
+		
 		editor.Anchor = s2
 		editor.CurrentPos = s1
 	end

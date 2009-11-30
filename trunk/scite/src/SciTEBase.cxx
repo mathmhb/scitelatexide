@@ -2636,6 +2636,8 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 	}
 	size_t length = wordsNear.length();
 	if ((length > 2) && (!onlyOneWord || (minWordLength > root.length()))) {
+		
+	/*[qhs] 11/30/09 : commented the following SciTE-Ru codes so as to fix a bug
 		// Protect spaces by temporrily transforming to \001
 		wordsNear.substitute(' ', '\001');
 		StringList wl(true);
@@ -2648,6 +2650,13 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 		acText.substitute('\001', ' ');
 		SendEditor(SCI_AUTOCSETSEPARATOR, '\n');
 		SendEditorString(SCI_AUTOCSHOW, root.length(), acText.c_str());
+	*/
+		//[qhs] 11/30/09 : reverted to codes of official SciTE 2.01
+		StringList wl;
+		wl.Set(wordsNear.c_str());
+		char *words = wl.GetNearestWords("", 0, autoCompleteIgnoreCase);
+		SendEditorString(SCI_AUTOCSHOW, root.length(), words);
+		
 		delete []words;
 	} else {
 		SendEditor(SCI_AUTOCCANCEL);
