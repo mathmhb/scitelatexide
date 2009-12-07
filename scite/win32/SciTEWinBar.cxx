@@ -900,8 +900,7 @@ void SciTEWin::MakeAccelerator(SString sAccelerator, ACCEL &Accel) {
 	}
 }
 
-//SString SciTEWin::LocaliseAccelerator(const char *pAccelerator, int cmd) {
-SString SciTEWin::LocaliseAccelerator(const char *pAccelerator, int) {
+SString SciTEWin::LocaliseAccelerator(const char *pAccelerator, int cmd) {
 #ifdef LOCALISE_ACCELERATORS_WORKED
 	SString translation = localiser.Text(pAccelerator, true);
 	int AccelCount = ::CopyAcceleratorTable(hAccTable, NULL, 0);

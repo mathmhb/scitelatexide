@@ -11,3 +11,5 @@ Please report any feature requests or bugs so as we can improve this powerful ed
 #else
 #define APPNAME "SciTE LaTeX IDE"
 #endif
+
+#define LOCALISE_ACCELERATORS_WORKED 1
