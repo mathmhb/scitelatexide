@@ -103,10 +103,12 @@ BEGIN
 	MENUITEM "&Clear All Bookmarks",			IDM_BOOKMARK_CLEARALL
 END
 
+//[mhb] 12/07/09 : add some shortcuts in menus
 POPUP "&View"
 BEGIN
-	MENUITEM "Toggle &current fold",		IDM_EXPAND
-	MENUITEM "Toggle &all folds",		IDM_TOGGLE_FOLDALL
+	MENUITEM "Toggle &current fold\tCtrl+Shift+1",		IDM_EXPAND
+	MENUITEM "Toggle current fold &recursive\tCtrl+Shift+2",		IDM_TOGGLE_FOLDRECURSIVE
+	MENUITEM "Toggle &all folds\tCtrl+Shift+3",		IDM_TOGGLE_FOLDALL
 	MENUITEM SEPARATOR
 	MENUITEM "Full Scree&n\tF11",		IDM_FULLSCREEN
 	MENUITEM "&Tool Bar",          			IDM_VIEWTOOLBAR
@@ -142,12 +144,12 @@ END
 
 POPUP "&Options"
 BEGIN
-	MENUITEM "&Always On Top",			IDM_ONTOP
+	MENUITEM "&Always On Top\tCtrl+Shift+4",			IDM_ONTOP
 	MENUITEM "Open Files &Here",		IDM_OPENFILESHERE
-	MENUITEM "Vertical &Split",			IDM_SPLITVERTICAL
-	MENUITEM "&Wrap",			IDM_WRAP
-	MENUITEM "Wrap Out&put",			IDM_WRAPOUTPUT
-	MENUITEM "&Read-Only",				IDM_READONLY
+	MENUITEM "Vertical &Split\tCtrl+Shift+5",			IDM_SPLITVERTICAL
+	MENUITEM "&Wrap\tCtrl+Shift+6",			IDM_WRAP
+	MENUITEM "Wrap Out&put\tCtrl+Shift+7",			IDM_WRAPOUTPUT
+	MENUITEM "&Read-Only\tCtrl+Shift+0",				IDM_READONLY
 	MENUITEM SEPARATOR
 	POPUP "&Line End Characters"
 	BEGIN
