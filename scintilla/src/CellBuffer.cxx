@@ -128,7 +128,9 @@ void Action::Grab(Action *source) {
 
 UndoHistory::UndoHistory() {
 
-	lenActions = 100;
+	//[mhb] 12/07/09 : improve lenActions so as to save more actions
+	lenActions = 1000;//lenActions = 100;
+	
 	actions = new Action[lenActions];
 	maxAction = 0;
 	currentAction = 0;
