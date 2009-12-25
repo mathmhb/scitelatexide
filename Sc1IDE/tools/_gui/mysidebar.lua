@@ -1155,7 +1155,9 @@ local function Abbreviations_InsertExpansion()
 	local sel_item = list_abbrev:get_selected_item()
 	if sel_item == -1 then return end
 	local expansion = list_abbrev:get_item_data(sel_item)
-	expansion = expansion:gsub('\\r','\r'):gsub('\\n','\n'):gsub('\\t','\t')
+
+	--[mhb] commented 12/26/09: to fix a bug 
+	-- 	expansion = expansion:gsub('\\r','\r'):gsub('\\n','\n'):gsub('\\t','\t')
 	
 	--[mhb] added 06/01/09: support property expansion, e.g. $[CurrentDate]
 	local get_prop=function(s) return props[s];end
@@ -1170,7 +1172,9 @@ local function Abbreviations_ShowExpansion()
 	local sel_item = list_abbrev:get_selected_item()
 	if sel_item == -1 then return end
 	local expansion = list_abbrev:get_item_data(sel_item)
+	expansion = expansion:gsub('\\\\','\255\255') --[mhb] 12/26/09 added: to fix a bug
 	expansion = expansion:gsub('\\r','\r'):gsub('\\n','\n'):gsub('\\t','\t')
+	expansion = expansion:gsub('\255\255','\\') --[mhb] 12/26/09 added: to fix a bug
 	editor:CallTipCancel()
 	editor:CallTipShow(editor.CurrentPos, expansion)
 end
