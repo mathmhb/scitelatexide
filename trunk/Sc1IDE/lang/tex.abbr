@@ -1,12 +1,16 @@
 doc=\\documentclass{article}\\pagestyle{empty}\n\\usepackage{latexsym,amssymb,amsmath,amsbsy,amsopn,amstext,amsxtra,color,multicol,bm,calc,ifpdf,CJK}\n\\usepackage{graphicx}\n\\begin{document}%\n|\n\\end{document}
+use=\\usepackage{|}
 up=\\usepackage{|}
+nc=\\newcommand{\\foo|}{}
+nt=\\newtheorem{theorem}{Theorem}[section]\n
+ne=\\newenvironment{myproof}{{\\it Proof:}}{}\n
 mkt=\\title{|}\n\\author{}\n\\maketitle\n
 s1=\\section{|}
-s2=subsection{|}
-s3=subsubsection{|}
+s2=\\subsection{|}
+s3=\\subsubsection{|}
 sec=\\section{|}
-section{=subsection{
-subsection{=subsubsection{
+subsec=\\subsection{|}
+subsub=\\subsubsection{|}
 bib=\\bibliography{|}\n\\bibliographystyle{plain} 
 
 enm=\\begin{enumerate}\n\t\\item |\n\\end{enumerate}
