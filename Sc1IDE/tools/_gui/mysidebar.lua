@@ -520,12 +520,12 @@ local function FileMan_ListFILL()
 	list_dir:clear()
 	local folders = gui.files(current_path..'*', true)
 	list_dir:add_item ('[..]', {'..','d'})
-	for i, d in ipairs(folders) do
+	for i, d in ipairs(folders or {}) do
 		list_dir:add_item('['..d..']', {d,'d'})
 	end
 	local files = gui.files(current_path..file_mask)
 	if files then
-		for i, filename in ipairs(files) do
+		for i, filename in ipairs(files or {}) do
 			list_dir:add_item(filename, {filename})
 		end
 	end
