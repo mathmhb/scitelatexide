@@ -24,7 +24,7 @@ function CheckBlock()
 	-- look for last \begin{foo}
 	repeat
 		senv = env;
-		m_start, m_end, env = string.find(str, '\\begin{(%w-)}%s*$', m_end);
+		m_start, m_end, env = string.find(str, '\\begin{([%w*]-)}%s*$', m_end);
 	until m_start == nil;
 	
 	--[mhb] 01/31/09: to check whether there is a matching \end{foo}
@@ -33,7 +33,7 @@ function CheckBlock()
 	for i=line,line+10 do
 		str=editor:GetLine(i);
 		if not str then break;end --[mhb] 10/17/09 
-		if string.find(str,'\\end{(%w-)}') then break;end
+		if string.find(str,'\\end{([%w*]-)}') then break;end
 	end
 	if string.find(str or '','\\end{'..senv..'}') then return;end --[mhb] 10/17/09 fixed 
 	
