@@ -106,6 +106,7 @@ local function AddMenuSug(i,v,w)
 end
 
 local function is_non_word(p,delim) 
+   if editor.CharAt[p]<0 then return true end
    local c=string.char(editor.CharAt[p])
    local res=true
    if string.find(delim,c,1,true) then 
