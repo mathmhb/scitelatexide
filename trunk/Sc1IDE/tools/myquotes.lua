@@ -1,5 +1,6 @@
+--[mhb] 01/16/10 : fix a bug in UTF8 encoding by changing '\255' to '\127'
 --This tool can help you to easily add quotes/tags to selected text 
-local c_sel='\255'
+local c_sel='\127'
 local s_sel='~~~'
 
 function sel_quote(quote)
