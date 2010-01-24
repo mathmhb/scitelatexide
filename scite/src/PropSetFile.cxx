@@ -470,7 +470,7 @@ SString PropSetFile::GetWildUsingStart(const PropSetFile &psStart, const char *k
 
 //[mhb] 06/22/09 added: to extract property "keybase.keyext"
 SString PropSetFile::GetPropExt(const char *fmt, const char *keybase, const char *keyext) {
-	char buf[100];
+	char buf[MAX_PATH+1];
 	SString s;
 	sprintf(buf,fmt,keybase,keyext);
 	s=GetExpanded(buf);
