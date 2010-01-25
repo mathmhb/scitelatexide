@@ -74,7 +74,7 @@ inline bool isEOL(char ch)
    return (ch == '\r' || ch == '\n');
 }
 
-inline int isequal(char* s, char *t)
+inline int isequal(const char* s, const char *t)
 {
    for(; *s==*t; s++, t++)
        if(*s==0) return 1;
@@ -266,6 +266,7 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
 	bool headers=0;
 	int  vrb=0;
 	char verb_symb;
+	int num_brace_in_heading=0;
 	
     WordList& keywords1=*keywordlists[0];    // commands
     WordList& keywords2=*keywordlists[1];    
@@ -313,7 +314,7 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
 						else if(keywords2.InList(word))   sc.ChangeState(SCE_L_COMMAND2);
                         else if(keywords3.InList(word))   sc.ChangeState(SCE_L_COMMAND3);
                         else if(keywords4.InList(word))   sc.ChangeState(SCE_L_COMMAND4);
-                        if(isequal(word, "begin")|| isequal(word, "end")) {
+                        if(isequal(word, "begin") || isequal(word, "end")) {
 							group=1;
 							sc.ChangeState(SCE_L_COMMAND5);
 						}
@@ -342,7 +343,7 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
             //------------------------------------------------------------------
             case SCE_L_STRING:
                 if(sc.atLineEnd) sc.ForwardSetState(SCE_L_STRING); 
-                else if((sc.chPrev=='\'' && sc.ch == '\'')||(sc.ch=='"')) { //[mhb] 06/14/09: suggested by qsh, to fix latex ``...." coloring bug
+                else if((sc.chPrev=='\'' && sc.ch == '\'')||(sc.ch=='"')) { //[mhb] 06/14/09: suggested by qhs, to fix latex ``...." coloring bug
                     sc.ForwardSetState(SCE_L_DEFAULT);
 				}
             break;            
@@ -356,8 +357,12 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
 
 			//------------------------------------------------------------------
             case SCE_L_HEADING:
-				if(sc.ch=='}'){ 
-                    sc.SetState(SCE_L_DEFAULT);
+				if(sc.ch=='{')
+					num_brace_in_heading++;
+				else if(sc.ch=='}'){ 
+					num_brace_in_heading--;
+					if (num_brace_in_heading<=0) 
+						sc.SetState(SCE_L_DEFAULT);
 				}
             break;            
 
@@ -384,7 +389,7 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
 
                         sc.SetState(SCE_L_DEFAULT);
                     }
-                    group=0;                    
+                    group=0;
                 }
                 else if(!isargletter(sc.ch)){
                       sc.ChangeState(SCE_L_DEFAULT);
@@ -451,13 +456,18 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
             // text in braces
             else if(isbracket(sc.ch)){
                 sc.SetState(SCE_L_BRACKET); 
-                if(sc.ch=='{'){
+				if(sc.ch=='{'){
 					if(url){
 						sc.ForwardSetState(SCE_L_URL);
 						url=0;
 					}
 					if(headers){
-						sc.ForwardSetState(SCE_L_HEADING);
+						if (sc.chNext=='}')
+								sc.ForwardSetState(SCE_L_BRACKET);
+						else {
+							sc.ForwardSetState(SCE_L_HEADING);
+							num_brace_in_heading=1;
+						}
 						headers=0;
 					}
 					else if(group && iscmdletter(sc.chNext)){
@@ -465,6 +475,14 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
 					}
 					else group=0;
 				}
+				else if (sc.ch=='}'){
+					if (headers && num_brace_in_heading<1) {
+						headers=0;
+						sc.SetState(SCE_L_BRACKET);
+					}
+					group=0;
+				}
+					
             }
             // symbol
             else if(issymbol(sc.ch))
