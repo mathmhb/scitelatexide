@@ -1,4 +1,4 @@
-// SciTE - Scintilla based Text Editor
+// SciTE - Scintilla based Text Editor 
 /** @file SciTEWinDlg.cxx
  ** Dialog code for the Windows version of the editor.
  **/
