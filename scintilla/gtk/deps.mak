@@ -176,6 +176,9 @@ LexLua.o: ../src/LexLua.cxx ../include/Platform.h ../include/PropSet.h \
 LexMagik.o: ../src/LexMagik.cxx ../include/Platform.h \
   ../include/PropSet.h ../include/Accessor.h ../src/StyleContext.h \
   ../include/KeyWords.h ../include/Scintilla.h ../include/SciLexer.h
+LexMarkdown.o: ../src/LexMarkdown.cxx ../include/Platform.h \
+ ../include/PropSet.h ../include/Accessor.h ../src/StyleContext.h \
+ ../include/KeyWords.h ../include/Scintilla.h ../include/SciLexer.h
 LexMatlab.o: ../src/LexMatlab.cxx ../include/Platform.h \
   ../include/PropSet.h ../include/Accessor.h ../src/StyleContext.h \
   ../include/KeyWords.h ../include/Scintilla.h ../include/SciLexer.h
