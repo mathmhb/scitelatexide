@@ -345,7 +345,7 @@ bool PropSetFile::Read(FilePath filename, FilePath directoryForImports,
                        FilePath imports[], int sizeImports) {
 	FILE *rcfile = filename.Open(fileRead);
 	if (rcfile) {
-		char propsData[60000];
+		char propsData[600000];//[mhb] 02/02/10 : char propsData[60000];
 		int lenFile = static_cast<int>(fread(propsData, 1, sizeof(propsData), rcfile));
 		fclose(rcfile);
 		const char *data = propsData;
@@ -476,24 +476,35 @@ SString PropSetFile::GetPropExt(const char *fmt, const char *keybase, const char
 	s=GetExpanded(buf);
 	return s;
 }
+
+//[mhb] 01/28/10 revised: to fix a crash bug
 //[mhb] 06/22/09 added: to extract current file type via searching property "get.wild.filetypes"
 SString PropSetFile::GetFileType(const char *filename) {
+	
+	//[mhb] 01/28/10 added: to save last filename and filetype so as to be more efficient
+	static char buf[MAX_PATH+1]="",res[100]="UNKNOWN";
+	if (stricmp(buf,filename)==0) {
+	//	return SString(res);
+	}
+	
 	SString ft=GetExpanded("get.wild.filetypes");
 	//search file.patterns.xxx for any xxx in property "get.wild.filetypes"
-	char *p=StringDup(ft.c_str()),*q=NULL,*p0=p;
-	while (*p) {
+	char *p0=StringDup(ft.c_str()),*q=NULL,*p=p0;
+	while (p && *p) {
 		q=strchr(p,';');
-		if (q) {*q=0;}
+		if (q) {*q=0;} 
 		SString fp=GetPropExt("%s.%s","file.patterns",p);
 		if (MatchPatterns(fp.c_str(), filename, caseSensitiveFilenames)) {
-            q=strdup(p);
-			delete []p0;
-			return SString(q);
+			strcpy(buf,filename);
+			strcpy(res,p);
+			break;
 		}
-		if (!q) {break;} else {p=q+1;}
+		if (q) {p=q+1;} else {break;}
+		if (strstr(filename,"configure") && MessageBox(NULL,p,q,MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+
 	}
 	delete []p0;
-	return SString("");
+	return SString(res);
 }
 
 SString PropSetFile::GetWild(const char *keybase, const char *filename) {
@@ -514,9 +525,18 @@ SString PropSetFile::GetWild(const char *keybase, const char *filename) {
 		if (wild_mode.value()>1) {//[mhb] 07/12/09 : use prop FileType only when get.wild.mode>1
 			typ=GetExpanded("FileType");//automatically set when open/switch file
 		}
+		
+		
+		//if (strstr(filename,"configure") && MessageBox(NULL,filename,typ.c_str(),MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+		
+		
         if (typ.length()==0) {
             typ=GetFileType(filename);//if FileType is not set, try to detect by using GetFileType
         }
+		
+		//if (strstr(filename,"configure") && MessageBox(NULL,filename,typ.c_str(),MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+		
+		
 		if (typ.length()>0) {
 			s=GetPropExt("%s$(file.patterns.%s)",keybase,typ.c_str());
 		}
