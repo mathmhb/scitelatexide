@@ -13,6 +13,9 @@ function ReplaceQuote()
 	prevquote, nextquote = nextquote, prevquote;
 end;
 
+local function LinesToScan()
+	return tonumber(props['MY_LATEX_CHECK_LINES'] or '10')
+end
 
 function CheckBlock()
 	local m_end = 0;
@@ -30,12 +33,11 @@ function CheckBlock()
 	--[mhb] 01/31/09: to check whether there is a matching \end{foo}
 	if not senv then return; end
 	str=''
-	for i=line,line+10 do
+	for i=line,line+LinesToScan() do
 		str=editor:GetLine(i);
 		if not str then break;end --[mhb] 10/17/09 
-		if string.find(str,'\\end{([%w*]-)}') then break;end
+		if string.find(str or '','\\end{'..senv..'}',1,true) then return;end --[mhb] 10/17/09 fixed 
 	end
-	if string.find(str or '','\\end{'..senv..'}') then return;end --[mhb] 10/17/09 fixed 
 	
 	-- add \end{foo}
 	if(senv) then
@@ -56,13 +58,22 @@ function CheckBlock2()
   -- look for last \begin{foo}
   repeat
     senv = env;
-    m_start, m_end, env = string.find(str, '\\begin{(%w-)}}', m_end);
+    m_start, m_end, env = string.find(str, '\\begin{([%w*]-)}}', m_end);
   until m_start == nil;
-        
+	
+	--[mhb] 02/21/10 added: 01/31/09: to check whether there is a matching \end{foo}
+	if not senv then return; end
+    editor:DeleteBack();
+	str=''
+	for i=line,line+LinesToScan() do
+		str=editor:GetLine(i);
+		if not str then break;end --[mhb] 10/17/09 
+		if string.find(str or '','\\end{'..senv..'}',1,true) then return;end --[mhb] 10/17/09 fixed 
+	end
+	
   -- add \end{foo}        
   if(senv) then
     local pos = editor.CurrentPos;
-    editor:DeleteBack();
     if (editor.LineCount==line+1) then
       editor:insert(-1, '\n');
     end
@@ -95,7 +106,7 @@ function CheckBlock3()
 	--[mhb] 01/31/09: to check whether there is a matching \stopfoo
 	if not senv then return; end
 	str=''
-	for i=line,line+10 do
+	for i=line,line+LinesToScan() do
 		str=editor:GetLine(i);
 		if string.find(str,'\\stop(%w*)%s*') then break;end
 	end
