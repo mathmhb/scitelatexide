@@ -98,9 +98,13 @@ function ClearErrorMarks()
    ClearMark(0,editor.Length)
 end
 
-local i0=050 -- spell checking suggestions are allocated to command 51~100
+--[mhb] 02/21/2010: spell checking suggestions are allocated to command i0~imax, 260~300 by default 
+local cmd_number_range=prop2table('SPELL_CHECKING_CMD_RANGE')
+local i0=cmd_number_range[1] or 260
+local imax=cmd_number_range[1] or 300
 local function AddMenuSug(i,v,w)
    local j=i0+i
+   if j>imax then return end
    props['command.'..tostring(j)..'.*']='dostring CorrectCurWord("'..v..'","'..w..'")'
    props['command.mode.'..tostring(j)..'.*']='subsystem:lua,savebefore:no'
 end
@@ -226,9 +230,11 @@ function CheckCurWord(no_spelling_menu,show_words)
    props['WORD_INCORRECT']=w
    local menu_sug=''
    for i,v in ipairs(tbl) do
-      --menu_sug=menu_sug..tostring(i)..':'..v..'|'..tostring(9000+i0+i)..'|'
-      menu_sug=menu_sug..v..'|'..tostring(9000+i0+i)..'|'
-      AddMenuSug(i,v,w)
+      if i0+i<imax then --[mhb] 02/21/2010: only show limited suggestions 
+         --menu_sug=menu_sug..tostring(i)..':'..v..'|'..tostring(9000+i0+i)..'|'
+         menu_sug=menu_sug..v..'|'..tostring(9000+i0+i)..'|'
+         AddMenuSug(i,v,w)
+      end
    end
 --    print(menu_sug)
    props['WORD_SUGGESTIONS']=menu_sug
