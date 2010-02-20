@@ -92,8 +92,8 @@ myfold_settings={
 	{ '\\framed', 6},
 	{ '\\Start', -1},
 	{ '\\Stop', -2},
-	{ '\\start', -1},  --for arbitray \startXXX
-	{ '\\stop', -2},  --for arbitray \stopXXX
+	-- { '\\start', -1},  --for arbitray \startXXX
+	-- { '\\stop', -2},  --for arbitray \stopXXX
 	},
 	]]--
 --~   asy={
