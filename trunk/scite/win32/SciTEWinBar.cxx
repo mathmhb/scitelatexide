@@ -711,7 +711,7 @@ void SciTEWin::SetToolBar() {
 		tbb[i].idCommand = barbuttons[i].cmd;
 		tbb[i].iBitmap = barbuttons[i].id;
 		tbb[i].fsState = TBSTATE_ENABLED;
-		tbb[i].fsStyle = -1 == tbb[i].iBitmap ? TBSTYLE_SEP : TBSTYLE_BUTTON;
+		tbb[i].fsStyle = static_cast<BYTE>(-1 == tbb[i].iBitmap ? TBSTYLE_SEP : TBSTYLE_BUTTON);
 		tbb[i].dwData = 0;
 		tbb[i].iString = 0;
 	}
@@ -1076,6 +1076,7 @@ static LRESULT PASCAL TabWndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM
 
 	switch (iMessage) {
 
+	case WM_LBUTTONDBLCLK:	//!-add-[close_on_dbl_clk]
 	case WM_MBUTTONDOWN: {
 			// Check if on tab bar
 			Point pt = Point::FromLong(lParam);

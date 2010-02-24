@@ -15,12 +15,20 @@
 typedef BOOL bool;
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if PLAT_WIN
 /* Return false on failure: */
 bool Scintilla_RegisterClasses(void *hInstance);
 bool Scintilla_ReleaseResources();
 #endif
 int Scintilla_LinkLexers();
+
+#ifdef __cplusplus
+}
+#endif
 
 /* Here should be placed typedefs for uptr_t, an unsigned integer type large enough to
  * hold a pointer and sptr_t, a signed integer large enough to hold a pointer.
@@ -485,6 +493,7 @@ typedef sptr_t (*SciFnDirect)(sptr_t ptr, unsigned int iMessage, uptr_t wParam, 
 #define SC_EFF_QUALITY_LCD_OPTIMIZED 3
 #define SCI_SETFONTQUALITY 2611
 #define SCI_GETFONTQUALITY 2612
+#define SCI_SETFIRSTVISIBLELINE 2613
 #define SCI_TARGETFROMSELECTION 2287
 #define SCI_LINESJOIN 2288
 #define SCI_LINESSPLIT 2289

@@ -154,13 +154,13 @@ static bool SendPipeCommand(const char *pipeCommand) {
 }
 
 static void ReceiverPipeSignal(void *data, gint fd, GdkInputCondition condition){
-	int readLength;
 	char pipeData[8192];
 	PropSetFile pipeProps;
 	DirectorExtension *ext = reinterpret_cast<DirectorExtension *>(data);
 
 	if (condition == GDK_INPUT_READ) {
 		SString pipeString;
+		int readLength;
 		while ((readLength = read(fd, pipeData, sizeof(pipeData) - 1)) > 0) {
 			pipeData[readLength] = '\0';
 			pipeString.append(pipeData);
@@ -481,7 +481,11 @@ void DirectorExtension::CreatePipe(bool) {
 	fdReceiver = 0;
 }
 
+//!-start-[no_wornings]
+/*
 #ifdef _MSC_VER
 // Unreferenced inline functions are OK
 #pragma warning(disable: 4514)
 #endif
+*/
+//!-end-[no_wornings]

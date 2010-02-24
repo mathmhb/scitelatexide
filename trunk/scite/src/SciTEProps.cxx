@@ -17,8 +17,8 @@
 #pragma warning(disable: 4786)
 #endif
 
-#include <string>
-#include <map>
+//#include <string> //!-change-[no_wornings]
+//#include <map> //!-change-[no_wornings]
 
 #include "Platform.h"
 
@@ -43,6 +43,8 @@ const char menuAccessIndicator[] = "_";
 #ifndef _WIN32_WINNT //!-add-[SubMenu]
 #define _WIN32_WINNT  0x0400
 #endif //!-add-[SubMenu]
+//!-start-[no_wornings]
+/*
 #ifdef _MSC_VER
 // windows.h, et al, use a lot of nameless struct/unions - can't fix it, so allow it
 #pragma warning(disable: 4201)
@@ -53,6 +55,8 @@ const char menuAccessIndicator[] = "_";
 #pragma warning(default: 4201)
 #endif
 #include <commctrl.h>
+*/
+//!-end-[no_wornings]
 
 const char menuAccessIndicator[] = "&";
 
@@ -472,7 +476,6 @@ void LowerCaseString(char *s) {
 }
 
 SString SciTEBase::ExtensionFileName() {
-/*!
 	if (CurrentBuffer()->overrideExtension.length()) {
 		return CurrentBuffer()->overrideExtension;
 	} else {
@@ -481,34 +484,17 @@ SString SciTEBase::ExtensionFileName() {
 			// Force extension to lower case
 			char fileNameWithLowerCaseExtension[MAX_PATH];
 				strcpy(fileNameWithLowerCaseExtension, name.AsInternal());
+#if PLAT_WIN
 			char *extension = strrchr(fileNameWithLowerCaseExtension, '.');
 			if (extension) {
 				LowerCaseString(extension);
 			}
+#endif
 			return SString(fileNameWithLowerCaseExtension);
 		} else {
 			return props.Get("default.file.ext");
 		}
 	}
-*/
-//!-start-[no_wornings]
-	if (CurrentBuffer()->overrideExtension.length())
-		return CurrentBuffer()->overrideExtension;
-
-	FilePath name = FileNameExt();
-	if (name.IsSet()) {
-		// Force extension to lower case
-		char fileNameWithLowerCaseExtension[MAX_PATH];
-			strcpy(fileNameWithLowerCaseExtension, name.AsInternal());
-		char *extension = strrchr(fileNameWithLowerCaseExtension, '.');
-		if (extension) {
-			LowerCaseString(extension);
-		}
-		return SString(fileNameWithLowerCaseExtension);
-	}
-
-	return props.Get("default.file.ext");
-//!-end-[no_wornings]
 }
 
 void SciTEBase::ForwardPropertyToEditor(const char *key) {
@@ -646,6 +632,7 @@ static const char *propertiesToForward[] = {
 	"lexer.props.allow.initial.spaces",
 	"lexer.python.literals.binary",
 	"lexer.python.strings.b",
+	"lexer.python.strings.over.newline",
 	"lexer.python.strings.u",
 	"lexer.sql.backticks.identifier",
 	"lexer.xml.allow.scripts",
@@ -773,10 +760,17 @@ void SciTEBase::ReadProperties() {
 	if (modulePath.length())
 	    SendEditorString(SCI_LOADLEXERLIBRARY, 0, modulePath.c_str());
 	language = props.GetNewExpand("lexer.", fileNameForExtension.c_str());
-	if (language.length())
+	if (language.length()) {
+		if (language.startswith("script_")) {
+			SendEditor(SCI_SETLEXER, SCLEX_CONTAINER);
+		} else {
 	    SendEditorString(SCI_SETLEXERLANGUAGE, 0, language.c_str());
-	else
-	    SendEditorString(SCI_SETLEXER, 0, SCLEX_CONTAINER);
+		}
+	} else {
+		SendEditor(SCI_SETLEXER, SCLEX_NULL);
+	}
+
+	props.Set("Language", language.c_str());
 
 	lexLanguage = SendEditor(SCI_GETLEXER);
 

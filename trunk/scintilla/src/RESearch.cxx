@@ -200,13 +200,18 @@
 
 #include <stdlib.h>
 
+#include "Platform.h" //!-add-[LowerUpperCase]
 #include "CharClassify.h"
 #include "RESearch.h"
 
+//!-start-[no_wornings]
+/*
 // Shut up annoying Visual C++ warnings:
 #ifdef _MSC_VER
 #pragma warning(disable: 4514)
 #endif
+*/
+//!-end-[no_wornings]
 
 #ifdef SCI_NAMESPACE
 using namespace Scintilla;
@@ -296,12 +301,6 @@ void RESearch::ChSet(unsigned char c) {
 	bittab[((c) & BLKIND) >> 3] |= bitarr[(c) & BITIND];
 }
 
-//!-start-[LowerUpperCase]
-//static inline bool IsInRange( unsigned char ch, unsigned char ch_min, unsigned char cm_max )
-//{
-//	return ((ch >= ch_min) && (ch <= cm_max));
-//}
-//!-end-[LowerUpperCase]
 
 void RESearch::ChSetWithCase(unsigned char c, bool caseSensitive) {
 	if (caseSensitive) {
@@ -313,14 +312,7 @@ void RESearch::ChSetWithCase(unsigned char c, bool caseSensitive) {
 		} else if ((c >= 'A') && (c <= 'Z')) {
 			ChSet(c);
 			ChSet(static_cast<unsigned char>(c - 'A' + 'a'));
-//!-start-[LowerUpperCase]
-//		} else if (IsInRange(c, static_cast<unsigned char>('à'), static_cast<unsigned char>('ÿ'))) {
-//			ChSet(c);
-//			ChSet(static_cast<unsigned char>(c - 'à' + 'À'));
-//		} else if (IsInRange(c, static_cast<unsigned char>('À'), static_cast<unsigned char>('ß'))) {
-//			ChSet(c);
-//			ChSet(static_cast<unsigned char>(c - 'À' + 'à'));
-//!-end-[LowerUpperCase]
+
 		} else {
 			ChSet(c);
 		}
@@ -518,25 +510,25 @@ const char *RESearch::Compile(const char *pattern, int length, bool caseSensitiv
 
 			if (*p == '-') {	/* real dash */
 				i++;
-				prevChar = *p;
+				prevChar = static_cast<unsigned char>(*p); //!-change-[LowerUpperCase]
 				ChSet(*p++);
 			}
 			if (*p == ']') {	/* real brace */
 				i++;
-				prevChar = *p;
+				prevChar = static_cast<unsigned char>(*p); //!-change-[LowerUpperCase]
 				ChSet(*p++);
 			}
 			while (*p && *p != ']') {
 				if (*p == '-') {
 					if (prevChar < 0) {
 						// Previous def. was a char class like \d, take dash literally
-						prevChar = *p;
+						prevChar = static_cast<unsigned char>(*p); //!-change-[LowerUpperCase]
 						ChSet(*p);
 					} else if (*(p+1)) {
 						if (*(p+1) != ']') {
 							c1 = prevChar + 1;
 							i++;
-							c2 = *++p;
+							c2 = static_cast<unsigned char>(*++p); //!-change-[LowerUpperCase]
 							if (c2 == '\\') {
 								if (!*(p+1))	// End of RE
 									return badpat("Missing ]");
@@ -569,7 +561,7 @@ const char *RESearch::Compile(const char *pattern, int length, bool caseSensitiv
 							}
 						} else {
 							// Dash before the ], take it literally
-							prevChar = *p;
+							prevChar = static_cast<unsigned char>(*p); //!-change-[LowerUpperCase]
 							ChSet(*p);
 						}
 					} else {
@@ -591,7 +583,7 @@ const char *RESearch::Compile(const char *pattern, int length, bool caseSensitiv
 						prevChar = -1;
 					}
 				} else {
-					prevChar = *p;
+					prevChar = static_cast<unsigned char>(*p); //!-change-[LowerUpperCase]
 					ChSetWithCase(*p, caseSensitive);
 				}
 				i++;
