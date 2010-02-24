@@ -18,8 +18,8 @@
 #pragma warning(disable: 4786)
 #endif
 
-#include <string>
-#include <map>
+//#include <string> //!-change-[no_wornings]
+//#include <map> //!-change-[no_wornings]
 
 #include "Platform.h"
 
@@ -42,6 +42,8 @@
 #ifndef _WIN32_WINNT //!-add-[SubMenu]
 #define _WIN32_WINNT  0x0400
 #endif //!-add-[SubMenu]
+//!-start-[no_wornings]
+/*
 #ifdef _MSC_VER
 // windows.h, et al, use a lot of nameless struct/unions - can't fix it, so allow it
 #pragma warning(disable: 4201)
@@ -52,6 +54,8 @@
 #pragma warning(default: 4201)
 #endif
 #include <commctrl.h>
+*/
+//!-end-[no_wornings]
 
 #ifdef _MSC_VER
 #include <direct.h>
@@ -329,6 +333,7 @@ const char *contributors[] = {
             "David Severwright",
             "Jon Strait",
             "Oliver Kiddle",
+            "Etienne Girondel",
 //!-start-[SciTE-Ru]
             "HSolo",
             "Midas",
@@ -450,6 +455,8 @@ SciTEBase::SciTEBase(Extension *ext) : apis(true), extender(ext) {
 	findInStyle = false;
 	closeFind = true; //!-add-[close.find.window]
 	findStyle = 0;
+
+	abbrevInsert[0] = '\0';
 
 	languageMenu = 0;
 	languageItems = 0;
@@ -823,7 +830,7 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		}
 #endif
 		AddStyledText(wsci, GetTranslationToAbout("Version").c_str(), trsSty);
-		AddStyledText(wsci, " 2.02 .72\n", 1);
+		AddStyledText(wsci, " 2.03 .74\n", 1);
 		AddStyledText(wsci, "    " __DATE__ " " __TIME__ "\n", 1);
 		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f)); //!-add-[SciTE-Ru]
 		//: AddStyledText(wsci, "http://scite.net.ru\n", 4); //!-add-[SciTE-Ru]
@@ -832,11 +839,11 @@ void SciTEBase::SetAboutMessage(WindowID wsci, const char *appTitle) {
 		AddStyledText(wsci, "Mathmhb (mathmhb@163.com)\n", 4);
 		Platform::SendScintilla(wsci, SCI_STYLESETITALIC, 2, 1);
 		AddStyledText(wsci, GetTranslationToAbout("Based on version").c_str(), trsSty); //!-add-[SciTE-Ru]
-		AddStyledText(wsci, " 2.02 ", 1); //!-add-[SciTE-Ru]
+		AddStyledText(wsci, " 2.03 ", 1);
 		AddStyledText(wsci, GetTranslationToAbout("by").c_str(), trsSty);
 		AddStyledText(wsci, " Neil Hodgson.\n", 2);
 		SetAboutStyle(wsci, 3, ColourDesired(0, 0, 0));
-		AddStyledText(wsci, "December 1998-January 2010.\n", 3);
+		AddStyledText(wsci, "December 1998-February 2010.\n", 3);
 		SetAboutStyle(wsci, 4, ColourDesired(0, 0x7f, 0x7f));
 		AddStyledText(wsci, "http://www.scintilla.org\n", 4);
 		AddStyledText(wsci, "Lua scripting language by TeCGraf, PUC-Rio\n", 3);
@@ -1232,7 +1239,8 @@ void SciTEBase::SetWindowName() {
 	} else {
 		windowName = FileNameExt().AsInternal();
 	}
-	if (CurrentBuffer()->isDirty)
+//!	if (CurrentBuffer()->isDirty)
+	if (CurrentBuffer()->DocumentNotSaved()) //!-change-[OpenNonExistent]
 		windowName += " * ";
 	else
 		windowName += " - ";
@@ -2460,6 +2468,7 @@ bool SciTEBase::StartAutoComplete() {
 			calltipParametersStart.c_str(), autoCompleteIgnoreCase);
 		if (words) {
 			EliminateDuplicateWords(words);
+			SendEditor(SCI_AUTOCSETSEPARATOR, ' ');
 			SendEditorString(SCI_AUTOCSHOW, root.length(), words);
 			delete []words;
 		}
@@ -2639,7 +2648,7 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 	size_t length = wordsNear.length();
 	if ((length > 2) && (!onlyOneWord || (minWordLength > root.length()))) {
 		
-	/*[qhs] 11/30/09 : commented the following SciTE-Ru codes so as to fix a bug
+	/*[qhs] 11/30/09 : comment out the following SciTE-Ru codes so as to fix a bug
 		// Protect spaces by temporrily transforming to \001
 		wordsNear.substitute(' ', '\001');
 		StringList wl(true);
@@ -3585,7 +3594,7 @@ inline bool IsAlphabetic(unsigned int ch) {
 	return ((ch >= 'A') && (ch <= 'Z')) || ((ch >= 'a') && (ch <= 'z'));
 }
 
-static bool includes(const StyleAndWords &symbols, const SString value) {
+static bool includes(const StyleAndWords &symbols, const SString &value) {
 	if (symbols.words.length() == 0) {
 		return false;
 	} else if (IsAlphabetic(symbols.words[0])) {
@@ -3829,6 +3838,7 @@ void SciTEBase::CharAddedOutput(int ch) {
 			symList.Set(symbols.c_str());
 			char *words = symList.GetNearestWords("", 0, true);
 			if (words) {
+				SendEditor(SCI_AUTOCSETSEPARATOR, ' ');
 				SendOutputString(SCI_AUTOCSHOW, 0, words);
 				delete []words;
 			}
@@ -5229,7 +5239,8 @@ void SciTEBase::CheckMenus() {
 	}
 	EnableAMenuItem(IDM_SAVEALL, bSaveAllEnabled);
 //!-end-[SaveAllEnabled]
-	EnableAMenuItem(IDM_SAVE, CurrentBuffer()->isDirty);
+//!	EnableAMenuItem(IDM_SAVE, CurrentBuffer()->isDirty);
+	EnableAMenuItem(IDM_SAVE, CurrentBuffer()->DocumentNotSaved()); //-change-[OpenNonExistent]
 	EnableAMenuItem(IDM_UNDO, SendFocused(SCI_CANUNDO));
 	EnableAMenuItem(IDM_REDO, SendFocused(SCI_CANREDO));
 	EnableAMenuItem(IDM_DUPLICATE, !isReadOnly);

@@ -251,8 +251,10 @@ end
 
 --To get relative path of current file: $FilePath start with root dir
 function get_relative_path(root_dir,use_win)
-	local p=string.gsub(props['FilePath'],'\\','/')
-	local r=string.gsub(root_dir,'\\','/')
+	local p=props['FilePath']:gsub('\\','/'):lower()
+	local r=root_dir:gsub('\\','/'):lower()
+	-- local p=string.gsub(props['FilePath'],'\\','/')
+	-- local r=string.gsub(root_dir,'\\','/')
 	local res=string.gsub(p,r,'')
 	res=string.gsub(res,'^/','')
 	if use_win then res=string.gsub(res,'/','\\');end
@@ -417,11 +419,14 @@ end
 
 --[mhb] added 05/28/09: borrowed from highlighting_paired_tags.lua by Mozer
 function EditorMarkText(start, length, style_number)
+	local current_mark_number = scite.SendEditor(SCI_GETINDICATORCURRENT)
 	scite.SendEditor(SCI_SETINDICATORCURRENT, style_number)
 	scite.SendEditor(SCI_INDICATORFILLRANGE, start, length)
+	scite.SendEditor(SCI_SETINDICATORCURRENT, current_mark_number)
 end
 function EditorClearMarks(style_number, start, length)
 	local _first_style, _end_style, style
+	local current_mark_number = scite.SendEditor(SCI_GETINDICATORCURRENT)
 	if style_number == nil then
 		_first_style, _end_style = 0, 31
 	else
@@ -434,6 +439,7 @@ function EditorClearMarks(style_number, start, length)
 		scite.SendEditor(SCI_SETINDICATORCURRENT, style)
 		scite.SendEditor(SCI_INDICATORCLEARRANGE, start, length)
 	end
+	scite.SendEditor(SCI_SETINDICATORCURRENT, current_mark_number)
 end
 
 --[mhb] 05/28/09: Monospace functions

@@ -1,84 +1,194 @@
 --[[--------------------------------------------------
-[mhb] modified: EditorMarkText() and EditorClearMarks() have been removed into m_ext.lua for use in other tools
-Highlighting Paired Tags
-Version: 1.7
+Paired Tags (логическое продолжение скриптов highlighting_paired_tags.lua и HTMLFormatPainter.lua)
+Version: 2.2.3
 Author: mozers™, VladVRO
-  hypertext.highlighting.paired.tags=1
-  find.mark.1=#0099FF
-  find.mark.2=#FF0000
+------------------------------
+Подсветка парных и непарных тегов в HTML и XML
+В файле настроек задается цвет подсветки парных и непарных тегов
+
+Скрипт позволяет копировать и удалять (текущие подсвеченные) теги, а также
+вставлять в нужное место ранее скопированные (обрамляя тегами выделенный текст)
+
+Внимание:
+В скрипте используются функции из COMMON.lua (EditorMarkText, EditorClearMarks)
+
+------------------------------
+Подключение:
+Добавить в SciTEStartup.lua строку:
+	dofile (props["SciteDefaultHome"].."\\tools\\paired_tags.lua")
+Добавить в файл настроек параметр:
+	hypertext.highlighting.paired.tags=1
+Дополнительно можно задать стили используемых маркеров (1 и 2):
+	find.mark.1=#0099FF
+	find.mark.2=#FF0000 (если этот параметр не задан, то непарные теги не подсвечиваются)
+
+Команды копирования, вставки, удаления тегов добавляются в меню Tools обычным порядком:
+	tagfiles=$(file.patterns.html);$(file.patterns.xml)
+
+	command.name.5.$(tagfiles)=Copy Tags
+	command.5.$(tagfiles)=CopyTags
+	command.mode.5.$(tagfiles)=subsystem:lua,savebefore:no
+	command.shortcut.5.$(tagfiles)=Alt+C
+
+	command.name.6.$(tagfiles)=Paste Tags
+	command.6.$(tagfiles)=PasteTags
+	command.mode.6.$(tagfiles)=subsystem:lua,savebefore:no
+	command.shortcut.6.$(tagfiles)=Alt+P
+
+	command.name.7.$(tagfiles)=Delete Tags
+	command.7.$(tagfiles)=DeleteTags
+	command.mode.7.$(tagfiles)=subsystem:lua,savebefore:no
+	command.shortcut.7.$(tagfiles)=Alt+D
+
+Для быстрого включения/отключения подсветки можно добавить команду:
+	command.checked.8.$(tagfiles)=$(hypertext.highlighting.paired.tags)
+	command.name.8.$(tagfiles)=Highlighting Paired Tags
+	command.8.$(tagfiles)=highlighting_paired_tags_switch
+	command.mode.8.$(tagfiles)=subsystem:lua,savebefore:no
 --]]----------------------------------------------------
 
-
+local t = {}
+-- t.tag_start, t.tag_end, t.paired_start, t.paired_end  -- positions
+-- t.begin, t.finish  -- contents of tags (when copying)
 local old_current_pos
+
+function CopyTags()
+	if t.tag_start == nil then
+		print("Error : "..scite.GetTranslation("Move the cursor on a tag to copy it!"))
+		return 
+	end
+	local tag = editor:textrange(t.tag_start, t.tag_end+1)
+	if t.paired_start~=nil then
+		local paired = editor:textrange(t.paired_start, t.paired_end+1)
+		if t.tag_start < t.paired_start then
+			t.begin = tag
+			t.finish = paired
+		else
+			t.begin = paired
+			t.finish = tag
+		end
+	else
+		t.begin = tag
+		t.finish = nil
+	end
+end
+
+function PasteTags()
+	if t.begin~=nil then
+		if t.finish~=nil then
+			local sel_text = editor:GetSelText()
+			editor:ReplaceSel(t.begin..sel_text..t.finish)
+			if sel_text == '' then
+				editor:GotoPos(editor.CurrentPos - #t.finish)
+			end
+		else
+			editor:ReplaceSel(t.begin)
+		end
+	end
+end
+
+function DeleteTags()
+	if t.tag_start~=nil then
+		editor:BeginUndoAction()
+		if t.paired_start~=nil then
+			if t.tag_start < t.paired_start then
+				editor:SetSel(t.paired_start, t.paired_end+1)
+				editor:DeleteBack()
+				editor:SetSel(t.tag_start, t.tag_end+1)
+				editor:DeleteBack()
+			else
+				editor:SetSel(t.tag_start, t.tag_end+1)
+				editor:DeleteBack()
+				editor:SetSel(t.paired_start, t.paired_end+1)
+				editor:DeleteBack()
+			end
+		else
+			editor:SetSel(t.tag_start, t.tag_end+1)
+			editor:DeleteBack()
+		end
+		editor:EndUndoAction()
+	else
+		print("Error : "..scite.GetTranslation("Move the cursor on a tag to delete it!"))
+	end
+end
+
+function highlighting_paired_tags_switch()
+	local prop_name = 'hypertext.highlighting.paired.tags'
+	props[prop_name] = 1 - tonumber(props[prop_name])
+	EditorClearMarks(1)
+	EditorClearMarks(2)
+end
 
 local function PairedTagsFinder()
 	local current_pos = editor.CurrentPos
 	if current_pos == old_current_pos then return end
 	old_current_pos = current_pos
-	if editor.CharAt[current_pos] == 47 then
-		current_pos = current_pos + 1
-	end
-	local tag_start = editor:WordStartPosition(current_pos, true)
-	local tag_end = editor:WordEndPosition(current_pos, true)
-	local tag_length = tag_end - tag_start
-	local current_mark_number = scite.SendEditor(SCI_GETINDICATORCURRENT)
+
 	EditorClearMarks(1)
 	EditorClearMarks(2)
-	if tag_length > 0 then
-		if editor.StyleAt[tag_start] == 1 then
-			local tag_paired_start, tag_paired_end, dec, find_end, dt
-			if editor.CharAt[tag_start-1] == 47 then
-				dec = -1
-				find_end = 0
-				dt = 1
-			else
-				dec = 1
-				find_end = editor.Length
-				dt = 0
-			end
-			EditorMarkText(tag_start-dt, tag_length+dt, 1) -- Start tag to paint in Blue
 
-			-- Find paired tag
-			local tag = editor:textrange(tag_start, tag_end)
-			local find_flags = SCFIND_WHOLEWORD and SCFIND_REGEXP
-			local find_start = tag_start
-			local count = 1
-			repeat
-				tag_paired_start, tag_paired_end = editor:findtext("</*"..tag, find_flags, find_start, find_end)
-				if tag_paired_start == nil then break end
-				if editor.CharAt[tag_paired_start+1] == 47 then
-					count = count - dec
-				else
-					count = count + dec
-				end
-				if count == 0 then break end
-				find_start = tag_paired_start + dec
-			until false
+	t.tag_start = nil
+	t.tag_end = nil
+	t.paired_start = nil
+	t.paired_end = nil
 
-			if tag_paired_start ~= nil then
-				-- Paired tag to paint in Blue
-				EditorMarkText(tag_paired_start+1, tag_paired_end-tag_paired_start-1, 1)
-			else
-				EditorClearMarks(1)
-				EditorClearMarks(2)
-				if props["find.mark.2"] ~= '' then
-					EditorMarkText(tag_start-dt, tag_length+dt, 2) -- Start tag to paint in Red
-				end
-			end
+	local tag_start = editor:findtext("[<>]", SCFIND_REGEXP, current_pos, 0)
+	if tag_start == nil then return end
+	if editor.CharAt[tag_start] ~= 60 then return end
+	if editor.StyleAt[tag_start+1] ~= 1 then return end
+	if tag_start == t.tag_start then return end
+	t.tag_start = tag_start
+
+	t.tag_end = editor:findtext("[<>]", SCFIND_REGEXP, current_pos, editor.Length)
+	if t.tag_end == nil then return end
+	if editor.CharAt[t.tag_end] ~= 62 then t.tag_end = nil return end
+
+	local dec, find_end
+	if editor.CharAt[t.tag_start+1] == 47 then
+		dec, find_end = -1, 0
+	else
+		dec, find_end =  1, editor.Length
+	end
+
+	-- Find paired tag
+	local tag = editor:textrange(editor:findtext("\\w+", SCFIND_REGEXP, t.tag_start, t.tag_end))
+	local count = 1
+	local find_start = t.tag_start+dec
+	repeat
+		t.paired_start, t.paired_end = editor:findtext("</*"..tag.."[^>]*", SCFIND_REGEXP, find_start, find_end)
+		if t.paired_start == nil then break end
+		if editor.CharAt[t.paired_start+1] == 47 then
+			count = count - dec
+		else
+			count = count + dec
+		end
+		if count == 0 then break end
+		find_start = t.paired_start + dec
+	until false
+
+	if t.paired_start ~= nil then
+		-- paint in Blue
+		EditorMarkText(t.tag_start + 1, t.tag_end - t.tag_start - 1, 1)
+		EditorMarkText(t.paired_start + 1, t.paired_end - t.paired_start - 1, 1)
+	else
+		if props["find.mark.2"] ~= '' then
+			-- paint in Red
+			EditorMarkText(t.tag_start + 1, t.tag_end - t.tag_start - 1, 2)
 		end
 	end
-	scite.SendEditor(SCI_SETINDICATORCURRENT, current_mark_number)
 end
 
 -- Add user event handler OnUpdateUI
-local function on_updateui ()
+local old_OnUpdateUI = OnUpdateUI
+function OnUpdateUI ()
 	local result
-	if tonumber(props["hypertext.highlighting.paired.tags"]) == 1 then
-		if editor.LexerLanguage == "hypertext" or editor.LexerLanguage == "xml" then
-			PairedTagsFinder()
+	if old_OnUpdateUI then result = old_OnUpdateUI() end
+	if props['FileName'] ~= '' then
+		if tonumber(props["hypertext.highlighting.paired.tags"]) == 1 then
+			if editor:GetLexerLanguage() == "hypertext" or editor:GetLexerLanguage() == "xml" then
+				PairedTagsFinder()
+			end
 		end
 	end
 	return result
 end
-
-scite_OnUpdateUI(on_updateui)

@@ -7,7 +7,7 @@
 
 #include <stdlib.h>
 
-#include <vector>
+//#include <vector> //!-change-[no_wornings]
 
 #include "Platform.h"
 
@@ -189,6 +189,14 @@ SelectionSegment Selection::Limits() const {
 			sr.Extend(ranges[i].caret);
 		}
 		return sr;
+	}
+}
+
+SelectionSegment Selection::LimitsForRectangularElseMain() const {
+	if (IsRectangular()) {
+		return Limits();
+	} else {
+		return SelectionSegment(ranges[mainRange].caret, ranges[mainRange].anchor);
 	}
 }
 

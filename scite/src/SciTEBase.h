@@ -14,12 +14,16 @@ extern const char propAbbrevFileName[];
 extern const char menuAccessIndicator[];
 
 #ifdef WIN32
+//!-start-[no_wornings]
+/*
 #ifdef _MSC_VER
 // Shut up level 4 warning:
 // warning C4710: function 'void whatever(...)' not inlined
 // warning C4800: forcing value to bool 'true' or 'false' (performance warning)
 #pragma warning(disable: 4710 4800)
 #endif
+*/
+//!-end-[no_wornings]
 #ifdef __DMC__
 #include <time.h>
 #endif
@@ -318,15 +322,13 @@ public:
 	UniMode unicodeMode;
 	time_t fileModTime;
 	time_t fileModLastAsk;
-	bool fileMovedAsked; //!-add-[CheckFileExist]
-	enum { omOpenExistent, omOpenNonExistentWarned, omOpenNonExistent} fileOpenMethod; //!-add-[OpenNonExistent]
 	enum { fmNone, fmMarked, fmModified} findMarks;
 	SString overrideExtension;	///< User has chosen to use a particular language
 	FoldState foldState;
 	Buffer() :
+//!			RecentFile(), doc(0), isDirty(false), useMonoFont(false),
 			RecentFile(), doc(0), isDirty(false), ROMarker(0), useMonoFont(false),  //!-change-[ReadOnlyTabMarker]
-			unicodeMode(uni8Bit), fileModTime(0), fileModLastAsk(0), findMarks(fmNone), foldState(),
-			fileMovedAsked(false), fileOpenMethod(omOpenExistent) {} //!-add-[CheckFileExist, OpenNonExistent]
+			unicodeMode(uni8Bit), fileModTime(0), fileModLastAsk(0), findMarks(fmNone), foldState() {}
 
 	void Init() {
 		RecentFile::Init();
@@ -346,6 +348,11 @@ public:
 		fileModTime = ModifiedTime();
 		fileModLastAsk = fileModTime;
 	}
+//!-start-[OpenNonExistent]
+	bool DocumentNotSaved() const {
+		return (isDirty || (!IsUntitled() && (fileModTime == 0)));
+	}
+//!-end-[OpenNonExistent]
 };
 
 class BufferList {
