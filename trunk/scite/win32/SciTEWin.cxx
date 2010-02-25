@@ -1834,6 +1834,7 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 		case WM_ACTIVATE:
 			//Platform::DebugPrintf("Focus: w:%x l:%x %x e=%x o=%x\n", wParam, lParam, ::GetFocus(), wEditor.GetID(), wOutput.GetID());
 			if (wParam != WA_INACTIVE) {
+				::SetForegroundWindow(reinterpret_cast<HWND>(wSciTE.GetID())); // [qhs] 02/25/2010 added: to avoid sometimes the main window can not be activated 
 				::SetFocus(wFocus);
 			}
 			break;
