@@ -98,10 +98,13 @@ function ClearErrorMarks()
    ClearMark(0,editor.Length)
 end
 
---[mhb] 02/21/2010: spell checking suggestions are allocated to command i0~imax, 260~300 by default 
-local cmd_number_range=prop2table('SPELL_CHECKING_CMD_RANGE')
-local i0=cmd_number_range[1] or 260
-local imax=cmd_number_range[1] or 300
+--[mhb] 02/21/2010: spell checking suggestions are allocated to command i0~imax, 60~99 by default 
+local i0=tonumber('0'..props['SPELL_CHECKING_NUM_MIN'])
+local imax=tonumber('0'..props['SPELL_CHECKING_NUM_MAX'])
+if i0==0 then i0=60 end
+if imax==0 then imax=99 end
+
+
 local function AddMenuSug(i,v,w)
    local j=i0+i
    if j>imax then return end

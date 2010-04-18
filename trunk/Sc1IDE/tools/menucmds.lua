@@ -431,7 +431,7 @@ end
 function update_menus()
 	local menu_all=prop2table('MENU_*',true)
 	local i0=tonumber(props['MENU_NUM_*'])
-	if (not i0) or (i0==0) then i0=40 end
+	if (not i0) or (i0==0) then i0=50 end
 	
 	if #menu_all>0 then
 		add_menus('*',menu_all,i0)
