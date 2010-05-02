@@ -30,9 +30,11 @@ eqa=\\begin{equation}\\label{}\n\\begin{array}{ccccc}\n|\n\\end{array}\n\\end{eq
 eqn=\\begin{eqnarray}\n|& = &\n\\end{eqnarray}\n
 arr=\\left[\\begin{array}{ccccc}\n|\n\\end{array}\\right]\n
 aln=\\begin{align}\n|& = \\\\\n\\end{align}\n
-tbl=\\begin{table}\\centering\n\t\n  \\caption{}\\label{}\n\\end{table}
-tab=\\begin{tabular}{|l|l|}\n  | &  \\\\ \\hline\n   &  \\\\ \\hline\n\\end{tabular}
-fig=\\begin{figure}[!htb]\n\t\\centering\n\t\\includegraphics[width=\\textwidth ]{|}\\\\\t % e.g.,[scale=0.75], [width=0.75\\textwidth ]\n\t\\caption{}\n\t\\label{}\n\\end{figure}
+tbl=\\begin{table}\\centering\n\\caption{|}\\label{}\n\\begin{tabular}{||llllll||}\\hline\n   &  \\\\ \\hline\n   &  \\\\ \\hline\n\\end{tabular}\n\\end{table}
+tab=\\begin{tabular}{||l||l||l||l||l||l||}\\hline\n  | &  \\\\ \\hline\n   &  \\\\ \\hline\n\\end{tabular}
+\\begin{tabular}{||l||l||l||l||l||l||}\\hline\n   &  \\\\ \\hline\n   &  \\\\ \\hline\n\\end{tabular}\n
+fig=\\begin{figure}[!htb]\n\t\\centering\n\t\\includegraphics[width=0.5\\textwidth ]{|}\\\\\t % e.g.,[scale=0.75], [width=0.75\\textwidth ]\n\t\\caption{}\n\t\\label{}\n\\end{figure}
+grf=\\includegraphics[width=0.5\\textwidth ]{|}
 sbf=\\begin{figure}[!htb]\n\t\\centering\n\t\\subfigure[|]{\t % Caption of subfigure in []\n\t\\label{}\t % Label of subfigure in {}\n\t\\includegraphics[width=0.45\\textwidth ]{}}\n\t\\subfigure[]{\n\t\\label{}\n\t\\includegraphics[width=0.45\\textwidth ]{}}\n\t\\caption{}\t % Caption of figure\n\t\\label{}\t % Label of figure\n\\end{figure}
 
 pic=\\begin{picture}(100,60)\n\\put(0,0){|}\n\\end{picture}\n
