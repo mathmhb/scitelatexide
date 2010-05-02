@@ -1,8 +1,10 @@
-doc=\\documentclass{article}\\pagestyle{empty}\n\\usepackage{latexsym,amssymb,amsmath,amsbsy,amsopn,amstext,amsxtra,color,multicol,bm,calc,ifpdf,CJK}\n\\usepackage{graphicx}\n\\begin{document}%\n|\n\\end{document}
+doc=\\documentclass{article}\\pagestyle{empty}\n\\usepackage{latexsym,amssymb,amsmath,amsbsy,amsopn,amstext,amsxtra,color,multicol,bm,calc,ifpdf,CJK}\n\\usepackage{graphicx}\\graphicspath{{./}{fig/}}\n\\def\\Font#1#2{{\\font\\Myfont=#1\\Myfont#2}}\n\\begin{document}%\n|\n\\end{document}
+cdoc=\\documentclass{ctexart}\\pagestyle{empty}\n\\usepackage{latexsym,amssymb,amsmath,amsbsy,amsopn,amstext,amsxtra,color,multicol,bm,calc,ifpdf}\n\\usepackage{graphicx}\\graphicspath{{./}{fig/}}\n\\def\\Font#1#2{{\\font\\Myfont=#1\\Myfont#2}}\n\\begin{document}%\n|\n\\end{document}
 xectex=%--coding: utf8\n\\documentclass[cm-default]{ctexart}\n%\\usepackage{xunicode}\n%\\usepackage{xltxtra}\n%\\defaultfontfeatures{Mapping=tex-text}\n%\\setCJKmainfont {KaiTi_GB2312}\n\\setmainfont{Times New Roman}\n\\begin{document}\n|\n\\end{document}\n
 xedoc=%--coding: utf8\n\\documentclass[cm-default]{article}\n\\usepackage{fontspec}\n %\\usepackage{xunicode}\n%\\usepackage{xltxtra}\n%\\defaultfontfeatures{Mapping=tex-text}\n\\setmainfont{Times New Roman}\n\\begin{document}\n|\n\\end{document}\n
 use=\\usepackage{|}
 up=\\usepackage{|}
+df=\\def\\Font#1#2{{\\font\\Myfont=#1\\Myfont#2}}\n
 nc=\\newcommand{\\foo|}{}
 nt=\\newtheorem{theorem}{Theorem}[section]\n
 ne=\\newenvironment{myproof}{{\\it Proof:}}{}\n
