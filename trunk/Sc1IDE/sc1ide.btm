@@ -1,9 +1,11 @@
 @echo off
 setlocal
 set USE_MTEX=1
-set opts=-goto:%1 
-if %#==1 set opts=
-activate "*All-In-One IDE*"
-if %_?==0  set opts=%opts% -save.session=0 -ext.lua.startup.script=
-if %#==1 set opts=%opts% %1
+activate "*All-In-One IDE*" >& nul
+set opts=%@if[%_?==0,-save.session=0 -ext.lua.startup.script=,]
+iff %@numeric[%1]==1 then
+  set opts=-goto:%1 %opts
+else
+  set opts=%opts %1 
+endiff  
 start %@path[%0]sc1.exe %opts% %2&
