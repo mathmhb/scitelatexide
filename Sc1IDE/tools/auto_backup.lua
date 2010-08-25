@@ -10,6 +10,7 @@
 --   backup.path=$(TEMP)\SciTE
 ------------------------------------------------
 require 'shell'
+local _ALERT=print
 
 local function GetPath()
 	local path = props['backup.path']
