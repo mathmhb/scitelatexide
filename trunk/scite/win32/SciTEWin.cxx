@@ -5,9 +5,37 @@
 // Copyright 1998-2003 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-//! #include <time.h> //!-change-[tab.window]
+#include <time.h>
 
+#include "Platform.h" //!-add-[no_wornings]
 #include "SciTEWin.h"
+
+#ifdef DTBG_CLIPRECT
+#define THEME_AVAILABLE
+#endif
+
+// Since Vsstyle.h and Vssym32.h are not available from all compilers just define the used symbols
+#define CBS_NORMAL 1
+#define CBS_HOT 2
+#define CBS_PUSHED 3
+#define WP_SMALLCLOSEBUTTON 19
+#define TS_NORMAL 1
+#define TS_HOT 2
+#define TS_PRESSED 3
+#define TS_CHECKED 5
+#define TS_HOTCHECKED 6
+#define TP_BUTTON 1
+
+#ifndef WM_UPDATEUISTATE
+#define WM_UPDATEUISTATE 0x0128
+#endif
+
+#ifndef UISF_HIDEACCEL
+#define UISF_HIDEACCEL 2
+#define UISF_HIDEFOCUS 1
+#define UIS_CLEAR 2
+#define UIS_SET 1
+#endif
 
 #ifndef NO_EXTENSIONS
 #include "MultiplexExtension.h"
@@ -23,7 +51,27 @@
 
 #endif
 
-const char appName[] = APPNAME;
+//[mathmhb]
+//~ const GUI::gui_char appName[] = APPNAME;
+const GUI::gui_string appName = GUI::StringFromUTF8(const_cast<char*>(APPNAME));
+
+static GUI::gui_string GetErrorMessage(DWORD nRet) {
+	LPWSTR lpMsgBuf = NULL;
+	::FormatMessage(
+	    FORMAT_MESSAGE_ALLOCATE_BUFFER |
+	    FORMAT_MESSAGE_FROM_SYSTEM |
+	    FORMAT_MESSAGE_IGNORE_INSERTS,
+	    NULL,
+	    nRet,
+	    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),   // Default language
+	    reinterpret_cast<LPWSTR>(&lpMsgBuf),
+	    0,
+	    NULL
+	);
+	GUI::gui_string s= lpMsgBuf;
+	::LocalFree(lpMsgBuf);
+	return s;
+}
 
 //!-start-[GetApplicationProps]
 SciTEBase *SciTEBase::GetApplicationInstance() {
@@ -132,20 +180,29 @@ long SciTEKeys::ParseKeyCode(const char *mnemonic) {
 
 bool SciTEKeys::MatchKeyCode(long parsedKeyCode, int keyval, int modifiers) {
 	// TODO: are the 0x11 and 0x10 special cases needed, or are they
-	// just short-circuits?  If not needed, this test could removed,
-	// and perhaps the function moved to Platform.h as an inline.
+	// just short-circuits?  If not needed, this test could removed.
 	if (keyval == 0x11 || keyval == 0x10)
 		return false;
 	return parsedKeyCode && !(0xFFFF0000 & (keyval | modifiers)) && (parsedKeyCode == (keyval | (modifiers<<16)));
 }
 
 HINSTANCE SciTEWin::hInstance = 0;
-char *SciTEWin::className = NULL;
-char *SciTEWin::classNameInternal = NULL;
+const TCHAR *SciTEWin::className = NULL;
+const TCHAR *SciTEWin::classNameInternal = NULL;
 SciTEWin *SciTEWin::app = NULL;
 
 SciTEWin::SciTEWin(Extension *ext) : SciTEBase(ext) {
 	app = this;
+
+	contents.SetSciTE(this);
+	contents.SetLocalizer(&localiser);
+	searchStrip.SetLocalizer(&localiser);
+	searchStrip.SetSearcher(this);
+	findStrip.SetLocalizer(&localiser);
+	findStrip.SetSearcher(this);
+	replaceStrip.SetLocalizer(&localiser);
+	replaceStrip.SetSearcher(this);
+
 	cmdShow = 0;
 	heightBar = 7;
 	fontTabs = 0;
@@ -154,14 +211,12 @@ SciTEWin::SciTEWin(Extension *ext) : SciTEBase(ext) {
 	winPlace.length = 0;
 
 	openWhat[0] = '\0';
-	memset(&fr, 0, sizeof(fr));
 	modalParameters = false;
 	filterDefault = 1;
 	menuSource = 0;
 
 	hWriteSubProcess = NULL;
 	subProcessGroupId = 0;
-	win95DeathDelay = 500;
 	outputScroll = 1;
 
 	// Read properties resource into propsEmbed
@@ -171,16 +226,9 @@ SciTEWin::SciTEWin(Extension *ext) : SciTEBase(ext) {
 	propsEmbed.Clear();
 	// System type properties are also stored in the embedded properties.
 	propsEmbed.Set("PLAT_WIN", "1");
-	OSVERSIONINFO osv = {sizeof(OSVERSIONINFO), 0, 0, 0, 0, ""};
-	::GetVersionEx(&osv);
-	isWindowsNT = osv.dwPlatformId == VER_PLATFORM_WIN32_NT;
-	allowAlpha = isWindowsNT;
-	if (osv.dwPlatformId == VER_PLATFORM_WIN32_NT)
 		propsEmbed.Set("PLAT_WINNT", "1");
-	else if (osv.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS)
-		propsEmbed.Set("PLAT_WIN95", "1");
 
-	HRSRC handProps = ::FindResource(hInstance, "Embedded", "Properties");
+	HRSRC handProps = ::FindResource(hInstance, TEXT("Embedded"), TEXT("Properties"));
 	if (handProps) {
 		DWORD size = ::SizeofResource(hInstance, handProps);
 		HGLOBAL hmem = ::LoadResource(hInstance, handProps);
@@ -209,7 +257,7 @@ SciTEWin::SciTEWin(Extension *ext) : SciTEBase(ext) {
 	hMM = 0;
 	uniqueInstance.Init(this);
 
-	hAccTable = ::LoadAccelerators(hInstance, "ACCELS"); // md
+	hAccTable = ::LoadAccelerators(hInstance, TEXT("ACCELS")); // md
 	hToolbarBitmap = 0; //!-add-[user.toolbar]
 	oldToolbarBitmapID = 0; //!-add-[user.toolbar]
 }
@@ -232,14 +280,14 @@ uptr_t SciTEWin::GetInstance() {
 }
 
 void SciTEWin::Register(HINSTANCE hInstance_) {
-	const char resourceName[] = "SciTE";
+	const TCHAR resourceName[] = TEXT("SciTE");
 
 	hInstance = hInstance_;
 
 	WNDCLASS wndclass;
 
 	// Register the frame window
-	className = "SciTEWindow";
+	className = TEXT("SciTEWindow");
 //!	wndclass.style = 0;
 	wndclass.style = CS_DBLCLKS;	//!-change-[new_on_dbl_clk]
 	wndclass.lpfnWndProc = SciTEWin::TWndProc;
@@ -255,12 +303,75 @@ void SciTEWin::Register(HINSTANCE hInstance_) {
 		exit(FALSE);
 
 	// Register the window that holds the two Scintilla edit windows and the separator
-	classNameInternal = "SciTEWindowContent";
-	wndclass.lpfnWndProc = SciTEWin::IWndProc;
+	classNameInternal = TEXT("SciTEWindowContent");
+	wndclass.lpfnWndProc = BaseWin::StWndProc;
 	wndclass.lpszMenuName = 0;
 	wndclass.lpszClassName = classNameInternal;
 	if (!::RegisterClass(&wndclass))
 		exit(FALSE);
+}
+
+static int CodePageFromName(const SString &encodingName) {
+	struct Encoding {
+		const char *name;
+		int codePage;
+	} knownEncodings[] = {
+		{ "ascii", CP_UTF8 },
+		{ "utf-8", CP_UTF8 },
+		{ "latin1", 1252 },
+		{ "latin2", 28592 },
+		{ "big5", 950 },
+		{ "gbk", 936 },
+		{ "shift_jis", 932 },
+		{ "euc-kr", 949 },
+		{ "cyrillic", 1251 },
+		{ "iso-8859-5", 28595 },
+		{ "iso8859-11", 874 },
+		{ "1250", 1250 },
+		{ "windows-1251", 1251 },
+		{ 0, 0 },
+	};
+	for (Encoding *enc=knownEncodings; enc->name; enc++) {
+		if (encodingName == enc->name) {
+			return enc->codePage;
+		}
+	}
+	return CP_UTF8;
+}
+
+// Convert to UTF-8
+static std::string ConvertEncoding(const char *original, int codePage) {
+	if (codePage == CP_UTF8) {
+		return original;
+	} else {
+		int cchWide = ::MultiByteToWideChar(codePage, 0, original, -1, NULL, 0);
+		wchar_t *pszWide = new wchar_t[cchWide + 1];
+		::MultiByteToWideChar(codePage, 0, original, -1, pszWide, cchWide + 1);
+		GUI::gui_string sWide(pszWide);
+		std::string ret = GUI::UTF8FromString(sWide);
+		delete []pszWide;
+		return ret;
+	}
+}
+
+void SciTEWin::ReadLocalization() {
+	SciTEBase::ReadLocalization();
+	SString encoding = localiser.Get("translation.encoding");
+	encoding.lowercase();
+	if (encoding.length()) {
+		int codePage = CodePageFromName(encoding);
+		const char *key = NULL;
+		const char *val = NULL;
+		// Get encoding
+		bool more = localiser.GetFirst(key, val);
+		while (more) {
+			std::string converted = ConvertEncoding(val, codePage);
+			if (converted != "") {
+				localiser.Set(key, converted.c_str());
+			}
+			more = localiser.GetNext(key, val);
+		}
+	}
 }
 
 void SciTEWin::GetWindowPosition(int *left, int *top, int *width, int *height, int *maximize) {
@@ -274,10 +385,36 @@ void SciTEWin::GetWindowPosition(int *left, int *top, int *width, int *height, i
 	*maximize = (winPlace.showCmd == SW_MAXIMIZE) ? 1 : 0;
 }
 
+// Allow UTF-8 file names and command lines to be used in calls to io.open and io.popen in Lua scripts.
+// The scite_lua_win.h header redirects fopen and _popen to these functions.
+
+extern "C" {
+
+FILE *scite_lua_fopen(const char *filename, const char *mode) {
+	GUI::gui_string sFilename = GUI::StringFromUTF8(filename);
+	GUI::gui_string sMode = GUI::StringFromUTF8(mode);
+	FILE *f = _wfopen(sFilename.c_str(), sMode.c_str());
+	if (f == NULL)
+		// Fallback on narrow string in case already in CP_ACP
+		f = fopen(filename, mode);
+	return f;
+}
+
+FILE *scite_lua_popen(const char *filename, const char *mode) {
+	GUI::gui_string sFilename = GUI::StringFromUTF8(filename);
+	GUI::gui_string sMode = GUI::StringFromUTF8(mode);
+	FILE *f = _wpopen(sFilename.c_str(), sMode.c_str());
+	if (f == NULL)
+		// Fallback on narrow string in case already in CP_ACP
+		f = _popen(filename, mode);
+	return f;
+}
+
+}
+
 void SciTEWin::ReadProperties() {
 	SciTEBase::ReadProperties();
 
-	win95DeathDelay = static_cast<unsigned int>(props.GetInt("win95.death.delay", 500));
 	outputScroll = props.GetInt("output.scroll", 1);
 }
 
@@ -285,10 +422,10 @@ static FilePath GetSciTEPath(FilePath home) {
 	if (home.IsSet()) {
 		return FilePath(home);
 	} else {
-		char path[MAX_PATH];
-		::GetModuleFileName(0, path, sizeof(path));
+		GUI::gui_char path[MAX_PATH];
+		::GetModuleFileNameW(0, path, ELEMENTS(path));
 		// Remove the SciTE.exe
-		char *lastSlash = strrchr(path, pathSepChar);
+		GUI::gui_char *lastSlash = wcsrchr(path, pathSepChar);
 		if (lastSlash)
 			*lastSlash = '\0';
 		return FilePath(path);
@@ -296,27 +433,27 @@ static FilePath GetSciTEPath(FilePath home) {
 }
 
 FilePath SciTEWin::GetDefaultDirectory() {
-	char *home = getenv("SciTE_HOME");
+	GUI::gui_char *home = _wgetenv(GUI_TEXT("SciTE_HOME"));
 	return GetSciTEPath(home);
 }
 
 FilePath SciTEWin::GetSciteDefaultHome() {
-	char *home = getenv("SciTE_HOME");
+	GUI::gui_char *home = _wgetenv(GUI_TEXT("SciTE_HOME"));
 	return GetSciTEPath(home);
 }
 
 FilePath SciTEWin::GetSciteUserHome() {
-	char *home = getenv("SciTE_HOME");
+	GUI::gui_char *home = _wgetenv(GUI_TEXT("SciTE_HOME"));
 //!-start-[scite.userhome]
-	SString value;
+	GUI::gui_string userhome;
 	if (!home) {
-		value = props.GetExpanded("scite.userhome");
-		if (value.length())
-			home = const_cast<char*>(value.c_str());
+		userhome = GUI::StringFromUTF8(props.GetExpanded("scite.userhome").c_str());
+		if (userhome.length())
+			home = const_cast<GUI::gui_char*>(userhome.c_str());
 	}
 //!-end-[scite.userhome]
 	if (!home)
-		home = getenv("USERPROFILE");
+		home = _wgetenv(GUI_TEXT("USERPROFILE"));
 	return GetSciTEPath(home);
 }
 
@@ -328,10 +465,10 @@ void SciTEWin::ExecuteOtherHelp(const char *cmd) {
 		if (path) {
 			*path = '\0';
 			path++;	// After the !
-			::WinHelp(MainHWND(),
+			::WinHelpA(MainHWND(),
 			          path,
 			          HELP_KEY,
-			          reinterpret_cast<unsigned long>(topic));
+			          reinterpret_cast<ULONG_PTR>(topic));
 		}
 	}
 	delete []topic;
@@ -352,7 +489,7 @@ struct XHH_AKLINK {
 // Help command lines contain topic!path
 void SciTEWin::ExecuteHelp(const char *cmd) {
 	if (!hHH)
-		hHH = ::LoadLibrary("HHCTRL.OCX");
+		hHH = ::LoadLibrary(TEXT("HHCTRL.OCX"));
 
 	if (hHH) {
 		char *topic = StringDup(cmd);
@@ -360,7 +497,7 @@ void SciTEWin::ExecuteHelp(const char *cmd) {
 		if (topic && path) {
 			*path = '\0';
 			path++;	// After the !
-			typedef HWND (WINAPI *HelpFn) (HWND, const char *, UINT, DWORD);
+			typedef HWND (WINAPI *HelpFn) (HWND, const char *, UINT, DWORD_PTR);
 			HelpFn fnHHA = (HelpFn)::GetProcAddress(hHH, "HtmlHelpA");
 			if (fnHHA) {
 				XHH_AKLINK ak;
@@ -375,7 +512,7 @@ void SciTEWin::ExecuteHelp(const char *cmd) {
 				fnHHA(NULL,
 				      path,
 				      0x000d,          	// HH_KEYWORD_LOOKUP
-				      reinterpret_cast<DWORD>(&ak)
+				      reinterpret_cast<DWORD_PTR>(&ak)
 				     );
 			}
 		}
@@ -387,8 +524,8 @@ void SciTEWin::CopyAsRTF() {
 	Sci_CharacterRange cr = GetSelection();
 	char *fileNameTemp = _tempnam(NULL, "scite-tmp-");
 	if (fileNameTemp) {
-		SaveToRTF(fileNameTemp, cr.cpMin, cr.cpMax);
-		FILE *fp = fopen(fileNameTemp, fileRead);
+		SaveToRTF(GUI::StringFromUTF8(fileNameTemp), cr.cpMin, cr.cpMax);
+		FILE *fp = fopen(fileNameTemp, "rb");
 		if (fp) {
 			fseek(fp, 0, SEEK_END);
 			int len = ftell(fp);
@@ -411,30 +548,53 @@ void SciTEWin::CopyAsRTF() {
 	}
 }
 
+void SciTEWin::CopyPath() {
+	if (filePath.IsUntitled())
+		return;
+
+	GUI::gui_string clipText(filePath.AsInternal());
+	size_t blobSize = sizeof(GUI::gui_char)*(clipText.length()+1);
+	HGLOBAL hand = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, blobSize);
+	if (hand && ::OpenClipboard(MainHWND())) {
+		::EmptyClipboard();
+		GUI::gui_char *ptr = static_cast<GUI::gui_char*>(::GlobalLock(hand));
+		memcpy(ptr, clipText.c_str(), blobSize);
+		::GlobalUnlock(hand);
+		::SetClipboardData(CF_UNICODETEXT, hand);
+		::CloseClipboard();
+	}
+}
+
 void SciTEWin::FullScreenToggle() {
-	HWND wTaskBar = FindWindow("Shell_TrayWnd", "");
+	HWND wTaskBar = FindWindow(TEXT("Shell_TrayWnd"), TEXT(""));
+	HWND wStartButton = FindWindow(TEXT("Button"), NULL);
 	fullScreen = !fullScreen;
 	if (fullScreen) {
 		::SystemParametersInfo(SPI_GETWORKAREA, 0, &rcWorkArea, 0);
 		::SystemParametersInfo(SPI_SETWORKAREA, 0, 0, SPIF_SENDCHANGE);
+		if (wStartButton != NULL)
+			::ShowWindow(wStartButton, SW_HIDE);
 		::ShowWindow(wTaskBar, SW_HIDE);
 
 		winPlace.length = sizeof(winPlace);
 		::GetWindowPlacement(MainHWND(), &winPlace);
-		int topStuff = ::GetSystemMetrics(SM_CYCAPTION) +
-		               ::GetSystemMetrics(SM_CYEDGE);
+		int topStuff = ::GetSystemMetrics(SM_CYSIZEFRAME) + ::GetSystemMetrics(SM_CYCAPTION);
 		if (props.GetInt("full.screen.hides.menu"))
 			topStuff += ::GetSystemMetrics(SM_CYMENU);
+		::SetWindowLongPtr(HwndOf(wContent),
+			GWL_EXSTYLE, 0);
 		::SetWindowPos(MainHWND(), HWND_TOP,
-		               -::GetSystemMetrics(SM_CXSIZEFRAME) - 1,
-		               -topStuff - 2,
-		               ::GetSystemMetrics(SM_CXSCREEN) +
-		               2 * ::GetSystemMetrics(SM_CXSIZEFRAME) + 2,
-		               ::GetSystemMetrics(SM_CYSCREEN) + topStuff +
-		               ::GetSystemMetrics(SM_CYSIZEFRAME) + 3,
+			-::GetSystemMetrics(SM_CXSIZEFRAME),
+			-topStuff,
+			::GetSystemMetrics(SM_CXSCREEN) + 2 * ::GetSystemMetrics(SM_CXSIZEFRAME),
+			::GetSystemMetrics(SM_CYSCREEN) + topStuff + ::GetSystemMetrics(SM_CYSIZEFRAME),
 		               0);
 	} else {
 		::ShowWindow(wTaskBar, SW_SHOW);
+		if (wStartButton != NULL)
+			::ShowWindow(wStartButton, SW_SHOW);
+		::SetWindowLongPtr(HwndOf(wContent),
+			GWL_EXSTYLE, WS_EX_CLIENTEDGE);
 		if (winPlace.length) {
 			::SystemParametersInfo(SPI_SETWORKAREA, 0, &rcWorkArea, 0);
 			if (winPlace.showCmd == SW_SHOWMAXIMIZED) {
@@ -450,7 +610,7 @@ void SciTEWin::FullScreenToggle() {
 }
 
 HWND SciTEWin::MainHWND() {
-	return reinterpret_cast<HWND>(wSciTE.GetID());
+	return HwndOf(wSciTE);
 }
 
 void SciTEWin::Command(WPARAM wParam, LPARAM lParam) {
@@ -512,6 +672,14 @@ void SciTEWin::Command(WPARAM wParam, LPARAM lParam) {
 		CloseTab((int)lParam);
 		break;
 
+//!-start-[close_on_dbl_clk]
+	case IDC_TABDBLCLK:
+		if (props.GetInt("tabbar.tab.close.on.doubleclick") == 1) {
+			CloseTab((int)lParam);
+		}
+		break;
+//!-end-[close_on_dbl_clk]
+
 	case IDC_SHIFTTAB:
 		ShiftTab(LOWORD(lParam), HIWORD(lParam));
 		break;
@@ -521,19 +689,47 @@ void SciTEWin::Command(WPARAM wParam, LPARAM lParam) {
 	}
 }
 
+// from ScintillaWin.cxx
+static UINT CodePageFromCharSet(DWORD characterSet, UINT documentCodePage) {
+	CHARSETINFO ci = { 0, 0, { { 0, 0, 0, 0 }, { 0, 0 } } };
+	BOOL bci = ::TranslateCharsetInfo((DWORD*)characterSet,
+	                                  &ci, TCI_SRCCHARSET);
+
+	UINT cp;
+	if (bci)
+		cp = ci.ciACP;
+	else
+		cp = documentCodePage;
+
+	CPINFO cpi;
+	if (!::IsValidCodePage(cp) && !::GetCPInfo(cp, &cpi))
+		cp = CP_ACP;
+
+	return cp;
+}
+
+void SciTEWin::OutputAppendEncodedStringSynchronised(GUI::gui_string s, int codePage) {
+	int cchMulti = ::WideCharToMultiByte(codePage, 0, s.c_str(), s.size(), NULL, 0, NULL, NULL);
+	char *pszMulti = new char[cchMulti + 1];
+	::WideCharToMultiByte(codePage, 0, s.c_str(), s.size(), pszMulti, cchMulti + 1, NULL, NULL);
+	pszMulti[cchMulti] = 0;
+	OutputAppendStringSynchronised(pszMulti);
+	delete []pszMulti;
+}
+
 /**
  * Run a command with redirected input and output streams
  * so the output can be put in a window.
  * It is based upon several usenet posts and a knowledge base article.
  * This is running in a separate thread to the user interface so should always
- * use Platform::SendScintilla rather than a one of the direct function calls.
+ * use ScintillaWindow::Send rather than a one of the direct function calls.
  */
 DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 	DWORD exitcode = 0;
-	ElapsedTime commandTime;
+	GUI::ElapsedTime commandTime;
 
 	if (jobToRun.jobType == jobShell) {
-		ShellExec(jobToRun.command, jobToRun.directory.AsFileSystem());
+		ShellExec(jobToRun.command, jobToRun.directory.AsUTF8().c_str());
 		return exitcode;
 	}
 
@@ -543,12 +739,12 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 			// It could also lead to other problems.
 
 			if (jobToRun.flags & jobGroupUndo)
-				Platform::SendScintilla(wEditor.GetID(), SCI_BEGINUNDOACTION);
+				wEditor.Send(SCI_BEGINUNDOACTION);
 
 			extender->OnExecute(jobToRun.command.c_str());
 
 			if (jobToRun.flags & jobGroupUndo)
-				Platform::SendScintilla(wEditor.GetID(), SCI_ENDUNDOACTION);
+				wEditor.Send(SCI_ENDUNDOACTION);
 
 			Redraw();
 			// A Redraw "might" be needed, since Lua and Director
@@ -587,32 +783,30 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 			gf = static_cast<GrepFlags>(gf | grepBinary);
 		const char *findFiles = grepCmd + 2;
 		const char *findWhat = findFiles + strlen(findFiles) + 1;
-		InternalGrep(gf, jobToRun.directory.AsFileSystem(), findFiles, findWhat);
+		InternalGrep(gf, jobToRun.directory.AsInternal(), GUI::StringFromUTF8(findFiles).c_str(), findWhat);
 		return exitcode;
 	}
 
-	OSVERSIONINFO osv = {sizeof(OSVERSIONINFO), 0, 0, 0, 0, ""};
-	::GetVersionEx(&osv);
-	bool windows95 = osv.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS;
+	UINT codePage = wOutput.Send(SCI_GETCODEPAGE);
+	if (codePage != SC_CP_UTF8) {
+		codePage = CodePageFromCharSet(characterSet, codePage);
+	}
 
 	SECURITY_ATTRIBUTES sa = {sizeof(SECURITY_ATTRIBUTES), 0, 0};
 	char buffer[16384];
-	//Platform::DebugPrintf("Execute <%s>\n", command);
 	OutputAppendStringSynchronised(">");
-	OutputAppendStringSynchronised(jobToRun.command.c_str());
+	OutputAppendEncodedStringSynchronised(GUI::StringFromUTF8(jobToRun.command.c_str()), codePage);
 	OutputAppendStringSynchronised("\n");
 
 	sa.bInheritHandle = TRUE;
 	sa.lpSecurityDescriptor = NULL;
 
 	SECURITY_DESCRIPTOR sd;
-	// If NT make a real security thing to allow inheriting handles
-	if (!windows95) {
+	// Make a real security thing to allow inheriting handles
 		::InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
 		::SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
 		sa.nLength = sizeof(SECURITY_ATTRIBUTES);
 		sa.lpSecurityDescriptor = &sd;
-	}
 
 	HANDLE hPipeWrite = NULL;
 	HANDLE hPipeRead = NULL;
@@ -620,7 +814,6 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 	// read handle, write handle, security attributes,  number of bytes reserved for pipe - 0 default
 	::CreatePipe(&hPipeRead, &hPipeWrite, &sa, 0);
 
-	//Platform::DebugPrintf("2Execute <%s>\n");
 	// Create pipe for input redirection. In this code, you do not
 	// redirect the output of the child process, but you need a handle
 	// to set the hStdInput field in the STARTUP_INFO struct. For safety,
@@ -635,10 +828,9 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 	::SetHandleInformation(hPipeRead, HANDLE_FLAG_INHERIT, 0);
 	::SetHandleInformation(hWriteSubProcess, HANDLE_FLAG_INHERIT, 0);
 
-	//Platform::DebugPrintf("3Execute <%s>\n");
 	// Make child process use hPipeWrite as standard out, and make
 	// sure it does not show on screen.
-	STARTUPINFO si = {
+	STARTUPINFOW si = {
 			     sizeof(STARTUPINFO), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 			 };
 	si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
@@ -654,15 +846,32 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 
 	PROCESS_INFORMATION pi = {0, 0, 0, 0};
 
-	bool running = ::CreateProcess(
+	bool running = ::CreateProcessW(
 			  NULL,
-			  const_cast<char *>(jobToRun.command.c_str()),
+			  const_cast<wchar_t *>(GUI::StringFromUTF8(jobToRun.command.c_str()).c_str()),
 			  NULL, NULL,
 			  TRUE, CREATE_NEW_PROCESS_GROUP,
 			  NULL,
 			  startDirectory.IsSet() ?
-			  static_cast<const char *>(startDirectory.AsFileSystem()) : NULL,
+			  startDirectory.AsInternal() : NULL,
 			  &si, &pi);
+
+	// if jobCLI "System cant find" - try calling with command processor
+	if ((!running) && (jobToRun.jobType == jobCLI) && (::GetLastError() == ERROR_FILE_NOT_FOUND)) {
+
+		SString runComLine = "cmd.exe /c ";
+		runComLine = runComLine.append(jobToRun.command.c_str());
+
+		running = ::CreateProcessW(
+			  NULL,
+			  const_cast<wchar_t*>(GUI::StringFromUTF8(runComLine.c_str()).c_str()),
+			  NULL, NULL,
+			  TRUE, CREATE_NEW_PROCESS_GROUP,
+			  NULL,
+			  startDirectory.IsSet() ?
+			  startDirectory.AsInternal() : NULL,
+			  &si, &pi);
+	}
 
 	if (running) {
 		subProcessGroupId = pi.dwProcessId;
@@ -670,8 +879,6 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 		bool cancelled = false;
 
 		SString repSelBuf;
-
-		DWORD timeDetectedDeath = 0;
 
 		size_t totalBytesToWrite = 0;
 		if (jobToRun.flags & jobHasInput) {
@@ -743,12 +950,6 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 					writingPosition += bytesWrote;
 
 					if (writingPosition >= totalBytesToWrite) {
-						if (windows95) {
-							// Write a Ctrl+Z to output to mark the end of the text
-							char stop[] = "\032";
-							::WriteFile(hWriteSubProcess,
-								stop, static_cast<DWORD>(strlen(stop)), &bytesWrote, NULL);
-						}
 						::CloseHandle(hWriteSubProcess);
 						hWriteSubProcess = INVALID_HANDLE_VALUE;
 					}
@@ -779,7 +980,7 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 						// Convert OEM output to ANSI
 						if (props.GetInt("output.code.page.oem2ansi")) {
 							if (props.GetInt("character.set") == 204) {
-								OemToCharBuff(buffer, buffer, bytesRead);
+								::OemToCharBuffA(buffer, buffer, bytesRead);
 							}
 						}
 //!-end-[oem2ansi]
@@ -794,18 +995,8 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 			} else {
 				if (::GetExitCodeProcess(pi.hProcess, &exitcode)) {
 					if (STILL_ACTIVE != exitcode) {
-						if (windows95) {
-							// Process is dead, but wait a second in case there is some output in transit
-							if (timeDetectedDeath == 0) {
-								timeDetectedDeath = ::GetTickCount();
-							} else {
-								if ((::GetTickCount() - timeDetectedDeath) > win95DeathDelay) {
-									running = false;    // It's a dead process
-								}
-							}
-						} else {	// NT, so dead already
-							running = false;
-						}
+						// Already dead
+						running = false;
 					}
 				}
 			}
@@ -849,9 +1040,9 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 				doRepSel = (0 == exitcode);
 
 			if (doRepSel) {
-				int cpMin = Platform::SendScintilla(wEditor.GetID(), SCI_GETSELECTIONSTART, 0, 0);
-				Platform::SendScintilla(wEditor.GetID(),SCI_REPLACESEL,0,(sptr_t)(repSelBuf.c_str()));
-				Platform::SendScintilla(wEditor.GetID(), SCI_SETSEL, cpMin, cpMin+repSelBuf.length());
+				int cpMin = wEditor.Send(SCI_GETSELECTIONSTART, 0, 0);
+				wEditor.Send(SCI_REPLACESEL,0,(sptr_t)(repSelBuf.c_str()));
+				wEditor.Send(SCI_SETSEL, cpMin, cpMin+repSelBuf.length());
 			}
 		}
 
@@ -859,21 +1050,8 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 
 	} else {
 		DWORD nRet = ::GetLastError();
-		LPTSTR lpMsgBuf = NULL;
-		::FormatMessage(
-		    FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		    FORMAT_MESSAGE_FROM_SYSTEM |
-		    FORMAT_MESSAGE_IGNORE_INSERTS,
-		    NULL,
-		    nRet,
-		    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),   // Default language
-		    reinterpret_cast<LPTSTR>(&lpMsgBuf),
-		    0,
-		    NULL
-		);
 		OutputAppendStringSynchronised(">");
-		OutputAppendStringSynchronised(lpMsgBuf);
-		::LocalFree(lpMsgBuf);
+		OutputAppendEncodedStringSynchronised(GetErrorMessage(nRet), codePage);
 		WarnUser(warnExecuteKO);
 	}
 	::CloseHandle(hPipeRead);
@@ -893,8 +1071,8 @@ DWORD SciTEWin::ExecuteOne(const Job &jobToRun, bool &seenOutput) {
 void SciTEWin::ProcessExecute() {
 	DWORD exitcode = 0;
 	if (scrollOutput)
-		SendOutputEx(SCI_GOTOPOS, SendOutputEx(SCI_GETTEXTLENGTH, 0, 0, false),0, false);
-	int originalEnd = SendOutputEx(SCI_GETCURRENTPOS, 0, 0, false);
+		wOutput.Send(SCI_GOTOPOS, wOutput.Send(SCI_GETTEXTLENGTH));
+	int originalEnd = wOutput.Send(SCI_GETCURRENTPOS);
 	bool seenOutput = false;
 
 	for (int icmd = 0; icmd < jobQueue.commandCurrent && icmd < jobQueue.commandMax && exitcode == 0; icmd++) {
@@ -913,7 +1091,7 @@ void SciTEWin::ProcessExecute() {
 	// scroll and return only if output.scroll equals
 	// one in the properties file
 	if ((outputScroll == 1) && returnOutputToCommand)
-		SendOutputEx(SCI_GOTOPOS, originalEnd, 0, false);
+		wOutput.Send(SCI_GOTOPOS, originalEnd, 0);
 	returnOutputToCommand = true;
 	::SendMessage(MainHWND(), WM_COMMAND, IDM_FINISHEDEXECUTE, 0);
 }
@@ -922,11 +1100,6 @@ void ExecThread(void *ptw) {
 	SciTEWin *tw = reinterpret_cast<SciTEWin *>(ptw);
 	tw->ProcessExecute();
 }
-
-struct ShellErr {
-	DWORD code;
-	const char *descr;
-};
 
 void SciTEWin::ShellExec(const SString &cmd, const char *dir) {
 	char *mycmd;
@@ -983,45 +1156,25 @@ void SciTEWin::ShellExec(const SString &cmd, const char *dir) {
 			myparams = mycmd_end;
 	}
 
-	uptr_t rc = reinterpret_cast<uptr_t>(
-	                ::ShellExecute(
-	                    MainHWND(),          // parent wnd for msgboxes during app start
-	                    NULL,           // cmd is open
-	                    mycmd,          // file to open
-	                    myparams,          // parameters
-	                    dir,          // launch directory
-	                    SW_SHOWNORMAL)); //default show cmd
+	GUI::gui_string sMycmd = GUI::StringFromUTF8(mycmd);
+	GUI::gui_string sMyparams = GUI::StringFromUTF8(myparams);
+	GUI::gui_string sDir = GUI::StringFromUTF8(dir);
 
-	if (rc > 32) {
+	SHELLEXECUTEINFO exec= { sizeof (exec), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	exec.fMask= SEE_MASK_FLAG_NO_UI; // own msg box on return
+	exec.hwnd= MainHWND();
+	exec.lpVerb= L"open";  // better for executables to use "open" instead of NULL
+	exec.lpFile= sMycmd.c_str();   // file to open
+	exec.lpParameters= sMyparams.c_str(); // parameters
+	exec.lpDirectory= sDir.c_str(); // launch directory
+	exec.nShow= SW_SHOWNORMAL; //default show cmd
+
+	if (::ShellExecuteEx(&exec)) {
 		// it worked!
 		delete []mycmdcopy;
 		return;
 	}
-
-	const int numErrcodes = 15;
-	static const ShellErr field[numErrcodes] = {
-	            { 0, "The operating system is out of memory or resources." },
-	            { ERROR_FILE_NOT_FOUND, "The specified file was not found." },
-	            { ERROR_PATH_NOT_FOUND, "The specified path was not found." },
-	            { ERROR_BAD_FORMAT, "The .exe file is invalid (non-Win32\256 .exe or error in .exe image)." },
-	            { SE_ERR_ACCESSDENIED, "The operating system denied access to the specified file." },
-	            { SE_ERR_ASSOCINCOMPLETE, "The file name association is incomplete or invalid." },
-	            { SE_ERR_DDEBUSY, "The DDE transaction could not be completed because other DDE transactions were being processed." },
-	            { SE_ERR_DDEFAIL, "The DDE transaction failed." },
-	            { SE_ERR_DDETIMEOUT, "The DDE transaction could not be completed because the request timed out." },
-	            { SE_ERR_DLLNOTFOUND, "The specified dynamic-link library was not found." },
-	            { SE_ERR_FNF, "The specified file was not found." },
-	            { SE_ERR_NOASSOC, "There is no application associated with the given file name extension." },
-	            { SE_ERR_OOM, "There was not enough memory to complete the operation." },
-	            { SE_ERR_PNF, "The specified path was not found." },
-	            { SE_ERR_SHARE, "A sharing violation occurred." },
-	        };
-
-	int i;
-	for (i = 0; i < numErrcodes; ++i) {
-		if (field[i].code == rc)
-			break;
-	}
+	DWORD rc = GetLastError();
 
 	SString errormsg("Error while launching:\n\"");
 	errormsg += mycmdcopy;
@@ -1030,13 +1183,8 @@ void SciTEWin::ShellExec(const SString &cmd, const char *dir) {
 		errormsg += myparams;
 	}
 	errormsg += "\"\n";
-	if (i < numErrcodes) {
-		errormsg += field[i].descr;
-	} else {
-		errormsg += "Unknown error code: ";
-		errormsg += SString(rc);
-	}
-	WindowMessageBox(wSciTE, errormsg, MB_OK);
+	GUI::gui_string sErrorMsg = GUI::StringFromUTF8(errormsg.c_str()) + GetErrorMessage(rc);
+	WindowMessageBox(wSciTE, sErrorMsg, MB_OK);
 
 	delete []mycmdcopy;
 }
@@ -1044,15 +1192,7 @@ void SciTEWin::ShellExec(const SString &cmd, const char *dir) {
 void SciTEWin::Execute() {
 	SciTEBase::Execute();
 
-	//!_beginthread(ExecThread, 1024 * 1024, reinterpret_cast<void *>(this));
-	//!-start-[ExtensionThreadFix]
-	// Force to start Lua extension in the main thread
-	if (jobQueue.jobQueue[jobQueue.commandCurrent-1].jobType == jobExtension) {
-		ExecThread(static_cast<void *>(this));
-	} else {
-		_beginthread(ExecThread, 1024 * 1024, static_cast<void *>(this));
-	}
-	//!-end-[ExtensionThreadFix]
+	_beginthread(ExecThread, 1024 * 1024, reinterpret_cast<void *>(this));
 }
 
 void SciTEWin::StopExecute() {
@@ -1146,7 +1286,7 @@ void SciTEWin::CreateUI() {
 		height = CW_USEDEFAULT;
 	}
 
-	if (props.GetInt("position.tile") && ::FindWindow("SciTEWindow", NULL) &&
+	if (props.GetInt("position.tile") && ::FindWindow(TEXT("SciTEWindow"), NULL) &&
 	        (left != static_cast<int>(CW_USEDEFAULT))) {
 		left += width;
 	}
@@ -1196,14 +1336,14 @@ static bool IsASpace(int ch) {
  * from each argument.
  * @return A string with each argument separated by '\n'.
  */
-SString SciTEWin::ProcessArgs(const char *cmdLine) {
-	SString args;
-	const char *startArg = cmdLine;
+GUI::gui_string SciTEWin::ProcessArgs(const GUI::gui_char *cmdLine) {
+	GUI::gui_string args;
+	const GUI::gui_char *startArg = cmdLine;
 	while (*startArg) {
 		while (IsASpace(*startArg)) {
 			startArg++;
 		}
-		const char *endArg = startArg;
+		const GUI::gui_char *endArg = startArg;
 		if (*startArg == '"') {	// Opening double-quote
 			startArg++;
 			endArg = startArg;
@@ -1215,8 +1355,10 @@ SString SciTEWin::ProcessArgs(const char *cmdLine) {
 				endArg++;
 			}
 		}
-		SString arg(startArg, 0, endArg - startArg);
-		args.appendwithseparator(arg.c_str(), '\n');
+		GUI::gui_string arg(startArg, 0, endArg - startArg);
+		if (args.size() > 0)
+			args += GUI_TEXT("\n");
+		args += arg;
 		startArg = endArg;	// On a space or a double-quote, or on the end of the command line
 		if (*startArg) {
 			startArg++;
@@ -1231,14 +1373,14 @@ SString SciTEWin::ProcessArgs(const char *cmdLine) {
  * create the SciTE window, perform batch processing (print) or transmit command line
  * to other instance and exit or just show the window and open files.
  */
-void SciTEWin::Run(const char *cmdLine) {
+void SciTEWin::Run(const GUI::gui_char *cmdLine) {
 	// Load the default session file
 	if (props.GetInt("save.session") || props.GetInt("save.position") || props.GetInt("save.recent")) {
-		LoadSessionFile("");
+		LoadSessionFile(GUI_TEXT(""));
 	}
 
 	// Break up the command line into individual arguments
-	SString args = ProcessArgs(cmdLine);
+	GUI::gui_string args = ProcessArgs(cmdLine);
 	// Read the command line parameters:
 	// In case the check.if.already.open property has been set or reset on the command line,
 	// we still get a last chance to force checking or to open a separate instance;
@@ -1269,7 +1411,7 @@ void SciTEWin::Run(const char *cmdLine) {
 	}
 
 	if (props.GetInt("check.if.already.open") != 0 && uniqueInstance.FindOtherInstance()) {
-		uniqueInstance.SendCommands(cmdLine);
+		uniqueInstance.SendCommands(GUI::UTF8FromString(cmdLine).c_str());
 
 		// Kill itself, leaving room to the previous instance
 		::PostQuitMessage(0);
@@ -1295,32 +1437,35 @@ void SciTEWin::Run(const char *cmdLine) {
 /**
  * Draw the split bar.
  */
-void SciTEWin::Paint(Surface *surfaceWindow, PRectangle) {
-	PRectangle rcInternal = GetClientRectangle();
-	//surfaceWindow->FillRectangle(rcInternal, Colour(0xff,0x80,0x80));
+void ContentWin::Paint(HDC hDC, GUI::Rectangle) {
+	GUI::Rectangle rcInternal = GetClientPosition();
 
 	int heightClient = rcInternal.Height();
 	int widthClient = rcInternal.Width();
 
-	int heightEditor = heightClient - heightOutput - heightBar;
+	int heightEditor = heightClient - pSciTEWin->heightOutput - pSciTEWin->heightBar;
 	int yBorder = heightEditor;
-	int xBorder = widthClient - heightOutput - heightBar;
-	for (int i = 0; i < heightBar; i++) {
+	int xBorder = widthClient - pSciTEWin->heightOutput - pSciTEWin->heightBar;
+	for (int i = 0; i < pSciTEWin->heightBar; i++) {
+		HPEN pen;
 		if (i == 1)
-			surfaceWindow->PenColour(GetSysColor(COLOR_3DHIGHLIGHT));
-		else if (i == heightBar - 2)
-			surfaceWindow->PenColour(GetSysColor(COLOR_3DSHADOW));
-		else if (i == heightBar - 1)
-			surfaceWindow->PenColour(GetSysColor(COLOR_3DDKSHADOW));
+			pen = ::CreatePen(0,1,::GetSysColor(COLOR_3DHIGHLIGHT));
+		else if (i == pSciTEWin->heightBar - 2)
+			pen = ::CreatePen(0,1,::GetSysColor(COLOR_3DSHADOW));
+		else if (i == pSciTEWin->heightBar - 1)
+			pen = ::CreatePen(0,1,::GetSysColor(COLOR_3DDKSHADOW));
 		else
-			surfaceWindow->PenColour(GetSysColor(COLOR_3DFACE));
-		if (splitVertical) {
-			surfaceWindow->MoveTo(xBorder + i, 0);
-			surfaceWindow->LineTo(xBorder + i, heightClient);
+			pen = ::CreatePen(0,1,::GetSysColor(COLOR_3DFACE));
+		HPEN penOld = static_cast<HPEN>(::SelectObject(hDC, pen));
+		if (pSciTEWin->splitVertical) {
+			::MoveToEx(hDC, xBorder + i, 0, 0);
+			::LineTo(hDC, xBorder + i, heightClient);
 		} else {
-			surfaceWindow->MoveTo(0, yBorder + i);
-			surfaceWindow->LineTo(widthClient, yBorder + i);
+			::MoveToEx(hDC, 0, yBorder + i, 0);
+			::LineTo(hDC, widthClient, yBorder + i);
 		}
+		::SelectObject(hDC, penOld);
+		::DeleteObject(pen);
 	}
 }
 
@@ -1340,12 +1485,11 @@ void SciTEWin::DropFiles(HDROP hdrop) {
 	// Scintilla, hdrop is null, and an exception is generated!
 	if (hdrop) {
 		int filesDropped = ::DragQueryFile(hdrop, 0xffffffff, NULL, 0);
+		// Append paths to dropFilesQueue, to finish drag operation soon
 		for (int i = 0; i < filesDropped; ++i) {
-			char pathDropped[MAX_PATH];
-			::DragQueryFile(hdrop, i, pathDropped, sizeof(pathDropped));
-			if (!Open(pathDropped)) {
-				break;
-			}
+			GUI::gui_char pathDropped[MAX_PATH];
+			::DragQueryFileW(hdrop, i, pathDropped, ELEMENTS(pathDropped));
+			dropFilesQueue.push_back(pathDropped);
 		}
 		::DragFinish(hdrop);
 		// Put SciTE to forefront
@@ -1356,77 +1500,82 @@ void SciTEWin::DropFiles(HDROP hdrop) {
 			::ShowWindow(MainHWND(), SW_RESTORE);
 		}
 		::SetForegroundWindow(MainHWND());
+		// Post message to ourself for opening the files so we can finish the drop message and
+		// the drop source will respond when open operation takes long time (opening big files...)
+		if (filesDropped > 0) {
+			::PostMessage(MainHWND(), SCITE_DROP, 0, 0);
+		}
 	}
 }
 
 /**
  * Handle simple wild-card file patterns and directory requests.
  */
-bool SciTEWin::PreOpenCheck(const char *arg) {
+bool SciTEWin::PreOpenCheck(const GUI::gui_char *arg) {
 	bool isHandled = false;
 	HANDLE hFFile;
 	WIN32_FIND_DATA ffile;
 	DWORD fileattributes = ::GetFileAttributes(arg);
-	char filename[MAX_PATH];
+	GUI::gui_char filename[MAX_PATH];
 	int nbuffers = props.GetInt("buffers");
 
 	if (fileattributes != (DWORD) -1) {	// arg is an existing directory or filename
 		// if the command line argument is a directory, use OpenDialog()
 		if (fileattributes & FILE_ATTRIBUTE_DIRECTORY) {
-			OpenDialog(FilePath(arg), props.GetExpanded("open.filter").c_str());
+			OpenDialog(FilePath(arg), GUI::StringFromUTF8(props.GetExpanded("open.filter").c_str()).c_str());
 			isHandled = true;
 		}
 	} else if (nbuffers > 1 && (hFFile = ::FindFirstFile(arg, &ffile)) != INVALID_HANDLE_VALUE) {
 		// If several buffers is accepted and the arg is a filename pattern matching at least an existing file
 		isHandled = true;
-		strcpy(filename, arg);
-		char *lastslash;
-		if (NULL == (lastslash = strrchr(filename, '\\')))
+		wcscpy(filename, arg);
+		GUI::gui_char *lastslash;
+		if (NULL == (lastslash = wcsrchr(filename, GUI_TEXT('\\'))))
 			lastslash = filename;	// No path
 		else
 			lastslash++;
 		// Open files matching the given pattern until no more files or all available buffers are exhausted
 		do {
 			if (!(ffile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {	// Skip directories
-				strcpy(lastslash, ffile.cFileName);
+				wcscpy(lastslash, ffile.cFileName);
 				Open(filename);
 				--nbuffers;
 			}
 		} while (nbuffers > 0 && ::FindNextFile(hFFile, &ffile));
 		::FindClose(hFFile);
 	} else {
-		const char *lastslash = strrchr(arg, '\\');
-		const char *lastdot = strrchr(arg, '.');
+		const GUI::gui_char *lastslash = wcsrchr(arg, '\\');
+		const GUI::gui_char *lastdot = wcsrchr(arg, '.');
 
 		// if the filename is only an extension, open the dialog box with it as the extension filter
-		if (lastslash && lastdot && lastslash == lastdot - 1 || !lastslash && lastdot == arg) {
+		if ((lastslash && lastdot && lastslash == lastdot - 1) || (!lastslash && lastdot == arg)) {
 			isHandled = true;
 
-			char dir[MAX_PATH];
+			GUI::gui_char dir[MAX_PATH];
 			if (lastslash) { // the arg contains a path, so copy that part to dirName
-				strncpy(dir, arg, lastslash - arg + 1);
+				wcsncpy(dir, arg, lastslash - arg + 1);
 				dir[lastslash - arg + 1] = '\0';
 			} else {
-				strcpy(dir, ".\\");
+				wcscpy(dir, GUI_TEXT(".\\"));
 			}
 
-			strcpy(filename, "*");
-			strcat(filename, lastdot);
-			strcat(filename, "|");
-			strcat(filename, "*");
-			strcat(filename, lastdot);
+			wcscpy(filename, GUI_TEXT("*"));
+			wcscat(filename, lastdot);
+			wcscat(filename, GUI_TEXT("|"));
+			wcscat(filename, GUI_TEXT("*"));
+			wcscat(filename, lastdot);
 			OpenDialog(FilePath(dir), filename);
-		} else if (!lastdot || lastslash && lastdot < lastslash) {
+		} else if (!lastdot || (lastslash && lastdot < lastslash)) {
 			// if the filename has no extension, try to match a file with list of standard extensions
 			SString extensions = props.GetExpanded("source.default.extensions");
 			if (extensions.length()) {
-				strcpy(filename, arg);
-				char *endfilename = filename + strlen(filename);
+				wcscpy(filename, arg);
+				GUI::gui_char *endfilename = filename + wcslen(filename);
 				extensions.substitute('|', '\0');
 				size_t start = 0;
 				while (start < extensions.length()) {
-					const char *filterName = extensions.c_str() + start;
-					strcpy(endfilename, filterName);
+					GUI::gui_string filterName = GUI::StringFromUTF8(extensions.c_str() + start);
+					wcscpy(endfilename, filterName.c_str());
 					if (::GetFileAttributes(filename) != (DWORD) -1) {
 						isHandled = true;
 						Open(filename);
@@ -1479,7 +1628,7 @@ bool SciTEWin::IsStdinBlocked() {
 }
 
 void SciTEWin::MinimizeToTray() {
-	char n[64] = "SciTE";
+	TCHAR n[64] = TEXT("SciTE");
 	NOTIFYICONDATA nid;
 	memset(&nid, 0, sizeof(nid));
 	nid.cbSize = sizeof(nid);
@@ -1488,8 +1637,8 @@ void SciTEWin::MinimizeToTray() {
 	nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 	nid.uCallbackMessage = SCITE_TRAY;
 	nid.hIcon = static_cast<HICON>(
-	                ::LoadImage(hInstance, "SCITE", IMAGE_ICON, 16, 16, LR_DEFAULTSIZE));
-	strcpy(nid.szTip, n);
+	                ::LoadImage(hInstance, TEXT("SCITE"), IMAGE_ICON, 16, 16, LR_DEFAULTSIZE));
+	lstrcpy(nid.szTip, n);
 	::ShowWindow(MainHWND(), SW_MINIMIZE);
 	if (::Shell_NotifyIcon(NIM_ADD, &nid)) {
 		::ShowWindow(MainHWND(), SW_HIDE);
@@ -1526,9 +1675,9 @@ inline bool KeyMatch(const SString &sKey, int keyval, int modifiers) {
 LRESULT SciTEWin::KeyDown(WPARAM wParam) {
 	// Look through lexer menu
 	int modifiers =
-	    (Platform::IsKeyDown(VK_SHIFT) ? SCMOD_SHIFT : 0) |
-	    (Platform::IsKeyDown(VK_CONTROL) ? SCMOD_CTRL : 0) |
-	    (Platform::IsKeyDown(VK_MENU) ? SCMOD_ALT : 0);
+	    (IsKeyDown(VK_SHIFT) ? SCMOD_SHIFT : 0) |
+	    (IsKeyDown(VK_CONTROL) ? SCMOD_CTRL : 0) |
+	    (IsKeyDown(VK_MENU) ? SCMOD_ALT : 0);
 
 /*!
 	if (extender && extender->OnKey(wParam, modifiers))
@@ -1547,7 +1696,7 @@ LRESULT SciTEWin::KeyDown(WPARAM wParam) {
 		else {
 			if ( sPrevIsDeadKey == false ) {
 				UINT uFlags = 1;
-				if ( Platform::IsKeyDown( VK_MENU ) && wParam >= VK_NUMPAD0 && wParam <= VK_NUMPAD9 ) {
+				if ( IsKeyDown( VK_MENU ) && wParam >= VK_NUMPAD0 && wParam <= VK_NUMPAD9 ) {
 					uFlags = 0;
 				}
 
@@ -1601,7 +1750,7 @@ LRESULT SciTEWin::KeyDown(WPARAM wParam) {
 				if (commandNum < 2000 || (commandNum>IDM_TOOLS && commandNum<IDM_TOOLSMAX)) { //-change-[ToolsMax]
 					SciTEBase::MenuCommand(commandNum);
 				} else {
-					SciTEBase::SendFocused(commandNum);
+					SciTEBase::CallFocused(commandNum);
 				}
 				return 1l;
 			}
@@ -1618,12 +1767,12 @@ LRESULT SciTEWin::KeyUp(WPARAM wParam) {
 	return 0l;
 }
 
-/*!-change-[ExtendedContextMenu]
+/*!-remove-[ExtendedContextMenu]
 void SciTEWin::AddToPopUp(const char *label, int cmd, bool enabled) {
-	SString localised = localiser.Text(label);
+	GUI::gui_string localised = localiser.Text(label);
 	HMENU menu = reinterpret_cast<HMENU>(popup.GetID());
 	if (0 == localised.length())
-		::AppendMenu(menu, MF_SEPARATOR, 0, "");
+		::AppendMenu(menu, MF_SEPARATOR, 0, TEXT(""));
 	else if (enabled)
 		::AppendMenu(menu, MF_STRING, cmd, localised.c_str());
 	else
@@ -1632,31 +1781,31 @@ void SciTEWin::AddToPopUp(const char *label, int cmd, bool enabled) {
 */
 
 LRESULT SciTEWin::ContextMenuMessage(UINT iMessage, WPARAM wParam, LPARAM lParam) {
-	Window w = wEditor;
-	Point pt = Point::FromLong(lParam);
+	GUI::ScintillaWindow *w = &wEditor;
+	GUI::Point pt = PointFromLong(lParam);
 	if ((pt.x == -1) && (pt.y == -1)) {
 		// Caused by keyboard so display menu near caret
 		if (wOutput.HasFocus())
-			w = wOutput;
-		int position = SendFocused(SCI_GETCURRENTPOS);
-		pt.x = SendFocused(SCI_POINTXFROMPOSITION, 0, position);
-		pt.y = SendFocused(SCI_POINTYFROMPOSITION, 0, position);
+			w = &wOutput;
+		int position = w->Call(SCI_GETCURRENTPOS);
+		pt.x = w->Call(SCI_POINTXFROMPOSITION, 0, position);
+		pt.y = w->Call(SCI_POINTYFROMPOSITION, 0, position);
 		POINT spt = {pt.x, pt.y};
-		::ClientToScreen(static_cast<HWND>(w.GetID()), &spt);
-		pt = Point(spt.x, spt.y);
+		::ClientToScreen(static_cast<HWND>(w->GetID()), &spt);
+		pt = GUI::Point(spt.x, spt.y);
 	} else {
-		PRectangle rcEditor = wEditor.GetPosition();
+		GUI::Rectangle rcEditor = wEditor.GetPosition();
 		if (!rcEditor.Contains(pt)) {
-			PRectangle rcOutput = wOutput.GetPosition();
+			GUI::Rectangle rcOutput = wOutput.GetPosition();
 			if (rcOutput.Contains(pt)) {
-				w = wOutput;
+				w = &wOutput;
 			} else {	// In frame so use default.
 				return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
 			}
 		}
 	}
-	menuSource = ::GetDlgCtrlID(reinterpret_cast<HWND>(w.GetID()));
-	ContextMenu(w, pt, wSciTE);
+	menuSource = ::GetDlgCtrlID(HwndOf(*w));
+	ContextMenu(*w, pt, wSciTE);
 	return 0;
 }
 
@@ -1664,7 +1813,6 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 	int statusFailure = 0;
 	static int boxesVisible = 0;
 	try {
-		//Platform::DebugPrintf("start wnd proc %x %x\n",iMessage, MainHWND());
 		LRESULT uim = uniqueInstance.CheckMessage(iMessage, wParam, lParam);
 		if (uim != 0) {
 			return uim;
@@ -1696,10 +1844,7 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
 
 		case SCITE_TRAY:
-			if (lParam == WM_LBUTTONDBLCLK) {
-				//[qhs] 11/04/09 added : to avoid sometimes the main window can not restore from tray
-				::SetForegroundWindow(reinterpret_cast<HWND>(wSciTE.GetID()));
-				
+			if (lParam == WM_LBUTTONDOWN) {
 				RestoreFromTray();
 				::ShowWindow(MainHWND(), SW_RESTORE);
 				::FlashWindow(MainHWND(), FALSE);
@@ -1712,12 +1857,12 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 				GetCursorPos(&pt);
 
 				SString restore=props.Get("tray.menu.restore");
-				SString quit=props.Get("tray.menu.quit");
+				SString  quit=props.Get("tray.menu.quit");
 				if(restore=="") restore="Restore";
 				if(quit=="") quit="Quit";
 
-				::AppendMenu(popup, MF_STRING, SW_RESTORE, restore.c_str());
-				::AppendMenu(popup, MF_STRING, IDM_QUIT, quit.c_str());
+				::AppendMenu(popup, MF_STRING, SW_RESTORE, GUI::StringFromUTF8(restore.c_str()).c_str());
+				::AppendMenu(popup, MF_STRING, IDM_QUIT, GUI::StringFromUTF8(quit.c_str()).c_str());
 				::SetForegroundWindow(reinterpret_cast<HWND>(wSciTE.GetID()));
 				UINT iSelection = ::TrackPopupMenu(popup, TPM_LEFTALIGN | TPM_RETURNCMD, pt.x - 4, pt.y, 0, reinterpret_cast<HWND>(wSciTE.GetID()), NULL);
 
@@ -1741,6 +1886,21 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 		::SendMessage(MainHWND(), WM_COMMAND, IDM_NEW, 0);
 		return 0;
 //!-end-[new_on_dbl_clk]
+
+		case SCITE_DROP:
+			// Open the files
+			while (!dropFilesQueue.empty()) {
+				FilePath file(dropFilesQueue.front());
+				dropFilesQueue.pop_front();
+				if (file.Exists()) {
+					Open(file.AsInternal());
+				} else {
+					GUI::gui_string msg = LocaliseMessage("Could not open file '^0'.", file.AsInternal());
+					WindowMessageBox(wSciTE, msg, MB_OK | MB_ICONWARNING);
+				}
+			}
+			break;
+
 		case WM_NOTIFY:
 			Notify(reinterpret_cast<SCNotification *>(lParam));
 			break;
@@ -1752,27 +1912,23 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 			return KeyUp(wParam);
 
 		case WM_SIZE:
-			//Platform::DebugPrintf("size %d %x %x\n",iMessage, wParam, lParam);
 			if (wParam != 1)
 				SizeSubWindows();
 			break;
 
 		case WM_MOVE:
-			SendEditor(SCI_CALLTIPCANCEL);
+			wEditor.Call(SCI_CALLTIPCANCEL);
 			break;
 
 		case WM_GETMINMAXINFO: {
 				MINMAXINFO *pmmi = reinterpret_cast<MINMAXINFO *>(lParam);
 				if (fullScreen) {
-					// Last constants for both x and y are just fiddles - don't know why they are needed
 					pmmi->ptMaxSize.x = ::GetSystemMetrics(SM_CXSCREEN) +
-										2 * ::GetSystemMetrics(SM_CXSIZEFRAME) +
-										2;
+										2 * ::GetSystemMetrics(SM_CXSIZEFRAME);
 					pmmi->ptMaxSize.y = ::GetSystemMetrics(SM_CYSCREEN) +
 										::GetSystemMetrics(SM_CYCAPTION) +
 										::GetSystemMetrics(SM_CYMENU) +
-										2 * ::GetSystemMetrics(SM_CYSIZEFRAME) +
-										3;
+										2 * ::GetSystemMetrics(SM_CYSIZEFRAME);
 					pmmi->ptMaxTrackSize.x = pmmi->ptMaxSize.x;
 					pmmi->ptMaxTrackSize.y = pmmi->ptMaxSize.y;
 					return 0;
@@ -1797,44 +1953,48 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 			break;
 
 		case WM_SETTINGCHANGE:
-			//Platform::DebugPrintf("** Setting Changed\n");
-			SendEditor(WM_SETTINGCHANGE, wParam, lParam);
-			SendOutput(WM_SETTINGCHANGE, wParam, lParam);
+			wEditor.Call(WM_SETTINGCHANGE, wParam, lParam);
+			wOutput.Call(WM_SETTINGCHANGE, wParam, lParam);
 			break;
 
 		case WM_SYSCOLORCHANGE:
-			//Platform::DebugPrintf("** Color Changed\n");
-			SendEditor(WM_SYSCOLORCHANGE, wParam, lParam);
-			SendOutput(WM_SYSCOLORCHANGE, wParam, lParam);
+			wEditor.Call(WM_SYSCOLORCHANGE, wParam, lParam);
+			wOutput.Call(WM_SYSCOLORCHANGE, wParam, lParam);
 			break;
 
 		case WM_PALETTECHANGED:
-			//Platform::DebugPrintf("** Palette Changed\n");
 			if (wParam != reinterpret_cast<WPARAM>(MainHWND())) {
-				SendEditor(WM_PALETTECHANGED, wParam, lParam);
-				//SendOutput(WM_PALETTECHANGED, wParam, lParam);
+				wEditor.Call(WM_PALETTECHANGED, wParam, lParam);
+				//wOutput.Call(WM_PALETTECHANGED, wParam, lParam);
 			}
 
 			break;
 
 		case WM_QUERYNEWPALETTE:
-			//Platform::DebugPrintf("** Query palette\n");
-			SendEditor(WM_QUERYNEWPALETTE, wParam, lParam);
-			//SendOutput(WM_QUERYNEWPALETTE, wParam, lParam);
+			wEditor.Call(WM_QUERYNEWPALETTE, wParam, lParam);
+			//wOutput.Call(WM_QUERYNEWPALETTE, wParam, lParam);
 			return TRUE;
 
 		case WM_ACTIVATEAPP:
-			if (props.GetInt("selection.hide.on.deactivate", 1)) {	//!-add-[selection.hide.on.deactivate]
-				SendEditor(SCI_HIDESELECTION, !wParam);
+//!			wEditor.Call(SCI_HIDESELECTION, !wParam); //!-remove-[selection.hide.on.deactivate]
+//!-start-[selection.hide.on.deactivate]
+			if (props.GetInt("selection.hide.on.deactivate", 1)) {
+			wEditor.Call(SCI_HIDESELECTION, !wParam);
 			}
+//!-end-[selection.hide.on.deactivate]
 			// Do not want to display dialog yet as may be in middle of system mouse capture
 			::PostMessage(MainHWND(), WM_COMMAND, IDM_ACTIVATE, wParam);
 			break;
 
 		case WM_ACTIVATE:
-			//Platform::DebugPrintf("Focus: w:%x l:%x %x e=%x o=%x\n", wParam, lParam, ::GetFocus(), wEditor.GetID(), wOutput.GetID());
 			if (wParam != WA_INACTIVE) {
-				::SetForegroundWindow(reinterpret_cast<HWND>(wSciTE.GetID())); // [qhs] 02/25/2010 added: to avoid sometimes the main window can not be activated 
+				if (searchStrip.visible)
+					searchStrip.Focus();
+				else if (findStrip.visible)
+					findStrip.Focus();
+				else if (replaceStrip.visible)
+					replaceStrip.Focus();
+				else
 				::SetFocus(wFocus);
 			}
 			break;
@@ -1847,11 +2007,9 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 			return uniqueInstance.CopyData(reinterpret_cast<COPYDATASTRUCT *>(lParam));
 
 		default:
-			//Platform::DebugPrintf("default wnd proc %x %d %d\n",iMessage, wParam, lParam);
-			return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+			return ::DefWindowProcW(MainHWND(), iMessage, wParam, lParam);
 		}
-		//Platform::DebugPrintf("end wnd proc\n");
-	} catch (ScintillaFailure &sf) {
+	} catch (GUI::ScintillaFailure &sf) {
 		statusFailure = sf.status;
 	}
 	if ((statusFailure > 0) && (boxesVisible == 0)) {
@@ -1863,7 +2021,8 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 			sprintf(buff, "Scintilla failed with status %d.", statusFailure);
 		}
 		strcat(buff, " SciTE will now close.");
-		::MessageBox(MainHWND(), buff, "Failure in Scintilla", MB_OK | MB_ICONERROR | MB_APPLMODAL);
+		GUI::gui_string sMessage = GUI::StringFromUTF8(buff);
+		::MessageBox(MainHWND(), sMessage.c_str(), TEXT("Failure in Scintilla"), MB_OK | MB_ICONERROR | MB_APPLMODAL);
 		exit(FALSE);
 	}
 	return 0l;
@@ -1888,7 +2047,6 @@ static void SetWindowPointer(HWND hWnd, void *ptr) {
 
 LRESULT PASCAL SciTEWin::TWndProc(
     HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) {
-	//Platform::DebugPrintf("W:%x M:%d WP:%x L:%x\n", hWnd, iMessage, wParam, lParam);
 
 	// Find C++ object associated with window.
 	SciTEWin *scite = reinterpret_cast<SciTEWin *>(PointerFromWindow(hWnd));
@@ -1901,55 +2059,56 @@ LRESULT PASCAL SciTEWin::TWndProc(
 			SetWindowPointer(hWnd, scite);
 			return scite->WndProc(iMessage, wParam, lParam);
 		} else
-			return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
+			return ::DefWindowProcW(hWnd, iMessage, wParam, lParam);
 	} else
 		return scite->WndProc(iMessage, wParam, lParam);
 }
 
-LRESULT SciTEWin::WndProcI(UINT iMessage, WPARAM wParam, LPARAM lParam) {
+LRESULT ContentWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 	try {
 	switch (iMessage) {
 
-	case WM_COMMAND:
-		Command(wParam, lParam);
-		break;
+	case WM_CREATE:
+		pSciTEWin->wContent = GetID();
+		return ::DefWindowProc(Hwnd(), iMessage, wParam, lParam);
 
+	case WM_COMMAND:
 	case WM_NOTIFY:
-		Notify(reinterpret_cast<SCNotification *>(lParam));
-		break;
+		return pSciTEWin->WndProc(iMessage, wParam, lParam);
 
 	case WM_PAINT: {
 			PAINTSTRUCT ps;
-			::BeginPaint(reinterpret_cast<HWND>(wContent.GetID()), &ps);
-			Surface *surfaceWindow = Surface::Allocate();
-			if (surfaceWindow) {
-				surfaceWindow->Init(ps.hdc, wContent.GetID());
-				PRectangle rcPaint(ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right, ps.rcPaint.bottom);
-				Paint(surfaceWindow, rcPaint);
-				surfaceWindow->Release();
-				delete surfaceWindow;
-			}
-			::EndPaint(reinterpret_cast<HWND>(wContent.GetID()), &ps);
+			::BeginPaint(Hwnd(), &ps);
+			GUI::Rectangle rcPaint(ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right, ps.rcPaint.bottom);
+			Paint(ps.hdc, rcPaint);
+			::EndPaint(Hwnd(), &ps);
+			return 0;
+		}
+
+	case WM_ERASEBKGND: {
+			RECT rc = {0, 0, 2000, 2000};
+			HBRUSH hbrFace = CreateSolidBrush(::GetSysColor(COLOR_3DFACE));
+			::FillRect(reinterpret_cast<HDC>(wParam), &rc, hbrFace);
+			::DeleteObject(hbrFace);
 			return 0;
 		}
 
 	case WM_LBUTTONDOWN:
-		ptStartDrag = Point::FromLong(lParam);
+		pSciTEWin->ptStartDrag = PointFromLong(lParam);
 		capturedMouse = true;
-		heightOutputStartDrag = heightOutput;
-		::SetCapture(reinterpret_cast<HWND>(wContent.GetID()));
-		//Platform::DebugPrintf("Click %x %x\n", wParam, lParam);
+		pSciTEWin->heightOutputStartDrag = pSciTEWin->heightOutput;
+		::SetCapture(Hwnd());
 		break;
 
 	case WM_MOUSEMOVE:
 		if (capturedMouse) {
-			MoveSplit(Point::FromLong(lParam));
+			pSciTEWin->MoveSplit(PointFromLong(lParam));
 		}
 		break;
 
 	case WM_LBUTTONUP:
 		if (capturedMouse) {
-			MoveSplit(Point::FromLong(lParam));
+			pSciTEWin->MoveSplit(PointFromLong(lParam));
 			capturedMouse = false;
 			::ReleaseCapture();
 		}
@@ -1961,81 +2120,1308 @@ LRESULT SciTEWin::WndProcI(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 
 	case WM_SETCURSOR:
 		if (ControlIDOfCommand(lParam) == HTCLIENT) {
-			Point ptCursor;
+			GUI::Point ptCursor;
 			::GetCursorPos(reinterpret_cast<POINT *>(&ptCursor));
-			Point ptClient = ptCursor;
-			::ScreenToClient(MainHWND(), reinterpret_cast<POINT *>(&ptClient));
-			if ((ptClient.y > (visHeightTools + visHeightTab)) && (ptClient.y < visHeightTools + visHeightTab + visHeightEditor)) {
-				PRectangle rcScintilla = wEditor.GetPosition();
-				PRectangle rcOutput = wOutput.GetPosition();
+			GUI::Point ptClient = ptCursor;
+			::ScreenToClient(pSciTEWin->MainHWND(), reinterpret_cast<POINT *>(&ptClient));
+			if ((ptClient.y > (pSciTEWin->visHeightTools + pSciTEWin->visHeightTab)) && (ptClient.y < pSciTEWin->visHeightTools + pSciTEWin->visHeightTab + pSciTEWin->visHeightEditor)) {
+				GUI::Rectangle rcScintilla = pSciTEWin->wEditor.GetPosition();
+				GUI::Rectangle rcOutput = pSciTEWin->wOutput.GetPosition();
 				if (!rcScintilla.Contains(ptCursor) && !rcOutput.Contains(ptCursor)) {
-					wSciTE.SetCursor(splitVertical ? Window::cursorHoriz : Window::cursorVert);
+					::SetCursor(::LoadCursor(NULL, pSciTEWin->splitVertical ? IDC_SIZEWE : IDC_SIZENS));
 					return TRUE;
 				}
 			}
 		}
-		return ::DefWindowProc(MainHWND(), iMessage, wParam, lParam);
+		return ::DefWindowProc(Hwnd(), iMessage, wParam, lParam);
 
 	default:
-		//Platform::DebugPrintf("default wnd proc %x %d %d\n",iMessage, wParam, lParam);
-		return ::DefWindowProc(reinterpret_cast<HWND>(wContent.GetID()),
-		                       iMessage, wParam, lParam);
+		return ::DefWindowProc(Hwnd(), iMessage, wParam, lParam);
+
 	}
-	//Platform::DebugPrintf("end wnd proc\n");
 	} catch (...) {
 	}
 	return 0l;
 }
 
-LRESULT PASCAL SciTEWin::IWndProc(
-    HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) {
-	//Platform::DebugPrintf("W:%x M:%d WP:%x L:%x\n", hWnd, iMessage, wParam, lParam);
+static void SetFontHandle(GUI::Window &w, HFONT hfont) {
+	::SendMessage(HwndOf(w),
+		WM_SETFONT, reinterpret_cast<WPARAM>(hfont),
+		0);    // redraw option
+}
 
+static int WidthText(HFONT hfont, const GUI::gui_char *text) {
+	HDC hdcMeasure = ::CreateCompatibleDC(NULL);
+	HFONT hfontOriginal = static_cast<HFONT>(::SelectObject(hdcMeasure, hfont));
+	RECT rcText = {0,0, 2000, 2000};
+	::DrawText(hdcMeasure, const_cast<LPWSTR>(text), -1, &rcText, DT_CALCRECT);
+	int width = rcText.right - rcText.left;
+	::SelectObject(hdcMeasure, hfontOriginal);
+	::DeleteDC(hdcMeasure);
+	return width;
+}
+
+static int WidthControl(GUI::Window &w) {
+	GUI::Rectangle rc = w.GetPosition();
+	return rc.Width();
+}
+
+static SString ControlText(GUI::Window w) {
+	HWND wT = HwndOf(w);
+	int len = ::GetWindowTextLengthW(wT) + 1;
+	std::vector<GUI::gui_char> itemText(len);
+	GUI::gui_string gsFind;
+	if (::GetWindowText(wT, &itemText[0], len)) {
+		gsFind = GUI::gui_string(&itemText[0]);
+	}
+	return GUI::UTF8FromString(gsFind.c_str()).c_str();
+}
+
+static const char *textFindPrompt = "Fi&nd:";
+static const char *textReplacePrompt = "Rep&lace:";
+static const char *textFindNext = "&Find Next";
+static const char *textMarkAll = "&Mark All";
+
+//~ static const char *textFind = "F&ind";
+static const char *textReplace = "&Replace";
+static const char *textReplaceAll = "Replace &All";
+static const char *textInSelection = "In &Selection";
+//~ static const char *textReplaceInBuffers = "Replace In &Buffers";
+//~ static const char *textClose = "Close";
+
+struct Toggle {
+	enum { tWord, tCase, tRegExp, tBackslash, tWrap, tUp };
+	const char *label;
+	int cmd;
+	int id;
+};
+
+static Toggle toggles[] = {
+	{"Match &whole word only", IDM_WHOLEWORD, IDWHOLEWORD},
+	{"Case sensiti&ve", IDM_MATCHCASE, IDMATCHCASE},
+	{"Regular &expression", IDM_REGEXP, IDREGEXP},
+	{"Transform &backslash expressions", IDM_UNSLASH, IDUNSLASH},
+	{"Wrap ar&ound", IDM_WRAPAROUND, IDWRAP},
+	{"&Up", IDM_DIRECTIONUP, IDDIRECTIONUP},
+	{0, 0, 0},
+};
+
+GUI::Window Strip::CreateText(const char *text) {
+	GUI::gui_string localised = localiser->Text(text);
+	int width = WidthText(fontText, localised.c_str()) + 4;
+	GUI::Window w;
+	w.SetID(::CreateWindowEx(0, TEXT("Static"), localised.c_str(),
+		WS_CHILD | WS_CLIPSIBLINGS | SS_RIGHT,
+		2, 2, width, 21,
+		Hwnd(), reinterpret_cast<HMENU>(0), ::GetModuleHandle(NULL), 0));
+	SetFontHandle(w, fontText);
+	w.Show();
+	return w;
+}
+
+#define PACKVERSION(major,minor) MAKELONG(minor,major)
+
+static DWORD GetVersion(LPCTSTR lpszDllName) {
+    DWORD dwVersion = 0;
+    HINSTANCE hinstDll = ::LoadLibrary(lpszDllName);
+    if (hinstDll) {
+        DLLGETVERSIONPROC pDllGetVersion = (DLLGETVERSIONPROC)::GetProcAddress(hinstDll, "DllGetVersion");
+
+        if (pDllGetVersion) {
+            DLLVERSIONINFO dvi;
+            ::ZeroMemory(&dvi, sizeof(dvi));
+            dvi.cbSize = sizeof(dvi);
+
+            HRESULT hr = (*pDllGetVersion)(&dvi);
+            if (SUCCEEDED(hr)) {
+               dwVersion = PACKVERSION(dvi.dwMajorVersion, dvi.dwMinorVersion);
+            }
+        }
+        ::FreeLibrary(hinstDll);
+    }
+    return dwVersion;
+}
+
+GUI::Window Strip::CreateButton(const char *text, int ident, bool check) {
+	GUI::gui_string localised = localiser->Text(text);
+	int width = WidthText(fontText, localised.c_str());
+	int height = 19 + 2 * ::GetSystemMetrics(SM_CYEDGE);
+	if (check) {
+		width += 6;
+		int checkSize = ::GetSystemMetrics(SM_CXMENUCHECK);
+		width += checkSize;
+	} else {
+		width += 2 * ::GetSystemMetrics(SM_CXEDGE);	// Allow for 3D borders
+		width += 2 * WidthText(fontText, TEXT(" "));	// Allow a bit of space
+	}
+	if (check) {
+		height = 16 + 3 * 2;
+		width = 16 + 3 * 2;
+	}
+	GUI::Window w;
+	w.SetID(::CreateWindowEx(0, TEXT("Button"), localised.c_str(),
+		WS_CHILD | WS_TABSTOP | WS_CLIPSIBLINGS |
+		(check ? (BS_AUTOCHECKBOX | BS_PUSHLIKE | BS_BITMAP) : BS_PUSHBUTTON),
+		2, 2, width, height,
+		Hwnd(), reinterpret_cast<HMENU>(ident), ::GetModuleHandle(NULL), 0));
+	if (check) {
+		int resNum = 0;
+		switch (ident) {
+		case IDWHOLEWORD: resNum = IDBM_WORD; break;
+		case IDMATCHCASE: resNum = IDBM_CASE; break;
+		case IDREGEXP: resNum = IDBM_REGEX; break;
+		case IDUNSLASH: resNum = IDBM_BACKSLASH; break;
+		case IDWRAP: resNum = IDBM_AROUND; break;
+		case IDDIRECTIONUP: resNum = IDBM_UP; break;
+		}
+
+		UINT flags = (GetVersion(TEXT("COMCTL32")) >= PACKVERSION(6,0)) ?
+			(LR_DEFAULTSIZE) : (LR_DEFAULTSIZE|LR_LOADMAP3DCOLORS);
+		HBITMAP bm = static_cast<HBITMAP>(::LoadImage(
+			::GetModuleHandle(NULL), MAKEINTRESOURCE(resNum), IMAGE_BITMAP,
+			16, 16, flags));
+
+		::SendMessage(reinterpret_cast<HWND>(w.GetID()),
+			BM_SETIMAGE, IMAGE_BITMAP, reinterpret_cast<LPARAM>(bm));
+	}
+	SetFontHandle(w, fontText);
+	w.Show();
+#ifdef BCM_GETIDEALSIZE
+	if (!check) {
+		// Push buttons can be measured with BCM_GETIDEALSIZE
+		SIZE sz = {0, 0};
+		::SendMessage(reinterpret_cast<HWND>(w.GetID()),
+			BCM_GETIDEALSIZE, 0, reinterpret_cast<LPARAM>(&sz));
+		if (sz.cx > 0) {
+			GUI::Rectangle rc(0,0, sz.cx + 2 * WidthText(fontText, TEXT(" ")), sz.cy);
+			w.SetPosition(rc);
+		}
+	}
+#endif
+	TOOLINFO toolInfo;
+	memset(&toolInfo, 0, sizeof(toolInfo));
+	toolInfo.cbSize = sizeof(toolInfo);
+	toolInfo.uFlags = TTF_SUBCLASS | TTF_IDISHWND;
+	toolInfo.hinst = ::GetModuleHandle(NULL);
+	toolInfo.hwnd = Hwnd();
+	toolInfo.uId = (UINT_PTR)w.GetID();
+	toolInfo.lpszText = LPSTR_TEXTCALLBACK;
+	::GetClientRect(Hwnd(), &toolInfo.rect);
+	::SendMessageW(static_cast<HWND>(wToolTip.GetID()), TTM_ADDTOOLW,
+		0, (LPARAM) &toolInfo);
+	::SendMessage(static_cast<HWND>(wToolTip.GetID()), TTM_ACTIVATE, TRUE, 0);
+	return w;
+}
+
+void Strip::Tab(bool forwards) {
+	HWND wToFocus = ::GetNextDlgTabItem(Hwnd(), ::GetFocus(), !forwards);
+	if (wToFocus)
+		::SetFocus(wToFocus);
+}
+
+void Strip::Creation() {
+	// Use the message box font for the strip's font
+	NONCLIENTMETRICS ncm;
+	ncm.cbSize = sizeof(ncm);
+	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, FALSE);
+	fontText = ::CreateFontIndirect(&ncm.lfMessageFont);
+
+	wToolTip = ::CreateWindowEx(0,
+		TOOLTIPS_CLASSW, NULL,
+		WS_POPUP | TTS_ALWAYSTIP,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		Hwnd(), NULL, ::GetModuleHandle(NULL), NULL);
+
+	SetTheme();
+}
+
+void Strip::Destruction() {
+	if (fontText)
+		::DeleteObject(fontText);
+	fontText = 0;
+#ifdef THEME_AVAILABLE
+	if (hTheme)
+		::CloseThemeData(hTheme);
+#endif
+	hTheme = 0;
+}
+
+void Strip::Close() {
+	visible = false;
+}
+
+bool Strip::KeyDown(WPARAM key) {
+	if (!visible)
+		return false;
+	switch (key) {
+	case VK_MENU:
+		::SendMessage(Hwnd(), WM_UPDATEUISTATE, (UISF_HIDEACCEL|UISF_HIDEFOCUS) << 16 | UIS_CLEAR, 0);
+		return false;
+	case VK_TAB:
+		if (IsChild(Hwnd(), ::GetFocus())) {
+			::SendMessage(Hwnd(), WM_UPDATEUISTATE, (UISF_HIDEACCEL|UISF_HIDEFOCUS) << 16 | UIS_CLEAR, 0);
+			Tab((::GetKeyState(VK_SHIFT) & 0x80000000) == 0);
+			return true;
+		} else {
+			return false;
+		}
+	case VK_ESCAPE:
+		Close();
+		return true;
+	default:
+		if ((::GetKeyState(VK_MENU) & 0x80000000) != 0) {
+			HWND wChild = ::GetWindow(Hwnd(), GW_CHILD);
+			while (wChild) {
+				enum { capSize = 2000 };
+				GUI::gui_char className[capSize];
+				::GetClassName(wChild, className, capSize);
+				if ((wcscmp(className, TEXT("Button")) == 0) ||
+					(wcscmp(className, TEXT("Static")) == 0)) {
+					GUI::gui_char caption[capSize];
+					::GetWindowText(wChild, caption, capSize);
+					for (int i=0; caption[i]; i++) {
+						if ((caption[i] == L'&') && (toupper(caption[i+1]) == static_cast<int>(key))) {
+							if (wcscmp(className, TEXT("Button")) == 0) {
+								::SendMessage(wChild, BM_CLICK, 0, 0);
+							} else {	// Static caption
+								wChild = ::GetWindow(wChild, GW_HWNDNEXT);
+								::SetFocus(wChild);
+							}
+							return true;
+						}
+					}
+				}
+				wChild = ::GetWindow(wChild, GW_HWNDNEXT);
+			};
+		}
+	}
+	return false;
+}
+
+bool Strip::Command(WPARAM) {
+	return false;
+}
+
+void Strip::Size() {
+}
+
+void Strip::Paint(HDC hDC) {
+	GUI::Rectangle rcStrip = GetClientPosition();
+	RECT rc = {rcStrip.left, rcStrip.top, rcStrip.right, rcStrip.bottom};
+	HBRUSH hbrFace = CreateSolidBrush(::GetSysColor(COLOR_3DFACE));
+	::FillRect(hDC, &rc, hbrFace);
+	::DeleteObject(hbrFace);
+
+	// Draw close box
+	GUI::Rectangle rcClose = CloseArea();
+	if (hTheme) {
+#ifdef THEME_AVAILABLE
+		int closeAppearence = CBS_NORMAL;
+		if (closeState == csOver) {
+			closeAppearence = CBS_HOT;
+		} else if (closeState == csClickedOver) {
+			closeAppearence = CBS_PUSHED;
+		}
+		//DrawThemeBackground(htheme, hDC, WP_CLOSEBUTTON, closeAppearence,
+		//	reinterpret_cast<RECT *>(&rcClose), reinterpret_cast<RECT *>(&rcClose));
+		::DrawThemeBackground(hTheme, hDC, WP_SMALLCLOSEBUTTON, closeAppearence,
+			reinterpret_cast<RECT *>(&rcClose), NULL);
+		//::DrawThemeBackground(hTheme, hDC, WP_MDICLOSEBUTTON, closeAppearence,
+		//	reinterpret_cast<RECT *>(&rcClose), NULL);
+#endif
+	} else {
+		int closeAppearence = 0;
+		if (closeState == csOver) {
+			closeAppearence = DFCS_HOT;
+		} else if (closeState == csClickedOver) {
+			closeAppearence = DFCS_PUSHED;
+		}
+
+		DrawFrameControl(hDC, reinterpret_cast<RECT *>(&rcClose), DFC_CAPTION,
+			DFCS_CAPTIONCLOSE | closeAppearence);
+	}
+}
+
+GUI::Rectangle Strip::CloseArea() {
+	GUI::Rectangle rcClose = GetClientPosition();
+	rcClose.right -= 2;
+	rcClose.left = rcClose.right - closeSize.cx;
+	rcClose.top += 2;
+	rcClose.bottom = rcClose.top + closeSize.cy;
+	return rcClose;
+}
+
+void Strip::InvalidateClose() {
+	GUI::Rectangle rcClose = CloseArea();
+	RECT rc = {
+		rcClose.left,
+		rcClose.top,
+		rcClose.right,
+		rcClose.bottom};
+	::InvalidateRect(Hwnd(), &rc, TRUE);
+}
+
+bool Strip::MouseInClose(GUI::Point pt) {
+	GUI::Rectangle rcClose = CloseArea();
+	return rcClose.Contains(pt);
+}
+
+void Strip::TrackMouse(GUI::Point pt) {
+	stripCloseState closeStateStart = closeState;
+	GUI::Rectangle rcStrip = GetClientPosition();
+	if (MouseInClose(pt)) {
+		if (closeState == csNone)
+			closeState = csOver;
+		if (closeState == csClicked)
+			closeState = csClickedOver;
+	} else {
+		if (closeState == csOver)
+			closeState = csNone;
+		if (closeState == csClickedOver)
+			closeState = csClicked;
+	}
+	if ((closeState != csNone) && !capturedMouse) {
+		TRACKMOUSEEVENT tme;
+		tme.cbSize = sizeof(tme);
+		tme.dwFlags = TME_LEAVE;
+		tme.hwndTrack = Hwnd();
+		TrackMouseEvent(&tme);
+	}
+	if (closeStateStart != closeState)
+		InvalidateClose();
+}
+
+void Strip::SetTheme() {
+#ifdef THEME_AVAILABLE
+	if (hTheme)
+		::CloseThemeData(hTheme);
+	hTheme = ::OpenThemeData(Hwnd(), TEXT("Window"));
+	if (hTheme) {
+		HRESULT hr = ::GetThemePartSize(hTheme, NULL, WP_SMALLCLOSEBUTTON, CBS_NORMAL,
+			NULL, TS_TRUE, &closeSize);
+		//HRESULT hr = ::GetThemePartSize(hTheme, NULL, WP_MDICLOSEBUTTON, CBS_NORMAL,
+		//	NULL, TS_TRUE, &closeSize);
+		if (!SUCCEEDED(hr)) {
+			closeSize.cx = 11;
+			closeSize.cy = 11;
+		}
+	}
+#endif
+}
+
+static bool HideKeyboardCues() {
+	BOOL b;
+	::SystemParametersInfo(SPI_GETKEYBOARDCUES, 0, &b, 0);
+	return !b;
+}
+
+LRESULT Strip::CustomDraw(NMHDR *pnmh) {
+	int btnStyle = ::GetWindowLong(pnmh->hwndFrom, GWL_STYLE);
+	if ((btnStyle & BS_AUTOCHECKBOX) != BS_AUTOCHECKBOX) {
+		return CDRF_DODEFAULT;
+	}
+#ifdef THEME_AVAILABLE
+	LPNMCUSTOMDRAW pcd = reinterpret_cast<LPNMCUSTOMDRAW>(pnmh);
+	if (pcd->dwDrawStage == CDDS_PREERASE) {
+		::DrawThemeParentBackground(pnmh->hwndFrom, pcd->hdc, &pcd->rc);
+	}
+
+	if ((pcd->dwDrawStage == CDDS_PREERASE) || (pcd->dwDrawStage == CDDS_PREPAINT)) {
+		HTHEME hThemeButton = ::OpenThemeData(pnmh->hwndFrom, TEXT("Toolbar"));
+		if (!hThemeButton) {
+			return CDRF_DODEFAULT;
+		}
+		bool checked = ::SendMessage(pnmh->hwndFrom, BM_GETCHECK, 0, 0) == BST_CHECKED;
+
+		int buttonAppearence = checked ? TS_CHECKED : TS_NORMAL;
+		if (pcd->uItemState & CDIS_SELECTED)
+			buttonAppearence = TS_PRESSED;
+		else if (pcd->uItemState & CDIS_HOT)
+			buttonAppearence = checked ? TS_HOTCHECKED : TS_HOT;
+		HBRUSH hbrFace = CreateSolidBrush(::GetSysColor(COLOR_3DFACE));
+		::FillRect(pcd->hdc, &pcd->rc, hbrFace);
+		::DeleteObject(hbrFace);
+		::DrawThemeBackground(hThemeButton, pcd->hdc, TP_BUTTON, buttonAppearence,
+			&pcd->rc, NULL);
+
+		RECT rcButton = pcd->rc;
+		rcButton.bottom--;
+		::GetThemeBackgroundContentRect(hThemeButton, pcd->hdc, TP_BUTTON,
+			buttonAppearence, &pcd->rc, &rcButton);
+
+		HBITMAP hBitmap = reinterpret_cast<HBITMAP>(::SendMessage(
+			pnmh->hwndFrom, BM_GETIMAGE, IMAGE_BITMAP, 0));
+
+		// Retrieve the bitmap dimensions
+		BITMAPINFO rbmi;
+		memset(&rbmi, 0, sizeof (BITMAPINFO));
+		rbmi.bmiHeader.biSize = sizeof (BITMAPINFOHEADER);
+		::GetDIBits(pcd->hdc, hBitmap, 0, 0, NULL, &rbmi, DIB_RGB_COLORS);
+
+		DWORD colourTransparent = RGB(0xC0,0xC0,0xC0);
+
+		// Offset from button edge to contents.
+		int xOffset = ((rcButton.right - rcButton.left) - rbmi.bmiHeader.biWidth) / 2 + 1;
+		int yOffset = ((rcButton.bottom - rcButton.top) - rbmi.bmiHeader.biHeight) / 2;
+
+		HDC hdcBM = ::CreateCompatibleDC(NULL);
+		HBITMAP hbmOriginal = static_cast<HBITMAP>(::SelectObject(hdcBM, hBitmap));
+		::TransparentBlt(reinterpret_cast<HDC>(pcd->hdc), xOffset, yOffset,
+			rbmi.bmiHeader.biWidth, rbmi.bmiHeader.biHeight,
+			hdcBM, 0, 0, rbmi.bmiHeader.biWidth, rbmi.bmiHeader.biHeight, colourTransparent);
+		::SelectObject(hdcBM, hbmOriginal);
+		::DeleteDC(hdcBM);
+
+		if (pcd->uItemState & CDIS_FOCUS) {
+			// Draw focus rectangle
+			rcButton.left += 2;
+			rcButton.top += 3;
+			rcButton.right -= 2;
+			rcButton.bottom -= 3;
+			::DrawFocusRect(pcd->hdc, &rcButton);
+		}
+		::CloseThemeData(hThemeButton);
+		return CDRF_SKIPDEFAULT;
+	}
+#endif
+	return CDRF_DODEFAULT;
+}
+
+LRESULT Strip::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
+	switch (iMessage) {
+	case WM_CREATE:
+		Creation();
+		return ::DefWindowProc(Hwnd(), iMessage, wParam, lParam);
+
+	case WM_DESTROY:
+		Destruction();
+		return ::DefWindowProc(Hwnd(), iMessage, wParam, lParam);
+
+	case WM_COMMAND:
+		if (Command(wParam))
+			return 0;
+		else
+			return ::DefWindowProc(Hwnd(), iMessage, wParam, lParam);
+
+	case WM_SETCURSOR:
+		::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+		break;
+
+	case WM_SIZE:
+		Size();
+		break;
+
+	case WM_WINDOWPOSCHANGED:
+		if ((reinterpret_cast<WINDOWPOS *>(lParam)->flags & SWP_SHOWWINDOW) && HideKeyboardCues())
+			::SendMessage(Hwnd(), WM_UPDATEUISTATE, (UISF_HIDEACCEL|UISF_HIDEFOCUS) << 16 | UIS_SET, 0);
+		return ::DefWindowProc(Hwnd(), iMessage, wParam, lParam);
+
+	case WM_PAINT: {
+			PAINTSTRUCT ps;
+			::BeginPaint(Hwnd(), &ps);
+			Paint(ps.hdc);
+			::EndPaint(Hwnd(), &ps);
+			return 0;
+		}
+
+#ifdef THEME_AVAILABLE
+	case WM_THEMECHANGED:
+		SetTheme();
+		break;
+#endif
+
+	case WM_LBUTTONDOWN:
+		if (MouseInClose(PointFromLong(lParam))) {
+			closeState = csClickedOver;
+			InvalidateClose();
+			capturedMouse = true;
+			::SetCapture(Hwnd());
+		}
+		break;
+
+	case WM_MOUSEMOVE:
+		TrackMouse(PointFromLong(lParam));
+		break;
+
+	case WM_LBUTTONUP:
+		if (capturedMouse) {
+			if (MouseInClose(PointFromLong(lParam))) {
+				Close();
+			}
+			capturedMouse = false;
+			closeState = csNone;
+			InvalidateClose();
+			::ReleaseCapture();
+		}
+		break;
+
+	case WM_MOUSELEAVE:
+		if (!capturedMouse) {
+			closeState = csNone;
+			InvalidateClose();
+		}
+		break;
+
+	case WM_NOTIFY: {
+			NMHDR *pnmh = reinterpret_cast<LPNMHDR>(lParam);
+			if (pnmh->code == static_cast<unsigned int>(NM_CUSTOMDRAW)) {
+				return CustomDraw(pnmh);
+			} else if (pnmh->code == static_cast<unsigned int>(TTN_GETDISPINFO)) {
+				NMTTDISPINFOW *pnmtdi = (LPNMTTDISPINFO) lParam;
+				int idButton = (pnmtdi->uFlags & TTF_IDISHWND) ?
+					::GetDlgCtrlID(reinterpret_cast<HWND>(pnmtdi->hdr.idFrom)) : pnmtdi->hdr.idFrom;
+				for (size_t i=0; toggles[i].label; i++) {
+					if (toggles[i].id == idButton) {
+						GUI::gui_string localised = localiser->Text(toggles[i].label);
+						wcscpy(pnmtdi->szText, localised.c_str());
+					}
+				}
+				return 0;
+			} else {
+				return ::DefWindowProc(Hwnd(), iMessage, wParam, lParam);
+			}
+		}
+
+	default:
+		return ::DefWindowProc(Hwnd(), iMessage, wParam, lParam);
+	}
+
+	return 0l;
+}
+
+void SearchStrip::Creation() {
+	Strip::Creation();
+
+	wStaticFind = CreateText(textFindPrompt);
+
+	wText = CreateWindowEx(WS_EX_CLIENTEDGE, TEXT("Edit"), TEXT(""),
+		WS_CHILD | WS_TABSTOP | WS_CLIPSIBLINGS | ES_AUTOHSCROLL,
+		50, 2, 300, 21,
+		Hwnd(), reinterpret_cast<HMENU>(IDC_INCFINDTEXT), ::GetModuleHandle(NULL), 0);
+	wText.Show();
+
+	SetFontHandle(wText, fontText);
+
+	wButton = CreateButton(textFindNext, IDC_INCFINDBTNOK);
+
+	GUI::Rectangle rcButton = wButton.GetPosition();
+	lineHeight = rcButton.Height() + 3;
+}
+
+void SearchStrip::Destruction() {
+	Strip::Destruction();
+}
+
+void SearchStrip::SetSearcher(Searcher *pSearcher_) {
+	pSearcher = pSearcher_;
+}
+
+void SearchStrip::Close() {
+	entered++;
+	::SetWindowText(HwndOf(wText), TEXT(""));
+	entered--;
+	Strip::Close();
+	pSearcher->UIClosed();
+}
+
+void SearchStrip::Size() {
+	if (!visible)
+		return;
+	Strip::Size();
+	GUI::Rectangle rcArea = GetPosition();
+
+	rcArea.bottom -= rcArea.top;
+	rcArea.right -= rcArea.left;
+
+	rcArea.left = 2;
+	rcArea.top = 2;
+	rcArea.right -= 2;
+	rcArea.bottom -= 2;
+
+	rcArea.right -= closeSize.cx + 2;	// Allow for close box and gap
+
+	GUI::Rectangle rcButton = rcArea;
+	rcButton.top -= 1;
+	rcButton.bottom += 1;
+	rcButton.left = rcButton.right - WidthControl(wButton);
+	wButton.SetPosition(rcButton);
+
+	GUI::Rectangle rcText = rcArea;
+	rcText.left = WidthControl(wStaticFind) + 8;
+	rcText.right = rcButton.left - 4;
+	wText.SetPosition(rcText);
+
+	rcText.right = rcText.left - 4;
+	rcText.left = 4;
+	rcText.top = rcArea.top + 3;
+
+	wStaticFind.SetPosition(rcText);
+
+	::InvalidateRect(Hwnd(), NULL, TRUE);
+}
+
+void SearchStrip::Paint(HDC hDC) {
+	Strip::Paint(hDC);
+}
+
+void SearchStrip::Focus() {
+	::SetFocus(HwndOf(wText));
+}
+
+bool SearchStrip::KeyDown(WPARAM key) {
+	if (!visible)
+		return false;
+	if (Strip::KeyDown(key))
+		return true;
+
+	if (key == VK_RETURN) {
+		if (IsChild(Hwnd(), ::GetFocus())) {
+//!			Next(false);
+			Next(false, IsKeyDown(VK_SHIFT)); //!-change-[reverse.find]
+			return true;
+		}
+	}
+
+	return false;
+}
+
+//!void SearchStrip::Next(bool select) {
+void SearchStrip::Next(bool select, bool reverseSearch) { //!-change-[reverse.find]
+	SString ffLastWhat = pSearcher->findWhat;
+	pSearcher->findWhat = ControlText(wText);
+
+	if (select) {
+		if (ffLastWhat.length()) {
+			pSearcher->MoveBack(ffLastWhat.length());
+		}
+	}
+	pSearcher->wholeWord = false;
+	if (pSearcher->FindHasText())
+//!		pSearcher->FindNext(false, false);
+		pSearcher->FindNext(reverseSearch, false); //!-change-[reverse.find]
+ 	if ((!pSearcher->havefound) &&
+		strncmp(pSearcher->findWhat.c_str(), ffLastWhat.c_str(), ffLastWhat.length()) == 0) {
+		// Could not find string with added character so revert to previous value.
+		pSearcher->findWhat = ffLastWhat;
+		entered++;
+		GUI::gui_string gsPrevious = GUI::StringFromUTF8(ffLastWhat.c_str());
+		::SetWindowText(HwndOf(wText), gsPrevious.c_str());
+		::SendMessage(HwndOf(wText), EM_SETSEL, gsPrevious.length(), gsPrevious.length());
+		entered--;
+	}
+}
+
+bool SearchStrip::Command(WPARAM wParam) {
+	if (entered)
+		return false;
+	int control = ControlIDOfCommand(wParam);
+	int subCommand = wParam >> 16;
+	if (((control == IDC_INCFINDTEXT) && (subCommand == EN_CHANGE)) ||
+		(control == IDC_INCFINDBTNOK)) {
+		Next(control != IDC_INCFINDBTNOK);
+		return true;
+	}
+	return false;
+}
+
+LRESULT SearchStrip::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
+	try {
+
+	return Strip::WndProc(iMessage, wParam, lParam);
+
+	/*
+	switch (iMessage) {
+
+	default:
+
+	}
+	*/
+	} catch (...) {
+	}
+	return 0l;
+}
+
+void FindStrip::Creation() {
+	Strip::Creation();
+
+	wStaticFind = CreateText(textFindPrompt);
+
+	wText = CreateWindowEx(0, TEXT("ComboBox"), TEXT(""),
+		WS_CHILD | WS_TABSTOP | WS_CLIPSIBLINGS | CBS_DROPDOWN | CBS_AUTOHSCROLL,
+		50, 2, 300, 80,
+		Hwnd(), reinterpret_cast<HMENU>(IDFINDWHAT), ::GetModuleHandle(NULL), 0);
+	SetFontHandle(wText, fontText);
+	wText.Show();
+
+	GUI::Rectangle rcCombo = wText.GetPosition();
+	lineHeight = rcCombo.Height() + 3;
+
+	wButton = CreateButton(textFindNext, IDOK);
+	wButtonMarkAll = CreateButton(textMarkAll, IDMARKALL);
+
+	wCheckWord = CreateButton(toggles[Toggle::tWord].label, toggles[Toggle::tWord].id, true);
+	wCheckCase = CreateButton(toggles[Toggle::tCase].label, toggles[Toggle::tCase].id, true);
+	wCheckRE = CreateButton(toggles[Toggle::tRegExp].label, toggles[Toggle::tRegExp].id, true);
+	wCheckBE = CreateButton(toggles[Toggle::tBackslash].label, toggles[Toggle::tBackslash].id, true);
+	wCheckWrap = CreateButton(toggles[Toggle::tWrap].label, toggles[Toggle::tWrap].id, true);
+	wCheckUp = CreateButton(toggles[Toggle::tUp].label, toggles[Toggle::tUp].id, true);
+}
+
+void FindStrip::Destruction() {
+	Strip::Destruction();
+}
+
+void FindStrip::SetSearcher(Searcher *pSearcher_) {
+	pSearcher = pSearcher_;
+}
+
+void FindStrip::Size() {
+	if (!visible)
+		return;
+	Strip::Size();
+	GUI::Rectangle rcArea = GetPosition();
+
+	rcArea.bottom -= rcArea.top;
+	rcArea.right -= rcArea.left;
+
+	rcArea.left = 2;
+	rcArea.top = 2;
+	rcArea.right -= 2;
+	rcArea.bottom -= 2;
+
+	rcArea.right -= closeSize.cx + 2;	// Allow for close box and gap
+
+	GUI::Rectangle rcButton = rcArea;
+	rcButton.top -= 1;
+	rcButton.bottom += 1;
+
+	int checkWidth = rcButton.Height() - 2;	// Using height to make square
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckUp.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckWrap.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckBE.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckRE.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckCase.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckWord.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - WidthControl(wButtonMarkAll);
+	wButtonMarkAll.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - WidthControl(wButton);
+	wButton.SetPosition(rcButton);
+
+	GUI::Rectangle rcText = rcArea;
+	rcText.bottom += 60;
+	rcText.left = WidthControl(wStaticFind) + 8;
+	rcText.right = rcButton.left - 4;
+	wText.SetPosition(rcText);
+	wText.Show();
+
+	rcText.right = rcText.left - 4;
+	rcText.left = 4;
+	rcText.top = rcArea.top + 3;
+	wStaticFind.SetPosition(rcText);
+
+	::InvalidateRect(Hwnd(), NULL, TRUE);
+}
+
+void FindStrip::Paint(HDC hDC) {
+	Strip::Paint(hDC);
+}
+
+void FindStrip::Focus() {
+	::SetFocus(HwndOf(wText));
+}
+
+void FindStrip::Close() {
+	Strip::Close();
+	pSearcher->UIClosed();
+}
+
+bool FindStrip::KeyDown(WPARAM key) {
+	if (!visible)
+		return false;
+	if (Strip::KeyDown(key))
+		return true;
+	switch (key) {
+	case VK_RETURN:
+		if (IsChild(Hwnd(), ::GetFocus())) {
+			if(IsKeyDown(VK_SHIFT)) pSearcher->reverseFind = !pSearcher->reverseFind; //!-add-[reverse.find]
+			Next(false);
+			if(IsKeyDown(VK_SHIFT)) pSearcher->reverseFind = !pSearcher->reverseFind; //!-add-[reverse.find]
+			return true;
+		}
+	}
+	return false;
+}
+
+void FindStrip::Next(bool markAll) {
+	pSearcher->SetFind(ControlText(wText).c_str());
+	if (markAll){
+		pSearcher->MarkAll();
+	}
+	pSearcher->FindNext(pSearcher->reverseFind);
+	if (pSearcher->closeFind) {
+		visible = false;
+		pSearcher->UIClosed();
+	}
+}
+
+void FindStrip::AddToPopUp(GUI::Menu &popup, const char *label, int cmd, bool checked) {
+	GUI::gui_string localised = localiser->Text(label);
+	HMENU menu = reinterpret_cast<HMENU>(popup.GetID());
+	if (0 == localised.length())
+		::AppendMenu(menu, MF_SEPARATOR, 0, TEXT(""));
+	else
+		::AppendMenu(menu, MF_STRING | (checked ? MF_CHECKED : 0), cmd, localised.c_str());
+}
+
+void FindStrip::ShowPopup() {
+	GUI::Menu popup;
+	popup.CreatePopUp();
+	for (int i=Toggle::tWord; i<=Toggle::tUp; i++) {
+		AddToPopUp(popup, toggles[i].label, toggles[i].cmd, pSearcher->FlagFromCmd(toggles[i].cmd));
+	}
+	GUI::Rectangle rcButton = wButton.GetPosition();
+	GUI::Point pt(rcButton.left, rcButton.bottom);
+	popup.Show(pt, *this);
+}
+
+bool FindStrip::Command(WPARAM wParam) {
+	if (entered)
+		return false;
+	int control = ControlIDOfCommand(wParam);
+	if ((control == IDOK) || (control == IDMARKALL)) {
+		Next(control == IDMARKALL);
+		return true;
+	} else {
+		pSearcher->FlagFromCmd(control) = !pSearcher->FlagFromCmd(control);
+	}
+	return false;
+}
+
+LRESULT FindStrip::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
+	try {
+	switch (iMessage) {
+
+	case WM_CONTEXTMENU:
+		ShowPopup();
+		return 0;
+
+	default:
+		return Strip::WndProc(iMessage, wParam, lParam);
+
+	}
+	} catch (...) {
+	}
+	return 0l;
+}
+
+void FindStrip::CheckButtons() {
+	entered++;
+	::SendMessage(reinterpret_cast<HWND>(wCheckWord.GetID()),
+		BM_SETCHECK, pSearcher->wholeWord ? BST_CHECKED : BST_UNCHECKED, 0);
+	::SendMessage(reinterpret_cast<HWND>(wCheckCase.GetID()),
+		BM_SETCHECK, pSearcher->matchCase ? BST_CHECKED : BST_UNCHECKED, 0);
+	::SendMessage(reinterpret_cast<HWND>(wCheckRE.GetID()),
+		BM_SETCHECK, pSearcher->regExp ? BST_CHECKED : BST_UNCHECKED, 0);
+	::SendMessage(reinterpret_cast<HWND>(wCheckWrap.GetID()),
+		BM_SETCHECK, pSearcher->wrapFind ? BST_CHECKED : BST_UNCHECKED, 0);
+	::SendMessage(reinterpret_cast<HWND>(wCheckBE.GetID()),
+		BM_SETCHECK, pSearcher->unSlash ? BST_CHECKED : BST_UNCHECKED, 0);
+	entered--;
+}
+
+void FindStrip::Show() {
+	Focus();
+	HWND combo = GetDlgItem(Hwnd(), IDFINDWHAT);
+	::SendMessage(combo, CB_RESETCONTENT, 0, 0);
+	for (int i = 0; i < pSearcher->memFinds.Length(); i++) {
+		GUI::gui_string gs = GUI::StringFromUTF8(pSearcher->memFinds.At(i).c_str());
+		::SendMessageW(combo, CB_ADDSTRING, 0,
+					reinterpret_cast<LPARAM>(gs.c_str()));
+	}
+	//::SendMessage(combo, CB_SETCURSEL, 0, 0);
+	::SetWindowText(HwndOf(wText), GUI::StringFromUTF8(pSearcher->findWhat.c_str()).c_str());
+	::SendMessage(HwndOf(wText), CB_SETEDITSEL, 0, MAKELPARAM(0, -1));
+	CheckButtons();
+	pSearcher->ScrollEditorIfNeeded();
+}
+
+void ReplaceStrip::Creation() {
+	Strip::Creation();
+
+	lineHeight = 23;
+
+	wStaticFind = CreateText(textFindPrompt);
+
+	wText = CreateWindowEx(0, TEXT("ComboBox"), TEXT(""),
+		WS_CHILD | WS_TABSTOP | WS_CLIPSIBLINGS | CBS_DROPDOWN | CBS_AUTOHSCROLL,
+		50, 2, 300, 80,
+		Hwnd(), reinterpret_cast<HMENU>(IDFINDWHAT), ::GetModuleHandle(NULL), 0);
+	SetFontHandle(wText, fontText);
+	wText.Show();
+
+	GUI::Rectangle rcCombo = wText.GetPosition();
+	lineHeight = rcCombo.Height() + 3;
+
+	wStaticReplace = CreateText(textReplacePrompt);
+
+	wReplace = CreateWindowEx(0, TEXT("ComboBox"), TEXT(""),
+		WS_CHILD | WS_TABSTOP | CBS_DROPDOWN | CBS_AUTOHSCROLL,
+		50, 2, 300, 80,
+		Hwnd(), reinterpret_cast<HMENU>(IDREPLACEWITH), ::GetModuleHandle(NULL), 0);
+	SetFontHandle(wReplace, fontText);
+	wReplace.Show();
+
+	wButtonFind = CreateButton(textFindNext, IDOK);
+	wButtonReplace = CreateButton(textReplace, IDREPLACE);
+
+	wButtonReplaceAll = CreateButton(textReplaceAll, IDREPLACEALL);
+	wButtonReplaceInSelection = CreateButton(textInSelection, IDREPLACEINSEL);
+
+	wCheckWord = CreateButton(toggles[Toggle::tWord].label, toggles[Toggle::tWord].id, true);
+	wCheckRE = CreateButton(toggles[Toggle::tRegExp].label, toggles[Toggle::tRegExp].id, true);
+
+	wCheckCase = CreateButton(toggles[Toggle::tCase].label, toggles[Toggle::tCase].id, true);
+	wCheckBE = CreateButton(toggles[Toggle::tBackslash].label, toggles[Toggle::tBackslash].id, true);
+
+	wCheckWrap = CreateButton(toggles[Toggle::tWrap].label, toggles[Toggle::tWrap].id, true);
+}
+
+void ReplaceStrip::Destruction() {
+	Strip::Destruction();
+}
+
+void ReplaceStrip::SetSearcher(Searcher *pSearcher_) {
+	pSearcher = pSearcher_;
+}
+
+void ReplaceStrip::Size() {
+	if (!visible)
+		return;
+	Strip::Size();
+	GUI::Rectangle rcArea = GetPosition();
+
+	int widthCaption = Maximum(WidthControl(wStaticFind), WidthControl(wStaticReplace));
+
+	rcArea.bottom -= rcArea.top;
+	rcArea.right -= rcArea.left;
+
+	rcArea.left = 2;
+	rcArea.top = 2;
+	rcArea.right -= 2;
+	rcArea.bottom -= 4;
+
+	rcArea.right -= closeSize.cx + 2;	// Allow for close box and gap
+
+	GUI::Rectangle rcLine = rcArea;
+	rcLine.bottom = rcLine.top + lineHeight - 2;
+
+	int widthButtons = Maximum(WidthControl(wButtonFind), WidthControl(wButtonReplace));
+	int widthLastButtons = Maximum(WidthControl(wButtonReplaceAll), WidthControl(wButtonReplaceInSelection));
+
+	GUI::Rectangle rcButton = rcLine;
+	rcButton.top -= 1;
+
+	int checkWidth = rcButton.Height() - 2;	// Using height to make square
+
+	// Allow empty slot to match wrap button on next line
+	rcButton.right = rcButton.right - (checkWidth + 4);
+
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckCase.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckWord.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - widthLastButtons;
+	wButtonReplaceAll.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - widthButtons;
+	wButtonFind.SetPosition(rcButton);
+
+	GUI::Rectangle rcText = rcLine;
+	rcText.bottom += 60;
+	rcText.left = widthCaption + 8;
+	rcText.right = rcButton.left - 4;
+	wText.SetPosition(rcText);
+
+	GUI::Rectangle rcStatic = rcLine;
+	rcStatic.right = rcText.left - 4;
+	rcStatic.left = 4;
+	rcStatic.top = rcLine.top + 3;
+	wStaticFind.SetPosition(rcStatic);
+
+	rcLine.top = rcLine.top + lineHeight;
+	rcLine.bottom = rcLine.bottom + lineHeight;
+
+	rcButton = rcLine;
+	rcButton.top -= 1;
+
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckWrap.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckBE.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - checkWidth;
+	wCheckRE.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - widthLastButtons;
+	wButtonReplaceInSelection.SetPosition(rcButton);
+
+	rcButton.right = rcButton.left - 4;
+	rcButton.left = rcButton.right - widthButtons;
+	wButtonReplace.SetPosition(rcButton);
+
+	GUI::Rectangle rcReplace = rcLine;
+	rcReplace.bottom += 60;
+	rcReplace.left = rcText.left;
+	rcReplace.right = rcText.right;
+	wReplace.SetPosition(rcReplace);
+
+	rcStatic = rcLine;
+	rcStatic.right = rcReplace.left - 4;
+	rcStatic.left = 4;
+	rcStatic.top = rcLine.top + 3;
+	wStaticReplace.SetPosition(rcStatic);
+
+	::InvalidateRect(Hwnd(), NULL, TRUE);
+}
+
+void ReplaceStrip::Paint(HDC hDC) {
+	Strip::Paint(hDC);
+}
+
+void ReplaceStrip::Focus() {
+	::SetFocus(HwndOf(wText));
+}
+
+void ReplaceStrip::Close() {
+	Strip::Close();
+	pSearcher->UIClosed();
+}
+
+static bool IsSameOrChild(GUI::Window &wParent, HWND wChild) {
+	HWND hwnd = reinterpret_cast<HWND>(wParent.GetID());
+	return (wChild == hwnd) || IsChild(hwnd, wChild);
+}
+
+bool ReplaceStrip::KeyDown(WPARAM key) {
+	if (!visible)
+		return false;
+	if (Strip::KeyDown(key))
+		return true;
+	switch (key) {
+	case VK_RETURN:
+		if (IsChild(Hwnd(), ::GetFocus())) {
+			if (IsSameOrChild(wButtonFind, ::GetFocus()))
+//!				HandleReplaceCommand(IDOK);
+				HandleReplaceCommand(IDOK, IsKeyDown(VK_SHIFT)); //!-change-[reverse.find]
+			else if (IsSameOrChild(wReplace, ::GetFocus()))
+//!				HandleReplaceCommand(IDOK);
+				HandleReplaceCommand(IDOK, IsKeyDown(VK_SHIFT)); //!-change-[reverse.find]
+			else if (IsSameOrChild(wButtonReplace, ::GetFocus()))
+				HandleReplaceCommand(IDREPLACE);
+			else if (IsSameOrChild(wButtonReplaceAll, ::GetFocus()))
+				HandleReplaceCommand(IDREPLACEALL);
+			else if (IsSameOrChild(wButtonReplaceInSelection, ::GetFocus()))
+				HandleReplaceCommand(IDREPLACEINSEL);
+			else
+//!				HandleReplaceCommand(IDOK);
+				HandleReplaceCommand(IDOK, IsKeyDown(VK_SHIFT)); //!-change-[reverse.find]
+			return true;
+		}
+	}
+	return false;
+}
+
+void ReplaceStrip::AddToPopUp(GUI::Menu &popup, const char *label, int cmd, bool checked) {
+	GUI::gui_string localised = localiser->Text(label);
+	HMENU menu = reinterpret_cast<HMENU>(popup.GetID());
+	if (0 == localised.length())
+		::AppendMenu(menu, MF_SEPARATOR, 0, TEXT(""));
+	else
+		::AppendMenu(menu, MF_STRING | (checked ? MF_CHECKED : 0), cmd, localised.c_str());
+}
+
+void ReplaceStrip::ShowPopup() {
+	GUI::Menu popup;
+	popup.CreatePopUp();
+	for (int i=Toggle::tWord; i<=Toggle::tWrap; i++) {
+		AddToPopUp(popup, toggles[i].label, toggles[i].cmd, pSearcher->FlagFromCmd(toggles[i].cmd));
+	}
+	GUI::Rectangle rcButton = wCheckWord.GetPosition();
+	GUI::Point pt(rcButton.left, rcButton.bottom);
+	popup.Show(pt, *this);
+}
+
+//!void ReplaceStrip::HandleReplaceCommand(int cmd) {
+void ReplaceStrip::HandleReplaceCommand(int cmd, bool reverseFind) { 	//!-change-[reverse.find]
+	pSearcher->SetFind(ControlText(wText).c_str());
+	if (cmd != IDOK) {
+		pSearcher->SetReplace(ControlText(wReplace).c_str());
+	}
+	//int replacements = 0;
+	if (cmd == IDOK) {
+		if (pSearcher->FindHasText()) {
+//!			pSearcher->FindNext(false);
+			pSearcher->FindNext(/*false*/ reverseFind); //!-change-[reverse.find]
+		}
+	} else if (cmd == IDREPLACE) {
+		pSearcher->ReplaceOnce();
+	} else if ((cmd == IDREPLACEALL) || (cmd == IDREPLACEINSEL)) {
+		//~ replacements = pSciTEWin->ReplaceAll(cmd == IDREPLACEINSEL);
+		pSearcher->ReplaceAll(cmd == IDREPLACEINSEL);
+	}
+	//GUI::gui_string replDone = GUI::StringFromInteger(replacements);
+	//dlg.SetItemText(IDREPLDONE, replDone.c_str());
+}
+
+bool ReplaceStrip::Command(WPARAM wParam) {
+	if (entered)
+		return false;
+	int control = ControlIDOfCommand(wParam);
+	switch (control) {
+
+	case IDFINDWHAT:
+		switch (HIWORD(wParam)) {
+		case CBN_SETFOCUS:
+		case CBN_KILLFOCUS:
+		case CBN_SELENDCANCEL:
+			return false;
+		default:
+			return false;
+		}
+
+	case IDOK:
+	case IDREPLACEALL:
+	case IDREPLACE:
+	case IDREPLACEINSEL:
+		HandleReplaceCommand(control);
+		return true;
+
+	default:
+		pSearcher->FlagFromCmd(control) = !pSearcher->FlagFromCmd(control);
+		break;
+	}
+	CheckButtons();
+	return false;
+}
+
+LRESULT ReplaceStrip::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
+	try {
+	switch (iMessage) {
+
+	case WM_CONTEXTMENU:
+		ShowPopup();
+		return 0;
+
+	default:
+		return Strip::WndProc(iMessage, wParam, lParam);
+
+	}
+	} catch (...) {
+	}
+	return 0l;
+}
+
+void ReplaceStrip::CheckButtons() {
+	entered++;
+	::SendMessage(reinterpret_cast<HWND>(wCheckWord.GetID()),
+		BM_SETCHECK, pSearcher->wholeWord ? BST_CHECKED : BST_UNCHECKED, 0);
+	::SendMessage(reinterpret_cast<HWND>(wCheckCase.GetID()),
+		BM_SETCHECK, pSearcher->matchCase ? BST_CHECKED : BST_UNCHECKED, 0);
+	::SendMessage(reinterpret_cast<HWND>(wCheckRE.GetID()),
+		BM_SETCHECK, pSearcher->regExp ? BST_CHECKED : BST_UNCHECKED, 0);
+	::SendMessage(reinterpret_cast<HWND>(wCheckWrap.GetID()),
+		BM_SETCHECK, pSearcher->wrapFind ? BST_CHECKED : BST_UNCHECKED, 0);
+	::SendMessage(reinterpret_cast<HWND>(wCheckBE.GetID()),
+		BM_SETCHECK, pSearcher->unSlash ? BST_CHECKED : BST_UNCHECKED, 0);
+	entered--;
+}
+
+void ReplaceStrip::Show() {
+	Focus();
+	HWND combo = GetDlgItem(Hwnd(), IDFINDWHAT);
+	::SendMessage(combo, CB_RESETCONTENT, 0, 0);
+	for (int i = 0; i < pSearcher->memFinds.Length(); i++) {
+		GUI::gui_string gs = GUI::StringFromUTF8(pSearcher->memFinds.At(i).c_str());
+		::SendMessageW(combo, CB_ADDSTRING, 0,
+					reinterpret_cast<LPARAM>(gs.c_str()));
+	}
+	//::SendMessage(combo, CB_SETCURSEL, 0, 0);
+	::SetWindowText(HwndOf(wText), GUI::StringFromUTF8(pSearcher->findWhat.c_str()).c_str());
+	::SendMessage(HwndOf(wText), CB_SETEDITSEL, 0, MAKELPARAM(0, -1));
+
+	HWND comboReplace = GetDlgItem(Hwnd(), IDREPLACEWITH);
+	::SendMessage(comboReplace, CB_RESETCONTENT, 0, 0);
+	for (int j = 0; j < pSearcher->memReplaces.Length(); j++) {
+		GUI::gui_string gs = GUI::StringFromUTF8(pSearcher->memReplaces.At(j).c_str());
+		::SendMessageW(comboReplace, CB_ADDSTRING, 0,
+					reinterpret_cast<LPARAM>(gs.c_str()));
+	}
+
+	CheckButtons();
+
+	if (pSearcher->FindHasText() != 0 && pSearcher->focusOnReplace) {
+		::SetFocus(comboReplace);
+	}
+
+	pSearcher->ScrollEditorIfNeeded();
+}
+
+LRESULT PASCAL BaseWin::StWndProc(
+    HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) {
 	// Find C++ object associated with window.
-	SciTEWin *scite = reinterpret_cast<SciTEWin *>(::PointerFromWindow(hWnd));
+	BaseWin *base = reinterpret_cast<BaseWin *>(::PointerFromWindow(hWnd));
 	// scite will be zero if WM_CREATE not seen yet
-	if (scite == 0) {
+	if (base == 0) {
 		if (iMessage == WM_CREATE) {
 			LPCREATESTRUCT cs = reinterpret_cast<LPCREATESTRUCT>(lParam);
-			scite = reinterpret_cast<SciTEWin *>(cs->lpCreateParams);
-			scite->wContent = hWnd;
-			SetWindowPointer(hWnd, scite);
-			return scite->WndProcI(iMessage, wParam, lParam);
+			base = reinterpret_cast<BaseWin *>(cs->lpCreateParams);
+			SetWindowPointer(hWnd, base);
+			base->SetID(hWnd);
+			return base->WndProc(iMessage, wParam, lParam);
 		} else
 			return ::DefWindowProc(hWnd, iMessage, wParam, lParam);
 	} else
-		return scite->WndProcI(iMessage, wParam, lParam);
+		return base->WndProc(iMessage, wParam, lParam);
 }
 
-// from ScintillaWin.cxx
-static UINT CodePageFromCharSet(DWORD characterSet, UINT documentCodePage) {
-	CHARSETINFO ci = { 0, 0, { { 0, 0, 0, 0 }, { 0, 0 } } };
-	BOOL bci = ::TranslateCharsetInfo((DWORD*)characterSet,
-	                                  &ci, TCI_SRCCHARSET);
-
-	UINT cp;
-	if (bci)
-		cp = ci.ciACP;
-	else
-		cp = documentCodePage;
-
-	CPINFO cpi;
-	if (!::IsValidCodePage(cp) && !::GetCPInfo(cp, &cpi))
-		cp = CP_ACP;
-
-	return cp;
-}
-
-// On NT, convert String from UTF-8 to doc encoding
+// Convert String from UTF-8 to doc encoding
 SString SciTEWin::EncodeString(const SString &s) {
 	//::MessageBox(GetFocus(),SString(s).c_str(),"EncodeString:in",0);
 
-	if (isWindowsNT) {
-		UINT codePage = SendEditor(SCI_GETCODEPAGE);
+	UINT codePage = wEditor.Call(SCI_GETCODEPAGE);
 
-		if (codePage != SC_CP_UTF8) {
-			DWORD charSet = props.GetInt("character.set", DEFAULT_CHARSET);
-			codePage = CodePageFromCharSet(charSet, codePage);
+	if (codePage != SC_CP_UTF8) {
+		codePage = CodePageFromCharSet(characterSet, codePage);
 
 			int cchWide = ::MultiByteToWideChar(CP_UTF8, 0, s.c_str(), s.length(), NULL, 0);
 			wchar_t *pszWide = new wchar_t[cchWide + 1];
@@ -2054,20 +3440,17 @@ SString SciTEWin::EncodeString(const SString &s) {
 			//::MessageBox(GetFocus(),result.c_str(),"EncodeString:out",0);
 			return result;
 		}
-	}
 	return SciTEBase::EncodeString(s);
 }
 
-// On NT, convert String from doc encoding to UTF-8
-SString SciTEWin::GetRangeInUIEncoding(Window &win, int selStart, int selEnd) {
+// Convert String from doc encoding to UTF-8
+SString SciTEWin::GetRangeInUIEncoding(GUI::ScintillaWindow &win, int selStart, int selEnd) {
 	SString s = SciTEBase::GetRangeInUIEncoding(win, selStart, selEnd);
 
-	if (isWindowsNT) {
-		UINT codePage = SendEditor(SCI_GETCODEPAGE);
+	UINT codePage = wEditor.Call(SCI_GETCODEPAGE);
 
-		if (codePage != SC_CP_UTF8) {
-			DWORD charSet = props.GetInt("character.set", DEFAULT_CHARSET);
-			codePage = CodePageFromCharSet(charSet, codePage);
+	if (codePage != SC_CP_UTF8) {
+		codePage = CodePageFromCharSet(characterSet, codePage);
 
 			int cchWide = ::MultiByteToWideChar(codePage, 0, s.c_str(), s.length(), NULL, 0);
 			wchar_t *pszWide = new wchar_t[cchWide + 1];
@@ -2085,7 +3468,6 @@ SString SciTEWin::GetRangeInUIEncoding(Window &win, int selStart, int selEnd) {
 
 			return result;
 		}
-	}
 	return s;
 }
 
@@ -2094,16 +3476,13 @@ int SciTEWin::EventLoop() {
 	msg.wParam = 0;
 	bool going = true;
 	while (going) {
-		going = isWindowsNT ? ::GetMessageW(&msg, NULL, 0, 0) : ::GetMessageA(&msg, NULL, 0, 0);
+		going = ::GetMessageW(&msg, NULL, 0, 0);
 		if (going) {
 			if (!ModelessHandler(&msg)) {
 				if (!GetID() ||
 					::TranslateAccelerator(reinterpret_cast<HWND>(GetID()), GetAcceleratorTable(), &msg) == 0) {
 					::TranslateMessage(&msg);
-					if (isWindowsNT)
 						::DispatchMessageW(&msg);
-					else
-						::DispatchMessageA(&msg);
 				}
 			}
 		}
@@ -2111,7 +3490,15 @@ int SciTEWin::EventLoop() {
 	return msg.wParam;
 }
 
-int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpszCmdLine, int) {
+int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
+
+	typedef BOOL (WINAPI *SetDllDirectorySig)(LPCTSTR lpPathName);
+	SetDllDirectorySig SetDllDirectoryFn = (SetDllDirectorySig)::GetProcAddress(
+		::GetModuleHandle(TEXT("kernel32.dll")), "SetDllDirectoryW");
+	if (SetDllDirectoryFn) {
+		// For security, remove current directory from the DLL search path
+		SetDllDirectoryFn(TEXT(""));
+	}
 
 #ifdef NO_EXTENSIONS
 	Extension *extender = 0;
@@ -2128,7 +3515,6 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpszCmdLine, int) {
 	multiExtender.RegisterExtension(DirectorExtension::Instance());
 #endif
 #endif
-	//Platform::DebugPrintf("Command line is \n%s\n<<", lpszCmdLine);
 
 	SciTEWin::Register(hInstance);
 #ifdef STATIC_BUILD
@@ -2137,15 +3523,29 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpszCmdLine, int) {
 	Scintilla_RegisterClasses(hInstance);
 #else
 
-	HMODULE hmod = ::LoadLibrary("SciLexer.DLL");
+	HMODULE hmod = ::LoadLibrary(TEXT("SciLexer.DLL"));
 	if (hmod == NULL)
-		::MessageBox(NULL, "The Scintilla DLL could not be loaded.  SciTE will now close", "Error loading Scintilla", MB_OK | MB_ICONERROR);
+		::MessageBox(NULL, TEXT("The Scintilla DLL could not be loaded.  SciTE will now close"),
+			TEXT("Error loading Scintilla"), MB_OK | MB_ICONERROR);
 #endif
 
 	int result;
 	{
 		SciTEWin MainWind(extender);
-		MainWind.Run(lpszCmdLine);
+		LPTSTR lptszCmdLine = GetCommandLine();
+		if (*lptszCmdLine == '\"') {
+			lptszCmdLine++;
+			while (*lptszCmdLine && (*lptszCmdLine != '\"'))
+				lptszCmdLine++;
+			if (*lptszCmdLine == '\"')
+				lptszCmdLine++;
+		} else {
+			while (*lptszCmdLine && (*lptszCmdLine != ' '))
+				lptszCmdLine++;
+		}
+		while (*lptszCmdLine == ' ')
+			lptszCmdLine++;
+		MainWind.Run(lptszCmdLine);
 		result = MainWind.EventLoop();
 	}
 
@@ -2160,14 +3560,33 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpszCmdLine, int) {
 }
 
 //!-start-[ExtendedContextMenu]
-void MenuEx::Add(const char * label, int cmd, int enabled, const char *mnemonic, int position) {
+void MenuEx::CreatePopUp(MenuEx*) {
+	Destroy();
+	mid = ::CreatePopupMenu();
+}
+
+void MenuEx::Destroy() {
+	if (mid) {
+		::DestroyMenu(reinterpret_cast<HMENU>(mid));
+		mid = 0;
+	}
+}
+
+void MenuEx::Show(GUI::Point pt, GUI::Window &w) {
+	::TrackPopupMenu(reinterpret_cast<HMENU>(mid),
+		0, pt.x - 4, pt.y, 0,
+		reinterpret_cast<HWND>(w.GetID()), NULL);
+	Destroy();
+}
+
+void MenuEx::Add(const wchar_t *label, int cmd, int enabled, const char *mnemonic, int position) {
 	HMENU menu = reinterpret_cast<HMENU>(GetID());
-	SString sTextMnemonic = label?label:"";
+	GUI::gui_string sTextMnemonic = label ? label : GUI_TEXT("");
 	long keycode = 0;
 	if (mnemonic && *mnemonic) {
 		keycode = SciTEKeys::ParseKeyCode(mnemonic);
 		if (keycode)
-			sTextMnemonic += "\t" + SString(mnemonic);
+			sTextMnemonic += GUI_TEXT("\t") + GUI::StringFromUTF8(mnemonic);
 	}
 
 	UINT flags;
@@ -2188,7 +3607,7 @@ void MenuEx::Add(const char * label, int cmd, int enabled, const char *mnemonic,
 		}
 	}
 
-	::InsertMenu(menu, (UINT)position, flags, cmd, sTextMnemonic.c_str());
+	::InsertMenuW(menu, (UINT)position, flags, cmd, sTextMnemonic.c_str());
 	
 	if (cmd >= IDM_TOOLS && cmd < IDM_TOOLSMAX) {
 		MENUITEMINFO mii;
@@ -2199,11 +3618,11 @@ void MenuEx::Add(const char * label, int cmd, int enabled, const char *mnemonic,
 	}
 }
 
-void MenuEx::AddSubMenu(const char *label, Menu &subMenu, int position) {
-	if ( label && strlen(label) && subMenu.GetID())
+void MenuEx::AddSubMenu(const wchar_t *label, MenuEx &subMenu, int position) {
+	if ( label && *label && subMenu.GetID())
 	{
 		HMENU menu = reinterpret_cast<HMENU>(GetID());
-		::InsertMenu(menu, (UINT)position, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT)subMenu.GetID(), label);
+		::InsertMenuW(menu, (UINT)position, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT)subMenu.GetID(), label);
 	}
 }
 
@@ -2228,17 +3647,6 @@ void MenuEx::RemoveItems(int fromID, int toID/*-1*/) {
 			if (::GetMenuItemID(hMenu, i) >= (UINT)fromID && ::GetMenuItemID(hMenu, i) <= (UINT)toID)
 				::DeleteMenu(hMenu, i, MF_BYPOSITION);
 		}
-	}
-}
-
-void MenuEx::RemoveItem(int itemID, bool byPos) {
-	if ( GetID() )
-	{
-		HMENU hMenu = reinterpret_cast<HMENU>(GetID());
-		if (byPos)
-			::DeleteMenu(hMenu, itemID, MF_BYPOSITION);
-		else
-			::DeleteMenu(hMenu, itemID, MF_BYCOMMAND);
 	}
 }
 //!-end-[ExtendedContextMenu]

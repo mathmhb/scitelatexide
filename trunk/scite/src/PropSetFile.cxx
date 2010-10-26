@@ -17,22 +17,39 @@
 #pragma warning(disable: 4786)
 #endif
 
-//#include <string> //!-change-[no_wornings]
-//#include <map> //!-change-[no_wornings]
+#include <string>
+#include <map>
 
-#include "Platform.h"
-
-#if PLAT_GTK
+#if defined(GTK)
 
 #include <unistd.h>
+#else
+//!-add-[qhs] add for using MessageBoxA
+#undef _WIN32_WINNT
+#define _WIN32_WINNT  0x0500
+#ifdef _MSC_VER
+// windows.h, et al, use a lot of nameless struct/unions - can't fix it, so allow it
+#pragma warning(disable: 4201)
+#endif
+#include <windows.h>
+#ifdef _MSC_VER
+// okay, that's done, don't allow it in our code
+#pragma warning(default: 4201)
+#endif
+//-end-add-[qhs]
 
 #endif
 
-#include "PropSet.h"
+#include "Scintilla.h"
+
+#include "GUI.h"
 
 #include "SString.h"
 #include "FilePath.h"
 #include "PropSetFile.h"
+
+#include "Platform.h" 
+//~ #include "SciTEWin.h"
 
 // The comparison and case changing functions here assume ASCII
 // or extended ASCII such as the normal Windows code page.
@@ -293,15 +310,15 @@ bool PropSetFile::ReadLine(const char *lineBuffer, bool ifIsTrue, FilePath direc
 		
 	} else if (isPrefix(lineBuffer, "import ") && directoryForImports.IsSet()) {
 		SString importName(lineBuffer + strlen("import") + 1);
-		//!importName += ".properties";
+//!		importName += ".properties";
 		bool loaded = false; //!-add-[import]
-		FilePath importPath(directoryForImports, FilePath(importName.c_str()));
+		FilePath importPath(directoryForImports, FilePath(GUI::StringFromUTF8(importName.c_str())));
 		if (Read(importPath, directoryForImports, imports, sizeImports)) {
 //!-start-[import]
 			loaded = true;
 		} else {
 			importName += ".properties";
-			importPath.Set(directoryForImports, FilePath(importName.c_str()));
+			importPath.Set(directoryForImports, FilePath(GUI::StringFromUTF8(importName.c_str())));
 			if (Read(importPath, directoryForImports, imports, sizeImports)) {
 				loaded = true;
 			}
@@ -500,7 +517,7 @@ SString PropSetFile::GetFileType(const char *filename) {
 			break;
 		}
 		if (q) {p=q+1;} else {break;}
-		if (strstr(filename,"configure") && MessageBox(NULL,p,q,MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+		if (strstr(filename,"configure") && MessageBox(NULL,GUI::StringFromUTF8(p).c_str(),GUI::StringFromUTF8(q).c_str(),MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
 
 	}
 	delete []p0;
@@ -624,13 +641,6 @@ const char * PropSetFile::GetString( const char *key ) const
 }
 //!-end-[FindResultListStyle]
 
-//!-start-[no_wornings]
-void PropSetFile::SetCaseSensitiveFilenames( bool caseSensitiveFilenames_ )
-{
-	caseSensitiveFilenames = caseSensitiveFilenames_;
-}
-//!-end-[no_wornings]
-
 static inline bool IsLetter(char ch) {
 	return ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'));
 }
@@ -697,10 +707,12 @@ SString &SString::assign(const char *sOther, lenpos_t sSize_) {
 		sSize_ = strlen(sOther);
 	}
 	if (sSize > 0 && sSize_ <= sSize) {	// Does not allocate new buffer if the current is big enough
-		if (s && sSize_) {
+		if (s) {
+			if (sSize_) {
 			memcpy(s, sOther, sSize_);
 		}
 		s[sSize_] = '\0';
+		}
 		sLen = sSize_;
 	} else {
 		delete []s;

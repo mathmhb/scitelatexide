@@ -12,7 +12,8 @@
 #include <stdio.h>
 #include <time.h>
 
-#define _WIN32_WINNT  0x0400
+#undef _WIN32_WINNT
+#define _WIN32_WINNT  0x0500
 #include <windows.h>
 #include <commctrl.h>
 #include <richedit.h>
@@ -23,6 +24,13 @@
 #include "UniConversion.h"
 #include "XPM.h"
 #include "FontQuality.h"
+
+// We want to use multi monitor functions, but via LoadLibrary etc
+// Luckily microsoft has done the heavy lifting for us, so we'll just use their stub functions!
+#if (defined(_MSC_VER) && (MSC_VER > 1200)) || defined(__BORLANDC__)
+#define COMPILE_MULTIMON_STUBS
+#include "MultiMon.h"
+#endif
 
 #ifndef IDC_HAND
 #define IDC_HAND MAKEINTRESOURCE(32649)
@@ -372,8 +380,8 @@ class SurfaceImpl : public Surface {
 	void SetFont(Font &font_);
 
 	// Private so SurfaceImpl objects can not be copied
-	SurfaceImpl(const SurfaceImpl &) : Surface() {}
-	SurfaceImpl &operator=(const SurfaceImpl &) { return *this; }
+	SurfaceImpl(const SurfaceImpl &);
+	SurfaceImpl &operator=(const SurfaceImpl &);
 public:
 	SurfaceImpl();
 	virtual ~SurfaceImpl();
@@ -617,6 +625,18 @@ static void AllFour(DWORD *pixels, int width, int height, int x, int y, DWORD va
 #define AC_SRC_ALPHA		0x01
 #endif
 
+static DWORD dwordFromBGRA(byte b, byte g, byte r, byte a) {
+	union {
+		byte pixVal[4];
+		DWORD val;
+	} converter;
+	converter.pixVal[0] = b;
+	converter.pixVal[1] = g;
+	converter.pixVal[2] = r;
+	converter.pixVal[3] = a;
+	return converter.val;
+}
+
 void SurfaceImpl::AlphaRectangle(PRectangle rc, int cornerSize, ColourAllocated fill, int alphaFill,
 		ColourAllocated outline, int alphaOutline, int /* flags*/ ) {
 	if (AlphaBlendFn && rc.Width() > 0) {
@@ -632,18 +652,17 @@ void SurfaceImpl::AlphaRectangle(PRectangle rc, int cornerSize, ColourAllocated 
 
 		HBITMAP hbmOld = SelectBitmap(hMemDC, hbmMem);
 
-		byte pixVal[4] = {0};
-		DWORD valEmpty = *(reinterpret_cast<DWORD *>(pixVal));
-		pixVal[0] = static_cast<byte>(GetBValue(fill.AsLong()) * alphaFill / 255);
-		pixVal[1] = static_cast<byte>(GetGValue(fill.AsLong()) * alphaFill / 255);
-		pixVal[2] = static_cast<byte>(GetRValue(fill.AsLong()) * alphaFill / 255);
-		pixVal[3] = static_cast<byte>(alphaFill);
-		DWORD valFill = *(reinterpret_cast<DWORD *>(pixVal));
-		pixVal[0] = static_cast<byte>(GetBValue(outline.AsLong()) * alphaOutline / 255);
-		pixVal[1] = static_cast<byte>(GetGValue(outline.AsLong()) * alphaOutline / 255);
-		pixVal[2] = static_cast<byte>(GetRValue(outline.AsLong()) * alphaOutline / 255);
-		pixVal[3] = static_cast<byte>(alphaOutline);
-		DWORD valOutline = *(reinterpret_cast<DWORD *>(pixVal));
+		DWORD valEmpty = dwordFromBGRA(0,0,0,0);
+		DWORD valFill = dwordFromBGRA(
+			static_cast<byte>(GetBValue(fill.AsLong()) * alphaFill / 255),
+			static_cast<byte>(GetGValue(fill.AsLong()) * alphaFill / 255),
+			static_cast<byte>(GetRValue(fill.AsLong()) * alphaFill / 255),
+			static_cast<byte>(alphaFill));
+		DWORD valOutline = dwordFromBGRA(
+			static_cast<byte>(GetBValue(outline.AsLong()) * alphaOutline / 255),
+			static_cast<byte>(GetGValue(outline.AsLong()) * alphaOutline / 255),
+			static_cast<byte>(GetRValue(outline.AsLong()) * alphaOutline / 255),
+			static_cast<byte>(alphaOutline));
 		DWORD *pixels = reinterpret_cast<DWORD *>(image);
 		for (int y=0; y<height; y++) {
 			for (int x=0; x<width; x++) {
@@ -1018,25 +1037,36 @@ void Window::SetPosition(PRectangle rc) {
 void Window::SetPositionRelative(PRectangle rc, Window w) {
 	LONG style = ::GetWindowLong(reinterpret_cast<HWND>(wid), GWL_STYLE);
 	if (style & WS_POPUP) {
-		RECT rcOther;
-		::GetWindowRect(reinterpret_cast<HWND>(w.GetID()), &rcOther);
-		rc.Move(rcOther.left, rcOther.top);
+		POINT ptOther = {0, 0};
+		::ClientToScreen(reinterpret_cast<HWND>(w.GetID()), &ptOther);
+		rc.Move(ptOther.x, ptOther.y);
 
-		// Retrieve desktop bounds and make sure window popup's origin isn't left-top of the screen.
-		RECT rcDesktop = {0, 0, 0, 0};
-#ifdef SM_XVIRTUALSCREEN
-		rcDesktop.left = ::GetSystemMetrics(SM_XVIRTUALSCREEN);
-		rcDesktop.top = ::GetSystemMetrics(SM_YVIRTUALSCREEN);
-		rcDesktop.right = rcDesktop.left + ::GetSystemMetrics(SM_CXVIRTUALSCREEN);
-		rcDesktop.bottom = rcDesktop.top + ::GetSystemMetrics(SM_CYVIRTUALSCREEN);
+		// This #ifdef is for VC 98 which has problems with MultiMon.h under some conditions.
+#ifdef MONITOR_DEFAULTTONULL
+		// We're using the stub functionality of MultiMon.h to decay gracefully on machines
+		// (ie, pre Win2000, Win95) that do not support the newer functions.
+		RECT rcMonitor;
+		memcpy(&rcMonitor, &rc, sizeof(rcMonitor));  // RECT and Rectangle are the same really.
+		MONITORINFO mi = {0};
+		mi.cbSize = sizeof(mi);
+
+		HMONITOR hMonitor = ::MonitorFromRect(&rcMonitor, MONITOR_DEFAULTTONEAREST);
+		// If hMonitor is NULL, that's just the main screen anyways.
+		::GetMonitorInfo(hMonitor, &mi);
+
+		// Now clamp our desired rectangle to fit inside the work area
+		// This way, the menu will fit wholly on one screen. An improvement even
+		// if you don't have a second monitor on the left... Menu's appears half on
+		// one screen and half on the other are just U.G.L.Y.!
+		if (rc.right > mi.rcWork.right)
+			rc.Move(mi.rcWork.right - rc.right, 0);
+		if (rc.bottom > mi.rcWork.bottom)
+			rc.Move(0, mi.rcWork.bottom - rc.bottom);
+		if (rc.left < mi.rcWork.left)
+			rc.Move(mi.rcWork.left - rc.left, 0);
+		if (rc.top < mi.rcWork.top)
+			rc.Move(0, mi.rcWork.top - rc.top);
 #endif
-
-		if (rc.left < rcDesktop.left) {
-			rc.Move(rcDesktop.left - rc.left,0);
-		}
-		if (rc.top < rcDesktop.top) {
-			rc.Move(0,rcDesktop.top - rc.top);
-		}
 	}
 	SetPosition(rc);
 }
@@ -1120,15 +1150,15 @@ void Window::SetTitle(const char *s) {
 
 /* Returns rectangle of monitor pt is on, both rect and pt are in Window's
    coordinates */
-#ifdef MULTIPLE_MONITOR_SUPPORT
 PRectangle Window::GetMonitorRect(Point pt) {
+#ifdef MONITOR_DEFAULTTONULL
 	// MonitorFromPoint and GetMonitorInfo are not available on Windows 95 so are not used.
 	// There could be conditional code and dynamic loading in a future version
 	// so this would work on those platforms where they are available.
 	PRectangle rcPosition = GetPosition();
 	POINT ptDesktop = {pt.x + rcPosition.left, pt.y + rcPosition.top};
 	HMONITOR hMonitor = ::MonitorFromPoint(ptDesktop, MONITOR_DEFAULTTONEAREST);
-	MONITORINFOEX mi;
+	MONITORINFO mi = {0};
 	memset(&mi, 0, sizeof(mi));
 	mi.cbSize = sizeof(mi);
 	if (::GetMonitorInfo(hMonitor, &mi)) {
@@ -1138,13 +1168,13 @@ PRectangle Window::GetMonitorRect(Point pt) {
 			mi.rcWork.right - rcPosition.left,
 			mi.rcWork.bottom - rcPosition.top);
 		return rcMonitor;
+	} else {
+		return PRectangle();
 	}
-}
 #else
-PRectangle Window::GetMonitorRect(Point) {
 	return PRectangle();
-}
 #endif
+}
 
 struct ListItemData {
 	const char *text;
@@ -1283,8 +1313,8 @@ class ListBoxX : public ListBox {
 	int MinClientWidth() const;
 	int TextOffset() const;
 	Point GetClientExtent() const;
-	Point MinTrackSize() const;
-	Point MaxTrackSize() const;
+	POINT MinTrackSize() const;
+	POINT MaxTrackSize() const;
 	void SetRedraw(bool on);
 	void OnDoubleClick();
 	void ResizeToCursor();
@@ -1292,7 +1322,6 @@ class ListBoxX : public ListBox {
 	int NcHitTest(WPARAM, LPARAM) const;
 	void CentreItem(int);
 	void Paint(HDC);
-	void Erase(HDC);
 	static LRESULT PASCAL ControlWndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
 	static const Point ItemInset;	// Padding around whole item
@@ -1630,19 +1659,21 @@ int ListBoxX::MinClientWidth() const {
 	return 12 * (aveCharWidth+aveCharWidth/3);
 }
 
-Point ListBoxX::MinTrackSize() const {
+POINT ListBoxX::MinTrackSize() const {
 	PRectangle rc(0, 0, MinClientWidth(), ItemHeight());
 	AdjustWindowRect(&rc);
-	return Point(rc.Width(), rc.Height());
+	POINT ret = {rc.Width(), rc.Height()};
+	return ret;
 }
 
-Point ListBoxX::MaxTrackSize() const {
+POINT ListBoxX::MaxTrackSize() const {
 	PRectangle rc(0, 0,
 		maxCharWidth * maxItemCharacters + TextInset.x * 2 +
 		 TextOffset() + ::GetSystemMetrics(SM_CXVSCROLL),
 		ItemHeight() * lti.Count());
 	AdjustWindowRect(&rc);
-	return Point(rc.Width(), rc.Height());
+	POINT ret = {rc.Width(), rc.Height()};
+	return ret;
 }
 
 void ListBoxX::SetRedraw(bool on) {
@@ -1689,8 +1720,8 @@ void ListBoxX::ResizeToCursor() {
 			break;
 	}
 
-	Point ptMin = MinTrackSize();
-	Point ptMax = MaxTrackSize();
+	POINT ptMin = MinTrackSize();
+	POINT ptMax = MaxTrackSize();
 	// We don't allow the left edge to move at present, but just in case
 	rc.left = Platform::Maximum(Platform::Minimum(rc.left, rcPreSize.right - ptMin.x), rcPreSize.right - ptMax.x);
 	rc.top = Platform::Maximum(Platform::Minimum(rc.top, rcPreSize.bottom - ptMin.y), rcPreSize.bottom - ptMax.y);
@@ -1950,8 +1981,8 @@ LRESULT ListBoxX::WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam
 
 	case WM_GETMINMAXINFO: {
 			MINMAXINFO *minMax = reinterpret_cast<MINMAXINFO*>(lParam);
-			*reinterpret_cast<Point*>(&minMax->ptMaxTrackSize) = MaxTrackSize();
-			*reinterpret_cast<Point*>(&minMax->ptMinTrackSize) = MinTrackSize();
+			minMax->ptMaxTrackSize = MaxTrackSize();
+			minMax->ptMinTrackSize = MinTrackSize();
 		}
 		break;
 
@@ -2031,11 +2062,8 @@ bool ListBoxX_Unregister() {
 	return ::UnregisterClass(ListBoxX_ClassName, hinstPlatformRes) != 0;
 }
 
-/*!
 Menu::Menu() : mid(0) {
 }
-*/
-Menu::Menu(MenuID _id)  : mid(_id) {} //!-change-[SubMenu]
 
 void Menu::CreatePopUp() {
 	Destroy();
@@ -2044,28 +2072,7 @@ void Menu::CreatePopUp() {
 
 void Menu::Destroy() {
 	if (mid)
-//!		::DestroyMenu(reinterpret_cast<HMENU>(mid));
-//!-start-[SubMenu]
-	//~ Destroy menu with all submenus
-	{
-		HMENU hMenu = reinterpret_cast<HMENU>(mid);
-		int  ptr = 0, to_check = 0;
-		struct UserMenu {
-			HMENU   hMenu;
-		} UMenu[300];
-		UMenu[ptr++].hMenu = hMenu;
-
-		//~ Fill the struct with pointers that must be released
-		do {
-			for (int i = 0; i < ::GetMenuItemCount(UMenu[to_check].hMenu); i++)
-				UMenu[ptr++].hMenu = ::GetSubMenu(UMenu[to_check].hMenu, i);
-		} while (++to_check<=ptr);
- 
-		//~ In descending order destroy all the menus
-		for (int i = ptr-1; i >= 0; i--)
-			::DestroyMenu(UMenu[i].hMenu);
-	}
-//!-end-[SubMenu]
+		::DestroyMenu(reinterpret_cast<HMENU>(mid));
 	mid = 0;
 }
 
@@ -2139,8 +2146,13 @@ public:
 	// Use GetProcAddress to get a pointer to the relevant function.
 	virtual Function FindFunction(const char *name) {
 		if (h != NULL) {
-			return static_cast<Function>(
-				(void *)(::GetProcAddress(h, name)));
+			// C++ standard doesn't like casts betwen function pointers and void pointers so use a union
+			union {
+				FARPROC fp;
+				Function f;
+			} fnConv;
+			fnConv.fp = ::GetProcAddress(h, name);
+			return fnConv.f;
 		} else
 			return NULL;
 	}

@@ -8,6 +8,10 @@
 #ifndef CHARCLASSIFY_H
 #define CHARCLASSIFY_H
 
+#ifdef SCI_NAMESPACE
+namespace Scintilla {
+#endif
+
 class CharClassify {
 public:
 	CharClassify();
@@ -18,29 +22,13 @@ public:
 	cc GetClass(unsigned char ch) const { return static_cast<cc>(charClass[ch]);}
 	bool IsWord(unsigned char ch) const { return static_cast<cc>(charClass[ch]) == ccWord;}
 
-	enum { maxChar=256 }; //-change-[GetWordChars]
 private:
-//!	enum { maxChar=256 };
+	enum { maxChar=256 };
 	unsigned char charClass[maxChar];    // not type cc to save space
 };
 
-// These functions are implemented because each platform calls them something different.
-int CompareCaseInsensitive(const char *a, const char *b);
-int CompareNCaseInsensitive(const char *a, const char *b, size_t len);
-
-inline char MakeUpperCase(char ch) {
-//!-start-[LowerUpperCase]
-// #if PLAT_WIN
-	// char str[2] = {ch, 0};
-	// ::CharUpper(str);
-	// return str[0];
-// #else
-//!-end-[LowerUpperCase]
-	if (ch < 'a' || ch > 'z')
-		return ch;
-	else
-		return static_cast<char>(ch - 'a' + 'A');
-// #endif //!-add-[LowerUpperCase]
+#ifdef SCI_NAMESPACE
 }
+#endif
 
 #endif
