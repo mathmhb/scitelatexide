@@ -8,9 +8,9 @@
 #ifndef EXTENDER_H
 #define EXTENDER_H
 
-#include "Platform.h" //!-add-[OnKey]
 #include "Scintilla.h"
-class Accessor;
+
+class StyleWriter;
 
 class ExtensionAPI {
 public:
@@ -30,13 +30,14 @@ public:
 	virtual void Perform(const char *actions)=0;
 	virtual void DoMenuCommand(int cmdID)=0;
 	virtual void UpdateStatusBar(bool bUpdateSlowData)=0;
+	virtual void CheckMenus()=0; //!-add-[CheckMenus]
 	virtual bool ShowParametersDialog(const char *msg)=0; //!-add-[ParametersDialogFromLua]
-	virtual bool InsertAbbreviation(const char *data, int expandedLength)=0; //!-add-[AbbrevRefactoring]
+	virtual bool InsertAbbreviation(const char *data, int expandedLength)=0; //!-add-[InsertAbbreviation]
 	virtual char *GetTranslation(const char *s, bool retainIfNotFound = true)=0; //!-add-[LocalizationFromLua]
 };
 
 /**
- * Methods in extensions return true if they have completely handled and event and
+ * Methods in extensions return true if they have completely handled an event and
  * false if default processing is to continue.
  */
 class Extension {
@@ -60,12 +61,12 @@ public:
 	virtual bool OnExecute(const char *) { return false; }
 	virtual bool OnSavePointReached() { return false; }
 	virtual bool OnSavePointLeft() { return false; }
-	virtual bool OnStyle(unsigned int, int, int, Accessor *) {
+	virtual bool OnStyle(unsigned int, int, int, StyleWriter *) {
 		return false;
 	}
 //!	virtual bool OnDoubleClick() { return false; }
 	virtual bool OnDoubleClick(int) { return false; } //!-add-[OnDoubleClick]
-	virtual bool OnClick(int) { return false; } //!-add-[OnClick]
+	virtual bool OnHotSpotReleaseClick(int) { return false; } //!-add-[OnClick]
 	virtual bool OnMouseButtonUp(int) { return false; } //!-add-[OnMouseButtonUp]
 	virtual bool OnUpdateUI() { return false; }
 	virtual bool OnMarginClick() { return false; }
@@ -77,13 +78,9 @@ public:
 
 	virtual bool SendProperty(const char *) { return false; }
 
-//!-start-[OnKey]
-#if PLAT_WIN
-	virtual bool OnKey(int, int, char) { return false; }
-#else
-//!-end-[OnKey]
-	virtual bool OnKey(int, int) { return false; }
-#endif //!-add-[OnKey]
+//!	virtual bool OnKey(int, int) { return false; }
+	virtual bool OnKey(int, int, char) { return false; } //!-change-[OnKey]
+
 	virtual bool OnDwellStart(int, const char *) { return false; }
 	virtual bool OnClose(const char *) { return false; }
 };

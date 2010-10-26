@@ -15,8 +15,10 @@ namespace Scintilla {
 /**
  */
 class CallTip {
-/*!	int startHighlight;    // character offset to start and...
-	int endHighlight;      // ...end of highlighted text*/
+/*!
+	int startHighlight;    // character offset to start and...
+	int endHighlight;      // ...end of highlighted text
+*/
 //!-start-[BetterCalltips]
 	bool highlightChanged;              // flag to indicate that highlight ranges were changed
 	SplitVector<int> startHighlight;    // character offset to start and...
@@ -30,9 +32,7 @@ class CallTip {
 	int offsetMain;         // The alignment point of the call tip
 	int tabSize;            // Tab size in pixels, <=0 no TAB expand
 	bool useStyleCallTip;   // if true, STYLE_CALLTIP should be used
-//!-start-[BetterCalltips]
-	int wrapBound;          // calltip wrap bound in chars, 0 - no wrap
-//!-end-[BetterCalltips]
+	int wrapBound;          // calltip wrap bound in chars, 0 - no wrap //!-add-[BetterCalltips]
 
 	// Private so CallTip objects can not be copied
 	CallTip(const CallTip &);
@@ -43,7 +43,7 @@ class CallTip {
 //!	int PaintContents(Surface *surfaceWindow, bool draw);
 	PRectangle PaintContents(Surface *surfaceWindow, bool draw); //!-change-[BetterCalltips]
 
-	bool IsTabCharacter(char c);
+	bool IsTabCharacter(char c) const;
 	int NextTabPos(int x);
 	void WrapLine(const char *text, int offset, int length, SplitVector<int> &wrapPosList); //!-add-[BetterCalltips]
 
@@ -72,7 +72,7 @@ public:
 
 	/// Setup the calltip and return a rectangle of the area required.
 	PRectangle CallTipStart(int pos, Point pt, const char *defn,
-		const char *faceName, int size, int codePage_, 
+		const char *faceName, int size, int codePage_,
 		int characterSet, Window &wParent);
 
 	void CallTipCancel();

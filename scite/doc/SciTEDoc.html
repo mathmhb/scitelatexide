@@ -403,6 +403,7 @@ NameError: mistake
         <li>Fortran*</li>
         <li>Forth*</li>
         <li>GAP*</li>
+        <li>Gettext</li>
         <li>Haskell</li>
         <li>HTML*</li>
         <li>HTML with embedded JavaScript, VBScript, PHP and ASP*</li>
@@ -433,6 +434,7 @@ NameError: mistake
         <li>PostScript*</li>
         <li>POV-Ray*</li>
         <li>PowerBasic*</li>
+        <li>PowerShell*</li>
         <li>PureBasic*</li>
         <li>Python*</li>
         <li>R*</li>
@@ -542,9 +544,6 @@ NameError: mistake
         <td>Go to start of display line.</td><td>Alt+Home</td>
       </tr>
       <tr>
-        <td>Extend selection to start of display line.</td><td>Alt+Shift+Home</td>
-      </tr>
-      <tr>
         <td>Go to end of document.</td><td>Ctrl+End</td>
       </tr>
       <tr>
@@ -552,9 +551,6 @@ NameError: mistake
       </tr>
       <tr>
         <td>Go to end of display line.</td><td>Alt+End</td>
-      </tr>
-      <tr>
-        <td>Extend selection to end of display line.</td><td>Alt+Shift+End</td>
       </tr>
       <tr>
         <td>Expand or contract a fold point.</td><td>Ctrl+Keypad*</td>
@@ -628,6 +624,12 @@ NameError: mistake
       <tr>
         <td>Rectangular block selection.</td><td>Alt+Shift+Movement</td>
       </tr>
+      <tr>
+        <td>Extend rectangular selection to start of line.</td><td>Alt+Shift+Home</td>
+      </tr>
+      <tr>
+        <td>Extend rectangular selection to end of line.</td><td>Alt+Shift+End</td>
+      </tr>
     </table>
     <h3>
        Abbreviations
@@ -664,13 +666,41 @@ NameError: mistake
     </h3>
     <p>
        SciTE supports folding for many languages (see the list of languages
-       understood by SciTE for more information.)
-       Fold points are based upon indentation for Python and on counting braces
-       for the other languages. The fold point markers can be clicked to
-       expand and contract folds. Ctrl+Shift+Click in the fold margin
-       will expand or contract all the top level folds. Ctrl+Click on a fold
-       point to toggle it and perform the same operation on all children.
-       Shift+Click on a fold point to show all children.
+       understood by SciTE for more information.) Fold points are based upon
+       indentation for Python and on counting braces for the other languages.
+    </p>
+
+    <p>
+       The fold point markers (in the fold margin) can be clicked to expand and
+       contract folds. Normal clicking does not alter the fold state of child fold
+       points; naturally the children are hidden when the parent fold is
+       contracted, but when the parent is expanded again, each child is still
+       folded or not, as before.
+    </p>
+
+    <p>
+       Ctrl+Click on a fold point toggles it and performs the same operation on
+       all children.
+    </p>
+
+    <p>
+       Shift+Click on a fold point does not toggle that fold, it expands all the
+       child folds.
+    </p>
+
+    <p>
+       Ctrl+Shift+Click in the fold margin expands or contracts all the top level
+       folds.
+       "Toggle all folds" in the View menu does the same; it toggles only
+       top-level folds.
+    </p>
+
+    <p>
+       Tip:
+       To open a large code block with all its children folded, fold it with
+       Ctrl+Click, then open it with a normal click. Then on opening a child fold,
+       you will see that the grandchild folds are still closed; if you want those
+       'grandchild' folds open, Shift+Click the child fold.
     </p>
     <h3>
        Properties file
@@ -751,6 +781,7 @@ NameError: mistake
                <tr><td>FileName</td><td>base name of the current file</td></tr>
                <tr><td>FileExt</td><td>extension of the current file</td></tr>
                <tr><td>FileNameExt</td><td>$(FileName).$(FileExt)</td></tr>
+               <tr><td>Language</td><td>name of the lexer used for the current file</td></tr>
                <tr><td>SessionPath</td><td>full path of the current session</td></tr>
                <tr><td>CurrentSelection</td><td>value of the currently selected text</td></tr>
                <tr><td>CurrentWord</td><td>value of word which the caret is within or near</td></tr>
@@ -782,6 +813,15 @@ NameError: mistake
     <p>
     Wildcard matching only works where the wildcard is at the start of a file specification, so "*.mak" will match "proj.mak" but
     "Makefile*" will not match "Makefile.in".
+    </p>
+    <p>
+    Properties files are not treated as having a particular encoding, however individual property values
+    may be treated as having an encoding. For file names, commands, and user interface text, this is
+    UTF-8 so it may be easier to edit properties files as UTF-8 by inserting a coding cookie as explained later.
+    Other properties may be treated as byte sequences (like word.characters.<i>filepattern</i>) or in an implicit
+    encoding (such as keywords.<i>filepattern</i> matching the document encoding) so that it may be better to
+    edit these settings using a non-UTF-8 encoding. Where both UTF-8 and non-UTF-8 values are wanted,
+    two files can be used with different encodings and an import statement to include one in the other.
     </p>
     <h3>
        Importing properties files and conditional logic
@@ -825,8 +865,8 @@ NameError: mistake
     <p>
       SciTE will automatically detect the encoding scheme used for Unicode files that
       start with a Byte Order Mark (BOM).
-      The UTF-8 and UCS-2 encodings are recognized including both Little Endian and
-      Big Endian variants of UCS-2.
+      The UTF-8 and UTF-16 encodings are recognized including both Little Endian and
+      Big Endian variants of UTF-16.
     </p>
     <p>
       UTF-8 files will also be recognised when they contain a coding cookie on one of the
@@ -1013,21 +1053,6 @@ NameError: mistake
           Setting this to a number makes SciTE display a selection margin to the left of the text.
           The value is the number of pixels wide the selection margin should be. Line markers are
           displayed in the selection margin area.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          fold.margin.colour<br />
-          fold.margin.highlight.colour
-        </td>
-        <td>
-          These two properties defined the fold margin colour and fold
-          margin highlight colour.  If they are not defined (left commented out) the colours for the
-          fold margin will default to a reasonable pair of colours.
-          On Windows, the system colours are used to make the fold margin appear like the background
-          of scroll bars. As an example, with <span class="example">fold.margin.colour=#FF0000</span> and
-          <span class="example">fold.margin.highlight.colour=#0000FF</span>, the fold margin is a mixture of red
-          and blue.
         </td>
       </tr>
       <tr class="windowsonly">
@@ -1719,7 +1744,7 @@ NameError: mistake
         placed between the tags.
         </td>
       </tr>
-<!--++Autogenerated -- run ../../scintilla/src/LexGen.py to regenerate -->
+<!--++Autogenerated - run ../../scintilla/src/LexGen.py to regenerate -->
 <!--**\(\*\n\) -->
 	<tr>
 	<td>asp.default.language</td>
@@ -1731,11 +1756,15 @@ NameError: mistake
 	</tr>
 	<tr>
 	<td>fold.comment</td>
-	<td>This option enables folding multi-line comments and explicit fold points when using the C++ lexer. Explicit fold points allows adding extra folding by placing a //{ comment at the start and a //} at the end of a section that should fold.</td>
+	<td>This option enables folding multi-line comments and explicit fold points when using the C++ lexer.  Explicit fold points allows adding extra folding by placing a //{ comment at the start and a //}  at the end of a section that should fold.</td>
 	</tr>
 	<tr>
 	<td>fold.comment.python</td>
 	<td>This option enables folding multi-line comments when using the Python lexer.</td>
+	</tr>
+	<tr>
+	<td>fold.cpp.comment.explicit</td>
+	<td>Set this property to 0 to disable folding explicit fold points when fold.comment=1.</td>
 	</tr>
 	<tr>
 	<td>fold.html</td>
@@ -1763,7 +1792,7 @@ NameError: mistake
 	</tr>
 	<tr>
 	<td>fold.preprocessor</td>
-	<td>This option enables folding preprocessor directives when using the C++ lexer. Includes C#'s explicit #region and #endregion folding directives.</td>
+	<td>This option enables folding preprocessor directives when using the C++ lexer.  Includes C#'s explicit #region and #endregion folding directives.</td>
 	</tr>
 	<tr>
 	<td>fold.quotes.python</td>
@@ -1782,12 +1811,28 @@ NameError: mistake
 	<td>Set to 0 to disallow the '$' character in identifiers with the cpp lexer.</td>
 	</tr>
 	<tr>
+	<td>lexer.cpp.track.preprocessor</td>
+	<td>Set to 1 to interpret #if/#else/#endif to grey out code that is not active.</td>
+	</tr>
+	<tr>
+	<td>lexer.cpp.update.preprocessor</td>
+	<td>Set to 1 to update preprocessor definitions when #define found.</td>
+	</tr>
+	<tr>
 	<td>lexer.d.fold.at.else</td>
 	<td>This option enables D folding on a "} else {" line of an if statement.</td>
 	</tr>
 	<tr>
 	<td>lexer.errorlist.value.separate</td>
 	<td>For lines in the output pane that are matches from Find in Files or GCC-style diagnostics, style the path and line number separately from the rest of the line with style 21 used for the rest of the line. This allows matched text to be more easily distinguished from its location.</td>
+	</tr>
+	<tr>
+	<td>lexer.flagship.styling.within.preprocessor</td>
+	<td>For Harbour code, determines whether all preprocessor code is styled in the preprocessor style (0) or only from the initial # to the end of the command word(1, the default). It also determines how to present text, dump, and disabled code.</td>
+	</tr>
+	<tr>
+	<td>lexer.html.django</td>
+	<td>Set to 1 to enable the django template language.</td>
 	</tr>
 	<tr>
 	<td>lexer.html.mako</td>
@@ -1823,7 +1868,7 @@ NameError: mistake
 	</tr>
 	<tr>
 	<td>styling.within.preprocessor</td>
-	<td>For C++ code, determines whether all preprocessor code is styled in the preprocessor style (0, the default) or only from the initial # to the end of the command word(1).</td>
+	<td>For C++ code, determines whether all preprocessor code is styled in the  preprocessor style (0, the default) or only from the initial # to the end  of the command word(1).</td>
 	</tr>
 	<tr>
 	<td>tab.timmy.whinge.level</td>
@@ -2004,7 +2049,7 @@ Prev File|IDM_PREVFILE|<br/>
       <tr>
         <td>wrap.aware.home.end.keys</td>
         <td>
-          This property changes the behavior of the home and end keys when dynamic
+          This property changes the behaviour of the home and end keys when dynamic
           line wrapping is turned on.  When set to 0 (the default), the Home and End
           keys will move the caret to the very beginning / end of the 'logical'
           line, whether or not the line is wrapped over multiple lines in the display.
@@ -2049,6 +2094,16 @@ Prev File|IDM_PREVFILE|<br/>
           On GTK+, this option only works for GTK+ 2.4 or later.
         </td>
       </tr>
+      <tr class="windowsonly">
+        <td>
+          save.filter
+        </td>
+        <td>
+          This is a complex expression used for determining the file types that will be available in
+          the save file dialog. The structure of the property is the same as open.filter.<br />
+          Does not work on GTK+.
+        </td>
+      </tr>
       <tr>
         <td>
           max.file.size
@@ -2071,6 +2126,15 @@ Prev File|IDM_PREVFILE|<br/>
           Causes files to be deleted before being opened for saving. Can be used on Windows
           to ensure saving under a different capitalisation changes the files capitalisation rather
           than silently using the old capitalisation.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          save.check.modified.time
+        </td>
+        <td>
+        With save.check.modified.time=1, when saving and the file has been modified by another
+        process, check if it should be overwritten by the current contents.
         </td>
       </tr>
       <tr>
@@ -2115,12 +2179,21 @@ Prev File|IDM_PREVFILE|<br/>
         <td>
           Setting open.dialog.in.file.directory causes the open dialog to initially
           display the same directory as the current file. If it is not set then the
-          system default is used which on Windows 2000 is the last directory
+          system default is used which on Windows XP is the last directory
           visited by the open dialog in any instance of SciTE. This is hard
           to use with multiple instances of SciTE. <br />
 	  	  Some versions of GTK+ may also set an unexpected directory.
         </td>
       </tr>
+      <tr class="windowsonly">
+        <td>
+          find.close.on.find
+        </td>
+        <td>
+          Set to 0 to prevent the Find dialog from closing when "Find" pressed.
+        </td>
+      </tr>
+      <tr>
       <tr>
         <td>
         find.replace.matchcase<br />
@@ -2150,9 +2223,28 @@ Prev File|IDM_PREVFILE|<br/>
         find.replace.regexp.posix
         </td>
         <td>
-          Change behavior of Regular expression search.
+          Change behaviour of Regular expression search.
         If set to 0 (the default), characters '(' and ')' must be escaped by '\' to behave as regexp meta characters.
         If set to 1, these characters are meta characters itself.
+        </td>
+      </tr>
+      <tr>
+        <td>
+         find.use.strip<br />
+	 replace.use.strip
+        </td>
+        <td>
+          Use in-window strips rather than dialogs for performing Find or Replace commands.
+        </td>
+      </tr>
+      <tr class="gtkonly">
+        <td>
+         strip.button.height
+        </td>
+        <td>
+          Buttons on GTK+ often contain extra spacing that makes strips take too much room.
+	  This setting tries to limit the height of buttons.
+	  A value of 23 or 24 may work well.
         </td>
       </tr>
       <tr>
@@ -2253,16 +2345,15 @@ c:\cygwin\bin\xargs -0 fgrep -G -n "$(find.what)"
 	  <tr><td>UTF-8</td><td align="right">65001</td></tr>
 	  <tr><td>Japanese Shift-JIS</td><td align="right">932</td></tr>
 	  <tr><td>Simplified Chinese GBK</td><td align="right">936</td></tr>
+	  <tr><td>Korean Wansung</td><td align="right">949</td></tr>
 	  <tr><td>Traditional Chinese Big5</td><td align="right">950</td></tr>
-	  <tr class="windowsonly"><td>Korean</td><td align="right">949</td></tr>
-	  <tr class="windowsonly"><td>Korean Johab</td><td align="right">1361</td></tr>
+	  <tr><td>Korean Johab</td><td align="right">1361</td></tr>
   	  </table>
-	  All of these may work on Windows but the Korean code pages are not supported on GTK+.<br />
         Setting code.page to 65001 starts Unicode mode and the document is treated as
         a sequence of characters expressed as UTF-8. Display is performed by converting to the
         platform's normal Unicode encoding first so characters from any language will be displayed.
         Correct glyphs will only be displayed if fonts are chosen that contain the appropriate glyphs.
-        Tahoma is a good choice on Windows 2000. <br/>
+        Tahoma is a good choice on Windows XP. <br/>
         This property can <em>not</em> set a single byte character set.<br />
 	If output.code.page is set then it is used for the output pane which otherwise
 	matches the edit pane.
@@ -2356,10 +2447,13 @@ c:\cygwin\bin\xargs -0 fgrep -G -n "$(find.what)"
         </td>
         <td>
           A lexer splits a file up into syntactic pieces. SciTE can then display these pieces in
-          different visual styles. Several lexers are available in SciTE for some of the popular
+          different visual styles. Many lexers are included in SciTE for popular
           programming languages such as Python, Java, C/C++, JavaScript and VB. Often several file
           extensions (.cpp, .cc, .h) can map to one language (C++) and hence one lexer. These
-          settings associate a file name with a lexer.
+          settings associate a file name with a lexer.<br />
+          The lexers included in SciTE are written in C++ and compiled into the SciTE executable.
+          Lexers can also be written as a <a href="ScriptLexer.html">Lua script</a>
+          or as a Lua LPeg lexer using <a href="http://code.google.com/p/scintillua/">scintillua</a>.
         </td>
       </tr>
       <tr>
@@ -2560,7 +2654,7 @@ c:\cygwin\bin\xargs -0 fgrep -G -n "$(find.what)"
           command.subsystem.<i>number</i>.<i>filepattern</i><br />
           command.save.before.<i>number</i>.<i>filepattern</i><br />
           <span class="windowsonly">command.input.<i>number</i>.<i>filepattern</i></span><br />
-          <span class="windowsonly">command.replace.selection.<i>number</i>.<i>filepattern</i></span><br />
+          command.replace.selection.<i>number</i>.<i>filepattern</i><br />
           <span class="windowsonly">command.quiet.<i>number</i>.<i>filepattern</i></span><br />
           command.mode.<i>number</i>.<i>filepattern</i><br />
           command.shortcut.<i>number</i>.<i>filepattern</i>
@@ -2587,7 +2681,7 @@ c:\cygwin\bin\xargs -0 fgrep -G -n "$(find.what)"
         (command line programs).<br />
 	<br />
 
-        On Windows, the optional command.replace.selection can be used to specify that the
+        The optional command.replace.selection can be used to specify that the
         command output should replace the current selection (or be inserted at the cursor
         location, if there is no selection).  This property has three available settings:
         0, the default, means do not replace the selection.  1 means replace the selection
@@ -2678,16 +2772,6 @@ groupundo - yes or no
         </td>
         <td>
         Defines a command to be executed when print is invoked on GTK+.
-        </td>
-      </tr>
-      <tr class="windowsonly">
-        <td>
-          win95.death.delay
-        </td>
-        <td>
-          On Windows 95, there can be a delay between a process completing and all of its piped
-          output being available. By waiting this number of milliseconds, we can be sure to see all
-          the output. Defaults to 500 but may need to be higher for slower machines.
         </td>
       </tr>
       <tr>
@@ -2859,19 +2943,49 @@ groupundo - yes or no
         </td>
       </tr>
       <tr>
+	<td>fold</td>
+	<td>Folding is turned on by setting fold=1.</td>
+      </tr>
+      <tr>
         <td>
-          fold<br />
-          fold.margin.width<br />
-          fold.symbols<br />
-          fold.on.open
+          fold.symbols
         </td>
         <td>
-                Options to control folding. Folding is turned on be setting fold to 1.
         The fold.symbols setting chooses between four ways of showing folding.
         Set to 0 (the default) for MacOS style arrows to indicate contracted
         (facing right) and expanded (facing down); 1 to display contracted folds
         with "+" and expanded with "-"; 2 for a flattened tree control with round
         headers and rounded joins; 3 for a flattened tree control with square headers.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          fold.margin.width
+        </td>
+        <td>
+          Sets the width of the fold margin.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          fold.margin.colour<br />
+          fold.margin.highlight.colour
+        </td>
+        <td>
+          These two properties defined the fold margin colour and fold
+          margin highlight colour.  If they are not defined (left commented out) the colours for the
+          fold margin will default to a reasonable pair of colours.
+          On Windows, the system colours are used to make the fold margin appear like the background
+          of scroll bars. As an example, with <span class="example">fold.margin.colour=#FF0000</span> and
+          <span class="example">fold.margin.highlight.colour=#0000FF</span>, the fold margin is a mixture of red
+          and blue.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          fold.on.open
+        </td>
+        <td>
         To automatically fold files as much as possible when loaded, set
         fold.on.open to 1.
         </td>
@@ -3150,17 +3264,18 @@ groupundo - yes or no
           Interface</a> but is currently only used by the Lua Scripting Extension.
           <br />
           The ext.lua.startup.script property defines the filename of a Lua script that
-          will be loaded when SciTE starts to set up the global state for Lua.  You
-          should use an absolute path for this property, but can reference the
+          will be loaded when SciTE starts to set up the global state for Lua.
+          The default value is $(SciteUserHome)/SciTEStartup.lua.
+          You should use an absolute path for this property, but can reference the
           $(SciteDefaultHome) or $(SciteUserHome) properties.  Global event handlers,
           command functions, as well as other functions and objects can be defined here.
           <br />
           The ext.lua.auto.reload property determines what happens if you save the
           startup script, or the active extension script, from within SciTE.  If it
-          is set to 0 (the default), the startup script only applied at startup time
+          is set to 0, the startup script only applied at startup time
           or when you switch buffers (depending on ext.lua.reset), and changes to the
           extension script are only applied when you switch buffers.  If
-          ext.lua.auto.reload is set to 1, SciTE will re-initialize the global scope
+          ext.lua.auto.reload is set to 1 (the default), SciTE will re-initialize the global scope
           immediately when either script is saved from within SciTE.  <i>Even
           when ext.lua.auto.reload is enabled, SciTE will not notice if the files
           are changed from outside the current SciTE instance.  For that, see
@@ -3173,9 +3288,7 @@ groupundo - yes or no
           time you switch buffers.  As such, it has a different (larger) set of
           side effects than ext.lua.auto.reload.  In some situations it will make
           sense for both auto.reload and reset to be enabled, but usually
-          ext.lua.auto.reload alone will suffice.  <i>The ext.lua.reset
-          property may go away in an upcoming version if SciTE, perhaps to be
-          replaced with a new setting for ext.lua.auto.reload=2.</i>
+          ext.lua.auto.reload alone will suffice.
           <br />
           Aside from ext.lua.startup.script, the extension.<i>filepattern</i> property
           provides a way to load additional functions and event handlers that may be

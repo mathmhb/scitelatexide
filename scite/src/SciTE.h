@@ -35,6 +35,7 @@
 #define IDM_SAVEASTEX		115
 #define IDM_SAVEACOPY		116
 #define IDM_SAVEASXML		117
+#define IDM_COPYPATH			118
 #define IDM_MRU_SEP			120
 #define IDM_PRINTSETUP		130
 #define IDM_PRINT			131
@@ -47,7 +48,7 @@
 #define IDM_ENCODING_UTF8	153
 #define IDM_ENCODING_UCOOKIE	154
 
-#define MRU_START	16
+#define MRU_START	17
 #define IMPORT_START 20
 #define TOOLS_START 3
 
@@ -191,6 +192,14 @@
 #define IDM_MOVETABRIGHT			508
 #define IDM_MOVETABLEFT			509
 
+#define IDM_WHOLEWORD			800
+#define IDM_MATCHCASE			801
+#define IDM_REGEXP					802
+#define IDM_WRAPAROUND		803
+#define IDM_UNSLASH				804
+#define IDM_DIRECTIONUP			805
+#define IDM_DIRECTIONDOWN	806
+
 // Help
 #define IDM_HELP			901
 #define IDM_ABOUT			902
@@ -201,6 +210,7 @@
 #define IDM_FULLSCREEN		961
 #define IDC_TABCLOSE		962
 #define IDC_SHIFTTAB		963
+#define IDC_TABDBLCLK		964 //!-add-[close_on_dbl_clk]
 
 // Dialog control IDs
 #define IDFINDCLOSE			219 //!-add-[close.find.window]
@@ -260,4 +270,10 @@
 //! #define IDR_CLOSEFILE 100
 #define IDR_BUTTONS			100	//!-change-[user.toolbar]
 #define IDC_DRAGDROP        401
+#define IDBM_WORD 101
+#define IDBM_CASE 102
+#define IDBM_REGEX 103
+#define IDBM_BACKSLASH 104
+#define IDBM_AROUND 105
+#define IDBM_UP 106
 #endif

@@ -27,10 +27,10 @@ public:
 	virtual bool OnExecute(const char *s);
 	virtual bool OnSavePointReached();
 	virtual bool OnSavePointLeft();
-	virtual bool OnStyle(unsigned int startPos, int lengthDoc, int initStyle, Accessor *styler);
+	virtual bool OnStyle(unsigned int startPos, int lengthDoc, int initStyle, StyleWriter *styler);
 //!	virtual bool OnDoubleClick();
 	virtual bool OnDoubleClick(int); //!-add-[OnDoubleClick]
-	virtual bool OnClick(int); //!-add-[OnClick]
+	virtual bool OnHotSpotReleaseClick(int); //!-add-[OnClick]
 	virtual bool OnMouseButtonUp(int); //!-add-[OnMouseButtonUp]
 	virtual bool OnUpdateUI();
 	virtual bool OnMarginClick();
@@ -42,5 +42,4 @@ public:
 	// Allow messages through to extension
 	void HandleStringMessage(const char *message);
 };
-
 

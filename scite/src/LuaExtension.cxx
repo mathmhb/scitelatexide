@@ -6,15 +6,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <time.h>
+
+#include <string>
 
 #include "Scintilla.h"
-#include "Accessor.h"
+
+#include "GUI.h"
+#include "SString.h"
+#include "FilePath.h"
+#include "StyleWriter.h"
 #include "Extender.h"
 #include "LuaExtension.h"
 
-#include "SString.h"
-#include "SciTEKeys.h"
 #include "IFaceTable.h"
+#include "SciTEKeys.h"
 
 extern "C" {
 #include "lua.h"
@@ -22,22 +29,16 @@ extern "C" {
 #include "lauxlib.h"
 }
 
-#include "Platform.h"
-
-#if PLAT_WIN
+#if !defined(GTK)
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-//!-start-[no_wornings]
-/*
 #ifdef _MSC_VER
 // MSVC looks deeper into the code than other compilers, sees that
 // lua_error calls longjmp, and complains about unreachable code.
 #pragma warning(disable: 4702)
 #endif
-*/
-//!-end-[no_wornings]
 
 #else
 
@@ -293,7 +294,7 @@ static int cf_scite_perform(lua_State *L) {
 }
 //!-end-[Perform]
 
-//!-start-[AbbrevRefactoring]
+//!-start-[InsertAbbreviation]
 static int cf_editor_insert_abbrev(lua_State *L) {
 	const char *s = luaL_checkstring(L, 1);
 	if (s) {
@@ -301,7 +302,7 @@ static int cf_editor_insert_abbrev(lua_State *L) {
 	}
 	return 0;
 }
-//!-end-[AbbrevRefactoring]
+//!-end-[InsertAbbreviation]
 
 //!-start-[ParametersDialogFromLua]
 static int cf_scite_show_parameters_dialog(lua_State *L) {
@@ -325,6 +326,13 @@ static int cf_editor_get_translation(lua_State *L) {
 	return 1;
 }
 //!-end-[LocalizationFromLua]
+
+//!-start-[CheckMenus]
+static int cf_scite_check_menus(lua_State *) {
+	host->CheckMenus();
+	return 0;
+}
+//!-end-[CheckMenus]
 
 static int cf_scite_update_status_bar(lua_State *L) {
 	bool bUpdateSlowData = (lua_gettop(L) > 0 ? lua_toboolean(L, 1) : false) != 0;
@@ -767,7 +775,9 @@ static bool call_function(lua_State *L, int nargs, bool ignoreFunctionReturnValu
 	if (L) {
 		int traceback = 0;
 		if (tracebackEnabled) {
-			lua_getglobal(L, "print");
+			lua_getglobal(L, "debug");
+			lua_getfield(L, -1, "traceback");
+			lua_remove(L, -2);
 			if (lua_isfunction(L, -1)) {
 				traceback = lua_gettop(L) - nargs - 1;
 				lua_insert(L, traceback);
@@ -1143,13 +1153,6 @@ static int push_iface_propval(lua_State *L, const char *name) {
 		if (prop.paramType == iface_void) {
 			if (prop.getter) {
 				lua_settop(L, 1);
-//!-begin-[GetLexerLanguage]
-				if (prop.valueType == iface_string) {
-					IFaceFunction func = prop.GetterFunction();
-					func.paramType[1] = iface_stringresult;
-					return iface_function_helper(L, func);
-				}
-//!-end-[GetLexerLanguage]
 				return iface_function_helper(L, prop.GetterFunction());
 			}
 		} else if (prop.paramType == iface_bool) {
@@ -1512,6 +1515,11 @@ static bool InitGlobalScope(bool checkProperties, bool forceReload = false) {
 	lua_pushcfunction(luaState, cf_scite_menu_command);
 	lua_setfield(luaState, -2, "MenuCommand");
 
+	//!-start-[CheckMenus]
+	lua_pushcfunction(luaState, cf_scite_check_menus);
+	lua_setfield(luaState, -2, "CheckMenus");
+	//!-end-[CheckMenus]
+
 	lua_pushcfunction(luaState, cf_scite_update_status_bar);
 	lua_setfield(luaState, -2, "UpdateStatusBar");
 
@@ -1520,20 +1528,20 @@ static bool InitGlobalScope(bool checkProperties, bool forceReload = false) {
 	lua_setfield(luaState, -2, "Perform");
 //!-end-[Perform]
 
-//!-begin-[GetLexerLanguage]
+//!-begin-[InsertAbbreviation]
 	lua_pushcfunction(luaState, cf_editor_insert_abbrev);
 	lua_setfield(luaState, -2, "InsertAbbreviation");
-//!-end-[GetLexerLanguage]
+//!-end-[InsertAbbreviation]
 
 //!-start-[ParametersDialogFromLua]
 	lua_pushcfunction(luaState, cf_scite_show_parameters_dialog);
 	lua_setfield(luaState, -2, "ShowParametersDialog");
 //!-end-[ParametersDialogFromLua]
 
-//!-start-[StartupScriptReloadv]
+//!-start-[ReloadStartupScript]
 	lua_pushcfunction(luaState, cf_editor_reload_startup_script);
 	lua_setfield(luaState, -2, "ReloadStartupScript");
-//!-end-[StartupScriptReload]
+//!-end-[ReloadStartupScript]
 
 //!-start-[LocalizationFromLua]
 	lua_pushcfunction(luaState, cf_editor_get_translation);
@@ -1560,9 +1568,12 @@ static bool InitGlobalScope(bool checkProperties, bool forceReload = false) {
 		// that should be blocked during startup, e.g. the ones that allow
 		// you to add or switch buffers?
 
-		luaL_loadfile(luaState, startupScript);
-		if (!call_function(luaState, 0, true)) {
-			host->Trace(">Lua: error occurred while loading startup script\n");
+		FilePath fpTest(GUI::StringFromUTF8(startupScript));
+		if (fpTest.Exists()) {
+			luaL_loadfile(luaState, startupScript);
+			if (!call_function(luaState, 0, true)) {
+				host->Trace(">Lua: error occurred while loading startup script\n");
+			}
 		}
 	}
 
@@ -1605,10 +1616,8 @@ bool LuaExtension::Finalise() {
 	// The rest don't strictly need to be cleared since they
 	// are never accessed except when luaState and host are set
 
-	if (startupScript) {
-		delete [] startupScript;
-		startupScript = NULL;
-	}
+	delete [] startupScript;
+	startupScript = NULL;
 
 	return false;
 }
@@ -1822,7 +1831,7 @@ struct StylingContext {
 	unsigned int startPos;
 	int lengthDoc;
 	int initStyle;
-	Accessor *styler;
+	StyleWriter *styler;
 
 	unsigned int endPos;
 	unsigned int endDoc;
@@ -1848,13 +1857,6 @@ struct StylingContext {
 		if (end >= static_cast<int>(endDoc))
 			end = static_cast<int>(endDoc)-1;
 		styler->ColourTo(end, state);
-	}
-
-	static int PropertyInt(lua_State *L) {
-		StylingContext *context = Context(L);
-		const char *s = luaL_checkstring(L, 2);
-		lua_pushnumber(L, context->styler->GetPropertyInt(s));
-		return 1;
 	}
 
 	static int Line(lua_State *L) {
@@ -1963,7 +1965,7 @@ struct StylingContext {
 		memcpy(cursor[0], "\0\0\0\0\0\0\0\0", 8);
 		memcpy(cursor[1], "\0\0\0\0\0\0\0\0", 8);
 		memcpy(cursor[2], "\0\0\0\0\0\0\0\0", 8);
-		styler->StartAt(startPos, static_cast<char>(0xff));
+		styler->StartAt(startPos, static_cast<char>(0xffu));
 		styler->StartSegment(startPos);
 
 		GetNextChar();
@@ -2083,12 +2085,13 @@ struct StylingContext {
 		int len = end - start + 1;
 		if (len <= 0)
 			len = 1;
-		char *sReturn = new char[len];
+		char *sReturn = new char[len+1];
 		for (int i = 0; i < len; i++) {
 			sReturn[i] = context->styler->SafeGetCharAt(start + i);
 		}
 		sReturn[len] = '\0';
 		lua_pushstring(L, sReturn);
+		delete []sReturn;
 		return 1;
 	}
 
@@ -2115,7 +2118,7 @@ struct StylingContext {
 	}
 };
 
-bool LuaExtension::OnStyle(unsigned int startPos, int lengthDoc, int initStyle, Accessor *styler) {
+bool LuaExtension::OnStyle(unsigned int startPos, int lengthDoc, int initStyle, StyleWriter *styler) {
 	bool handled = false;
 	if (luaState) {
 		lua_getglobal(luaState, "OnStyle");
@@ -2143,10 +2146,11 @@ bool LuaExtension::OnStyle(unsigned int startPos, int lengthDoc, int initStyle, 
 			lua_settable(luaState, -3);
 
 			lua_pushstring(luaState, "language");
-			lua_pushstring(luaState, host->Property("Language"));
+			char *lang = host->Property("Language");
+			lua_pushstring(luaState, lang);
+			delete []lang;
 			lua_settable(luaState, -3);
 
-			sc.PushMethod(luaState, StylingContext::PropertyInt, "PropertyInt");
 			sc.PushMethod(luaState, StylingContext::Line, "Line");
 			sc.PushMethod(luaState, StylingContext::CharAt, "CharAt");
 			sc.PushMethod(luaState, StylingContext::StyleAt, "StyleAt");
@@ -2204,10 +2208,10 @@ bool LuaExtension::OnDoubleClick(int modifiers) {
 //!-end-[OnDoubleClick]
 
 //!-start-[OnClick]
-bool LuaExtension::OnClick(int modifiers) {
+bool LuaExtension::OnHotSpotReleaseClick(int modifiers) {
 	bool handled = false;
 	if (luaState) {
-		lua_getglobal(luaState, "OnClick");
+		lua_getglobal(luaState, "OnHotSpotReleaseClick");
 		if (lua_isfunction(luaState, -1)) {
 			lua_pushboolean(luaState, (SCMOD_SHIFT & modifiers) != 0 ? 1 : 0); // shift/lock
 			lua_pushboolean(luaState, (SCMOD_CTRL  & modifiers) != 0 ? 1 : 0); // control
@@ -2249,13 +2253,8 @@ bool LuaExtension::OnUserListSelection(int listType, const char *selection) {
 	return CallNamedFunction("OnUserListSelection", listType, selection);
 }
 
-//!-start-[OnKey]
-#if PLAT_WIN
-bool LuaExtension::OnKey(int keyval, int modifiers, char ch) {
-#else
-//!-end-[OnKey]
-bool LuaExtension::OnKey(int keyval, int modifiers) {
-#endif //!-add-[OnKey]
+//! bool LuaExtension::OnKey(int keyval, int modifiers) {
+bool LuaExtension::OnKey(int keyval, int modifiers, char ch) { //!-chage-[OnKey]
 	bool handled = false;
 	if (luaState) {
 		lua_getglobal(luaState, "OnKey");
@@ -2264,15 +2263,12 @@ bool LuaExtension::OnKey(int keyval, int modifiers) {
 			lua_pushboolean(luaState, (SCMOD_SHIFT & modifiers) != 0 ? 1 : 0); // shift/lock
 			lua_pushboolean(luaState, (SCMOD_CTRL  & modifiers) != 0 ? 1 : 0); // control
 			lua_pushboolean(luaState, (SCMOD_ALT   & modifiers) != 0 ? 1 : 0); // alt
+//!			handled = call_function(luaState, 4);
 //!-start-[OnKey]
-#if PLAT_WIN
 			char str[2] = {ch, 0};
 			lua_pushstring(luaState, str);
 			handled = call_function(luaState, 5);
-#else
 //!-end-[OnKey]
-			handled = call_function(luaState, 4);
-#endif //!-add-[OnKey]
 		} else {
 			lua_pop(luaState, 1);
 		}
@@ -2320,11 +2316,7 @@ static int cf_editor_reload_startup_script(lua_State*) {
 }
 //!-end-[StartupScriptReload]
 
-//!-start-[no_wornings]
-/*
 #ifdef _MSC_VER
 // Unreferenced inline functions are OK
 #pragma warning(disable: 4514)
 #endif
-*/
-//!-end-[no_wornings]

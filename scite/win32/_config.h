@@ -12,4 +12,4 @@ Please report any feature requests or bugs so as we can improve this powerful ed
 #define APPNAME "SciTE LaTeX IDE"
 #endif
 
-#define LOCALISE_ACCELERATORS_WORKED 1
+//~ #define LOCALISE_ACCELERATORS_WORKED 1

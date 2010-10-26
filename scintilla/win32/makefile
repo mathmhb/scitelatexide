@@ -1,10 +1,8 @@
 # Make file for Scintilla on Windows
-# Copyright 1998-2003 by Neil Hodgson <neilh@scintilla.org>
+# Copyright 1998-2010 by Neil Hodgson <neilh@scintilla.org>
 # The License.txt file describes the conditions under which this software may be distributed.
-# This makefile assumes the mingw32 version of GCC 2.95.3 is used and changes will
+# This makefile assumes the mingw32 version of GCC 3.x or 4.x is used and changes will
 # be needed to use other compilers.
-# The -fvtable-thunks option is required for older (2.9*) versions of gcc but can be removed
-# safely if using a newer version which may display warning messages.
 
 .SUFFIXES: .cxx
 CC = g++
@@ -17,21 +15,15 @@ COMPONENT = ../bin/Scintilla.dll
 LEXCOMPONENT = ../bin/SciLexer.dll
 LEXLIB = Lexers.a
 
-ifndef NOTHUNKS
-gversion = $(word 1,$(subst ., ,$(shell g++ --version)))
-ifeq ($(gversion),2)
-THUNKFLAGS=-fvtable-thunks
-endif
-endif
+vpath %.h ../src ../include ../lexlib
+vpath %.cxx ../src ../lexlib ../lexers
 
-vpath %.h ../src ../include
-vpath %.cxx ../src
-
-LDFLAGS=-mwindows -lstdc++ -limm32 -lole32 -luuid -mno-cygwin
+#LDFLAGS=-shared -static -Wl,--enable-runtime-pseudo-reloc-v2 -mno-cygwin -mwindows --relocatable -Wl,--add-stdcall-alias
+LDFLAGS=-shared -static -Wl -mno-cygwin -mwindows --relocatable -Wl,--add-stdcall-alias
+LIBS=-lstdc++ -limm32 -lole32 -luuid
 # Add -MMD to get dependencies
-#CXXFLAGS = -g -pg -pedantic -Os -fexceptions -fvtable-thunks -fno-rtti
-INCLUDEDIRS=-I ../include -I ../src
-CXXBASEFLAGS=-Wall -Wno-missing-braces -Wno-char-subscripts -pedantic $(INCLUDEDIRS) -Os -fexceptions $(THUNKFLAGS) -fno-rtti -mno-cygwin
+INCLUDEDIRS=-I ../include -I ../src -I../lexlib
+CXXBASEFLAGS=-Wall -Wno-missing-braces -Wno-char-subscripts -Wno-strict-overflow -pedantic $(INCLUDEDIRS) -fno-rtti -mno-cygwin
 
 ifdef DEBUG
 CXXFLAGS=-DDEBUG -g $(CXXBASEFLAGS)
@@ -44,13 +36,14 @@ endif
 	$(CC) $(CXXFLAGS) -c $<
 
 ## [mhb] 07/11/09 : run gen_lexers to generate _lexers.inc first
-ALL:	gen_lexers $(COMPONENT) $(LEXCOMPONENT) $(LEXLIB) ScintillaWinS.o WindowAccessor.o
+ALL:	gen_lexers $(COMPONENT) $(LEXCOMPONENT) $(LEXLIB) ScintillaWinS.o
 
 clean:
 	$(DEL) *.exe *.o *.obj *.dll *.res *.map
 
 deps:
-	$(CC) -MM $(CXXFLAGS) *.cxx ../src/*.cxx >deps.mak
+	$(CC) -MM $(CXXFLAGS) *.cxx ../src/*.cxx ../lexlib/*.cxx ../lexers/*.cxx >deps.mak
+
 
 ## [mhb] 07/11/09 : use less lexers to reduce exe file size if LESS_LEXERS is defined
 ifdef LESS_LEXERS
@@ -60,7 +53,7 @@ HTML Inno Kix Latex Lisp Lout Lua Markdown Matlab Metapost MSSQL MySQL Nsis Othe
 Pascal PB Perl PowerPro PowerShell PS Python R Rebol Ruby Smalltalk SQL TCL VB
 else
 LEXERS=\
-ABAP Abaqus Ada APDL Asm Asn1 ASY AU3 \
+ABAP Abaqus Ada AHK1 APDL Asm Asn1 ASY AU3 \
 AVE Baan Bash Basic BiB Bullant Caml \
 CLW Cmake COBOL Conf CPP Crontab Csound \
 CSS D Eiffel Erlang EScript Euphoria \
@@ -71,10 +64,10 @@ MySQL Nimrod Nsis Opal Others Pascal PB \
 Perl PLM POV PowerPro PowerShell Progress \
 PS Python R Rebol Ruby Scriptol Smalltalk \
 SML Sorcus Specman Spice SQL TACL TADS3 \
-TAL TCL VB Verilog VHDL YAML
+TAL TCL Txt2tags VB Verilog VHDL YAML
 endif
 ## [mhb] 07/11/09 : now there is no need to explicitly specify Lex*.o; you need just place wanted lexers above:-)
-LEXOBJS=$(LEXERS:%=Lex%.o)
+LEXOBJS:=$(LEXERS:%=Lex%.o)
 ## [mhb] 07/11/09 : the following codes generate correct table of lexer names
 LEXNAMS:=$(LEXERS:Basic=BlitzBasic PureBasic FreeBasic)
 LEXNAMS:=$(LEXNAMS:CLW=Clw ClwNoCase)
@@ -98,26 +91,56 @@ LEXNAMS:=$(LEXNAMS:VB=VB VBScript)
 
 ## [mhb] 07/11/09 : now we do not need to specify what lexers should be linked; we generate the list automatically!
 gen_lexers:
-	rm -f KeyWords.o
 	rm -f ../src/_lexers.inc
 	for lex in $(LEXNAMS); do echo "LINK_LEXER(lm$$lex);">>../src/_lexers.inc; done
-# KeyWords.o: KeyWords.cxx _lexers.inc
 
 
-SOBJS	= ScintillaWin.o ScintillaBase.o Editor.o CharClassify.o Decoration.o \
-	Document.o ContractionState.o CellBuffer.o CallTip.o \
-	ScintRes.o PlatWin.o PositionCache.o KeyMap.o Indicator.o LineMarker.o RESearch.o RunStyles.o \
-	Selection.o Style.o ViewStyle.o AutoComplete.o UniConversion.o PropSet.o XPM.o PerLine.o
+BASEOBJS = \
+	AutoComplete.o \
+	CallTip.o \
+	CellBuffer.o \
+	CharacterSet.o \
+	CharClassify.o \
+	ContractionState.o \
+	Decoration.o \
+	Document.o \
+	Editor.o \
+	KeyMap.o \
+	Indicator.o \
+	LineMarker.o \
+	PerLine.o \
+	PlatWin.o \
+	PositionCache.o \
+	PropSetSimple.o \
+	RESearch.o \
+	RunStyles.o \
+	ScintRes.o \
+	Selection.o \
+	Style.o \
+	UniConversion.o \
+	ViewStyle.o \
+	XPM.o
+
+SOBJS = ScintillaWin.o ScintillaBase.o $(BASEOBJS)
+
 $(COMPONENT): $(SOBJS) Scintilla.def
-	$(DLLWRAP) --add-stdcall-alias --target i386-mingw32 -o $@ $(SOBJS) $(LDFLAGS) $(STRIPFLAG) --relocatable
+	$(CC) $(LDFLAGS) -o $@ $(STRIPFLAG) $(SOBJS) $(CXXFLAGS) $(LIBS)
 
-LOBJS	= ScintillaWinL.o ScintillaBaseL.o Editor.o CharClassify.o Decoration.o \
-	Document.o ContractionState.o CellBuffer.o CallTip.o \
-	ScintRes.o PlatWin.o PositionCache.o KeyMap.o Indicator.o LineMarker.o RESearch.o RunStyles.o \
-	Selection.o Style.o ViewStyle.o AutoComplete.o UniConversion.o KeyWords.o \
-	DocumentAccessor.o PropSet.o ExternalLexer.o StyleContext.o XPM.o PerLine.o $(LEXOBJS)
+LOBJS = \
+	Accessor.o \
+	Catalogue.o \
+	ExternalLexer.o \
+	LexerBase.o \
+	LexerModule.o \
+	LexerSimple.o \
+	ScintillaWinL.o \
+	ScintillaBaseL.o \
+	StyleContext.o \
+	WordList.o \
+	$(BASEOBJS) \
+	$(LEXOBJS)
 $(LEXCOMPONENT): $(LOBJS) Scintilla.def
-	$(DLLWRAP) --add-stdcall-alias --target i386-mingw32 -o $@ $(LOBJS) $(LDFLAGS) $(STRIPFLAG) --relocatable
+	$(CC) $(LDFLAGS) -o $@ $(STRIPFLAG) $(LOBJS) $(CXXFLAGS) $(LIBS)
 
 $(LEXLIB): $(LEXOBJS)
 	$(AR) rc $@ $^
@@ -127,20 +150,37 @@ $(LEXLIB): $(LEXOBJS)
 include deps.mak
 
 # These dependencies are maintained by hand as they do not use the default output name
-ScintillaBaseL.o: ScintillaBase.cxx Platform.h Scintilla.h SciLexer.h \
- ContractionState.h CellBuffer.h CallTip.h KeyMap.h Indicator.h \
- LineMarker.h Style.h AutoComplete.h ViewStyle.h Document.h Editor.h \
- ScintillaBase.h PropSet.h Accessor.h DocumentAccessor.h \
- KeyWords.h ExternalLexer.h PerLine.h
-ScintillaWinL.o: ScintillaWin.cxx Platform.h Scintilla.h SciLexer.h \
- ContractionState.h CellBuffer.h CallTip.h KeyMap.h Indicator.h \
- LineMarker.h Style.h AutoComplete.h ViewStyle.h Document.h Editor.h \
- ScintillaBase.h PropSet.h Accessor.h KeyWords.h \
- ExternalLexer.h UniConversion.h PerLine.h
-ScintillaWinS.o: ScintillaWin.cxx Platform.h Scintilla.h \
- ContractionState.h CellBuffer.h CallTip.h KeyMap.h Indicator.h \
- LineMarker.h Style.h AutoComplete.h ViewStyle.h Document.h Editor.h \
- ScintillaBase.h UniConversion.h PerLine.h
+
+ScintillaBaseL.o: ScintillaBase.cxx Platform.h \
+ ILexer.h Scintilla.h SciLexer.h PropSetSimple.h \
+ SplitVector.h Partitioning.h RunStyles.h \
+ ContractionState.h CellBuffer.h CallTip.h \
+ KeyMap.h Indicator.h XPM.h LineMarker.h \
+ Style.h ViewStyle.h AutoComplete.h \
+ CharClassify.h Decoration.h Document.h \
+ Selection.h PositionCache.h Editor.h \
+ ScintillaBase.h LexAccessor.h Accessor.h \
+ LexerModule.h Catalogue.h
+
+ScintillaWinL.o: ScintillaWin.cxx Platform.h \
+ ILexer.h Scintilla.h SplitVector.h \
+ Partitioning.h RunStyles.h ContractionState.h \
+ CellBuffer.h CallTip.h KeyMap.h Indicator.h \
+ XPM.h LineMarker.h Style.h AutoComplete.h \
+ ViewStyle.h CharClassify.h Decoration.h \
+ Document.h Selection.h PositionCache.h \
+ Editor.h ScintillaBase.h UniConversion.h \
+ LexAccessor.h Accessor.h \
+ LexerModule.h Catalogue.h
+
+ScintillaWinS.o: ScintillaWin.cxx Platform.h \
+ ILexer.h Scintilla.h SplitVector.h \
+ Partitioning.h RunStyles.h ContractionState.h \
+ CellBuffer.h CallTip.h KeyMap.h Indicator.h \
+ XPM.h LineMarker.h Style.h AutoComplete.h \
+ ViewStyle.h CharClassify.h Decoration.h \
+ Document.h Selection.h PositionCache.h \
+ Editor.h ScintillaBase.h UniConversion.h
 
 ScintillaBaseL.o:
 	$(CC) $(CXXFLAGS) -D SCI_LEXER -c $< -o $@

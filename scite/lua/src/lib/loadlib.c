@@ -1,5 +1,5 @@
 /*
-** $Id: loadlib.c,v 1.7 2008/09/07 05:52:56 nyamatongwe Exp $
+** $Id$
 ** Dynamic library loader for Lua
 ** See Copyright Notice in lua.h
 **
@@ -92,17 +92,8 @@ static lua_CFunction ll_sym (lua_State *L, void *lib, const char *sym) {
 ** =======================================================================
 */
 
-//!-start-[no_wornings]
-#ifdef _MSC_VER
-#pragma warning( disable : 4115 ) // warning C4115: '_RPC_ASYNC_STATE' : named type definition in parentheses
-#endif
-//!-end-[no_wornings]
 #include <windows.h>
-//!-start-[no_wornings]
-#ifdef _MSC_VER
-#pragma warning( default : 4115 )
-#endif
-//!-end-[no_wornings]
+
 
 #undef setprogdir
 
@@ -137,7 +128,19 @@ static void ll_unloadlib (void *lib) {
 
 
 static void *ll_load (lua_State *L, const char *path) {
-  HINSTANCE lib = LoadLibraryA(path);
+//!  HINSTANCE lib = LoadLibraryA(path); //-change-[luaFileOpenFix]
+//-start-[luaFileOpenFix]
+  HINSTANCE lib = NULL;
+  // convert from utf8
+  int cchWideFileName = 0;
+  wchar_t* pszWideFileName = NULL;
+  cchWideFileName = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
+  pszWideFileName = (wchar_t*)malloc(sizeof(wchar_t)*(cchWideFileName+1));
+  MultiByteToWideChar(CP_UTF8, 0, path, -1, pszWideFileName, cchWideFileName + 1);
+  lib = LoadLibraryW(pszWideFileName);
+  free(pszWideFileName);
+  if (lib == NULL) lib = LoadLibraryA(path);
+//-and-[luaFileOpenFix]
   if (lib == NULL) pusherror(L);
   return lib;
 }
@@ -340,9 +343,39 @@ static int ll_loadlib (lua_State *L) {
 ** =======================================================
 */
 
+//-start-[luaFileOpenFix]
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+static FILE *open_file(const char *filename, const char *mode) {
+#ifdef _WIN32
+	// convert from utf8
+	int cchWideFileName = 0;
+	wchar_t* pszWideFileName = NULL;
+	int cchWideMode = 0;
+	wchar_t* pszWideMode = NULL;
+	FILE* f = NULL;
+	cchWideFileName = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
+	pszWideFileName = (wchar_t*)malloc(sizeof(wchar_t)*(cchWideFileName+1));
+	MultiByteToWideChar(CP_UTF8, 0, filename, -1, pszWideFileName, cchWideFileName + 1);
+	cchWideMode = MultiByteToWideChar(CP_UTF8, 0, mode, -1, NULL, 0);
+	pszWideMode = (wchar_t*)malloc(sizeof(wchar_t)*(cchWideMode+1));
+	MultiByteToWideChar(CP_UTF8, 0, mode, -1, pszWideMode, cchWideMode + 1);
+	f = _wfopen(pszWideFileName, pszWideMode);
+	free(pszWideFileName);
+	free(pszWideMode);
+	if ( f == NULL ) f = fopen( filename, mode );
+	return f;
+#else
+	return fopen( filename, mode );
+#endif
+}
+//-end-[luaFileOpenFix]
 
 static int readable (const char *filename) {
-  FILE *f = fopen(filename, "r");  /* try to open file */
+//  FILE *f = fopen(filename, "r");  /* try to open file */
+  FILE *f = open_file(filename, "r");  /* try to open file */ //-add-[luaFileOpenFix]
   if (f == NULL) return 0;  /* open failed */
   fclose(f);
   return 1;

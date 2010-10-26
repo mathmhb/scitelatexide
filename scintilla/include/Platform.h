@@ -46,19 +46,29 @@
 #else
 #undef PLAT_WIN
 #define PLAT_WIN 1
-#include <windows.h> //!-add-[SubMenu][no_wornings]
-#include <commctrl.h> //!-add-[no_wornings]
+
 #endif
 
 //!-start-[no_wornings]
 
 // Visual C++ 6 compatible:
-#ifdef _MSC_VER
-#if _MSC_VER < 1300
+#if defined(_MSC_VER) && _MSC_VER < 1300
+#undef _WIN32_WINNT
+#define _WIN32_WINNT  0x0500
+#include <windows.h>
+#ifndef SetWindowLongPtr
 #define SetWindowLongPtr SetWindowLong
+#endif
+#ifndef GetWindowLongPtr
 #define GetWindowLongPtr GetWindowLong
+#endif
+#ifndef GWLP_USERDATA
 #define GWLP_USERDATA GWL_USERDATA
+#endif
+#ifndef DWLP_USER
 #define DWLP_USER DWL_USER
+#endif
+#ifndef GWLP_WNDPROC
 #define GWLP_WNDPROC GWL_WNDPROC
 #endif
 #ifndef LONG_PTR
@@ -67,17 +77,24 @@
 #ifndef DWORD_PTR
 #define DWORD_PTR DWORD
 #endif
+#ifndef ULONG_PTR
+#define ULONG_PTR ULONG
+#endif
+#ifndef DFCS_HOT
+#define DFCS_HOT 0x1000
+#endif
+#ifndef SPI_GETKEYBOARDCUES
+#define SPI_GETKEYBOARDCUES 0x100A
+#endif
 #endif
 
 // STL without warnings (http://www.codeproject.com/KB/stl/stl_without_warnings.aspx)
 #ifdef _MSC_VER
 #pragma warning( push )
 #pragma warning( disable : 4018 4100 4146 4244 4245 4511 4512 4663 4786 )
-#endif
 #include <vector>
 #include <string>
 #include <map>
-#ifdef _MSC_VER
 #pragma warning( pop )
 #endif
 
@@ -356,8 +373,8 @@ private:
 	Surface(const Surface &) {}
 	Surface &operator=(const Surface &) { return *this; }
 public:
-	Surface() {};
-	virtual ~Surface() {};
+	Surface() {}
+	virtual ~Surface() {}
 	static Surface *Allocate();
 
 	virtual void Init(WindowID wid)=0;
@@ -496,8 +513,7 @@ public:
 class Menu {
 	MenuID mid;
 public:
-//!	Menu();
-	Menu(MenuID _id = 0);//!-change-[SubMenu]
+	Menu();
 	MenuID GetID() { return mid; }
 	void CreatePopUp();
 	void Destroy();
@@ -517,7 +533,7 @@ public:
  */
 class DynamicLibrary {
 public:
-	virtual ~DynamicLibrary() {};
+	virtual ~DynamicLibrary() {}
 
 	/// @return Pointer to function "name", or NULL on failure.
 	virtual Function FindFunction(const char *name) = 0;
@@ -591,14 +607,9 @@ public:
 }
 #endif
 
-//!-start-[no_wornings]
-/*
 // Shut up annoying Visual C++ warnings:
 #ifdef _MSC_VER
 #pragma warning(disable: 4244 4309 4514 4710)
 #endif
-*/
-//!-end-[no_wornings]
-
 
 #endif

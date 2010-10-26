@@ -8,32 +8,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#include <string> //!-change-[no_wornings]
-//#include <map> //!-change-[no_wornings]
-
-#include "Platform.h" //!-add-[no_wornings]
+#include <string>
+#include <map>
 
 #include "SString.h"
 #include "StringList.h"
-#include "PropSet.h"
 
 static inline bool IsASpace(unsigned int ch) {
     return (ch == ' ') || ((ch >= 0x09) && (ch <= 0x0d));
 }
 
 static inline char MakeUpperCase(char ch) {
-//!-start-[LowerUpperCase]
-#if PLAT_WIN
-	char str[2] = {ch, 0};
-	::CharUpper(str);
-	return str[0];
-#else
-//!-end-[LowerUpperCase]
 	if (ch < 'a' || ch > 'z')
 		return ch;
 	else
 		return static_cast<char>(ch - 'a' + 'A');
-#endif //!-add-[LowerUpperCase]
 }
 
 static int CompareNCaseInsensitive(const char *a, const char *b, size_t len) {
@@ -422,11 +411,7 @@ char *StringList::GetNearestWords(
 	return NULL;
 }
 
-//!-start-[no_wornings]
-/*
 #ifdef _MSC_VER
 // Unreferenced inline functions are OK
 #pragma warning(disable: 4514)
 #endif
-*/
-//!-end-[no_wornings]
