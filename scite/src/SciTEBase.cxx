@@ -755,7 +755,7 @@ void SciTEBase::SetAboutMessage(GUI::ScintillaWindow &wsci, const char *appTitle
 		}
 #endif
 		AddStyledText(wsci, GetTranslationToAbout("Version").c_str(), trsSty);
-		AddStyledText(wsci, " 2.22 .86\n", 1); 
+		AddStyledText(wsci, " 2.22 .87\n", 1); 
 		AddStyledText(wsci, "    " __DATE__ " " __TIME__ "\n", 1);
 		SetAboutStyle(wsci, 4, ColourRGB(0, 0x7f, 0x7f)); //!-add-[SciTE-Ru]
 		//AddStyledText(wsci, "http://scite.net.ru\n", 4); 
@@ -2239,7 +2239,6 @@ void SciTEBase::EliminateDuplicateWords(char *words) {
 	}
 }
 
-/*!
 bool SciTEBase::StartAutoComplete() {
 	SString line = GetLine();
 	int current = GetCaretInLine();
@@ -2265,95 +2264,6 @@ bool SciTEBase::StartAutoComplete() {
 	}
 	return true;
 }
-*/
-//!-start-[AutoComplete]
-bool SciTEBase::StartAutoComplete() {
-/* Collected content of StartAutoComplete and StartAutoCompleteWord */
-
-	SString line = GetLine();
-	int current = GetCaretInLine();//Current column
-//	if (current >= line.size())
-//		return false;
-
-	int startword = current;
-	// Autocompletion of pure numbers is mostly an annoyance
-	bool allNumber = true;
-	while (startword > 0 && wordCharacters.contains(line[startword - 1])) {
-		startword--;
-		if (line[startword] < '0' || line[startword] > '9') {
-			allNumber = false;
-		}
-	}
-//	bool onlyOneWord=false;
-	if (startword == current || allNumber) {
-		return true;
-	}
-	SString root = line.substr(startword, current - startword);
-	int doclen = LengthDocument();
-	Sci_TextToFind ft = {{0, 0}, 0, {0, 0}};
-	ft.lpstrText = const_cast<char*>(root.c_str());
-	ft.chrg.cpMin = 0;
-	ft.chrgText.cpMin = 0;
-	ft.chrgText.cpMax = 0;
-	int flags = SCFIND_WORDSTART | (autoCompleteIgnoreCase ? 0 : SCFIND_MATCHCASE);
-	int posCurrentWord = wEditor.Call(SCI_GETCURRENTPOS) - root.length();
-	unsigned int minWordLength = 0;
-	unsigned int nwords = 0;
-
-	// wordsNear contains a list of words separated by single spaces and with a space
-	// at the start and end. This makes it easy to search for words.
-	SString wordsNear;
-	wordsNear.setsizegrowth(1000);
-	wordsNear += " ";
-
-	for (;;) {	// search all the document
-		ft.chrg.cpMax = doclen;
-		int posFind = wEditor.CallString(SCI_FINDTEXT, flags, reinterpret_cast<char *>(&ft));
-		if (posFind == -1 || posFind >= doclen) {
-			break;
-		}
-		if (posFind == posCurrentWord) {
-			ft.chrg.cpMin = posFind + root.length();
-			continue;
-		}
-		// Grab the word and put spaces around it
-		const unsigned int wordMaxSize = 800;
-		char wordstart[wordMaxSize];
-		wordstart[0] = ' ';
-		GetRange(wEditor, posFind, Minimum(posFind + wordMaxSize - 3, doclen), wordstart + 1);
-		char *wordend = wordstart + 1 + root.length();
-		while (iswordcharforsel(*wordend)) { //Check for separator
-			wordend++;
-		}
-		*wordend++ = ' ';
-		*wordend = '\0';
-		unsigned int wordlen = wordend - wordstart - 2;
-		if (wordlen > root.length()) {
-			if (!wordsNear.contains(wordstart)) {	// add a new entry
-				wordsNear += wordstart + 1;
-				if (minWordLength < wordlen) {
-					minWordLength = wordlen;
-				}
-				nwords++;
-//				if (onlyOneWord && nwords > 1) {
-//					return true;
-//				}
-			}
-		}
-		ft.chrg.cpMin = posFind + wordlen;
-	}
-
-	if (apis) {
-		char *words = GetNearestWords(root.c_str(), root.length(),
-			calltipParametersStart.c_str(), autoCompleteIgnoreCase);
-		if (words) {
-			wordsNear += words;
-			delete []words;
-		}
-	}
-	return true;
-}
-//!-end-[AutoComplete]
 
 bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 	SString line = GetLine();
@@ -2390,13 +2300,13 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 	wordsNear.setsizegrowth(1000);
 	wordsNear.append("\n");
 
-	int posFind = wEditor.CallString(SCI_FINDTEXT, flags, reinterpret_cast<char *>(&ft));
+		int posFind = wEditor.CallString(SCI_FINDTEXT, flags, reinterpret_cast<char *>(&ft));
 	TextReader acc(wEditor);
 	while (posFind >= 0 && posFind < doclen) {	// search all the document
 		int wordEnd = posFind + root.length();
 		if (posFind != posCurrentWord) {
 			while (wordCharacters.contains(acc.SafeGetCharAt(wordEnd)))
-				wordEnd++;
+			wordEnd++;
 			size_t wordLength = wordEnd - posFind;
 			if (wordLength > root.length()) {
 				SString word = GetRange(wEditor, posFind, wordEnd);
@@ -2407,7 +2317,7 @@ bool SciTEBase::StartAutoCompleteWord(bool onlyOneWord) {
 					if (minWordLength < wordLength)
 						minWordLength = wordLength;
 
-					nwords++;
+				nwords++;
 					if (onlyOneWord && nwords > 1) {
 						return true;
 					}
@@ -4819,6 +4729,20 @@ void SciTEBase::Notify(SCNotification *notification) {
 //!-end-[OnDoubleClick][GoMessageImprovement][MouseClickHandled]
 
 //!-begin-[OnClick][MouseClickHandled]
+	case SCN_CLICK:
+		if (extender) {
+			handled = extender->OnClick(notification->modifiers);
+			if (handled) {
+				if (notification->nmhdr.idFrom == IDM_RUNWIN)
+					wOutput.Call(SCI_SETMOUSECAPTURE, 0);
+				else
+					wEditor.Call(SCI_SETMOUSECAPTURE, 0);
+			}
+		}
+		break;
+//!-end-[OnClick][MouseClickHandled]
+
+//!-begin-[OnHotSpotReleaseClick][GoMessageImprovement]
 	case SCN_HOTSPOTRELEASECLICK:
 		if (extender) {
 			handled = extender->OnHotSpotReleaseClick(notification->modifiers);
@@ -4830,7 +4754,7 @@ void SciTEBase::Notify(SCNotification *notification) {
 			}
 		}
 		break;
-//!-end-[OnClick][MouseClickHandled]
+//!-end-[OnHotSpotReleaseClick][GoMessageImprovement]
 
 //!-start-[OnMouseButtonUp][GoMessageImprovement]
 	case SCN_MOUSEBUTTONUP:
@@ -5907,6 +5831,7 @@ bool SciTEBase::ShowParametersDialog(const char *msg) {
 
 //!-start-[LocalizationFromLua]
 // TODO: переделать всё на utf8, это вызывается только из луа
+
 
 char *SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
 #if defined(GTK)

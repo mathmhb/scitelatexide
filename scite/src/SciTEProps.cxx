@@ -296,7 +296,8 @@ StyleDefinition::StyleDefinition(const char *definition) :
 		bold(false), italics(false), eolfilled(false), underlined(false),
 		caseForce(SC_CASE_MIXED),
 		visible(true), changeable(true),
-		specified(sdNone) {
+//!		specified(sdNone) {
+		hotspot(false), specified(sdNone) { //!-change-[StyleDefHotspot]
 	ParseStyleDefinition(definition);
 }
 
@@ -394,6 +395,16 @@ bool StyleDefinition::ParseStyleDefinition(const char *definition) {
 			specified = static_cast<flags>(specified | sdChangeable);
 			changeable = false;
 		}
+//!-start-[StyleDefHotspot]
+		if (0 == strcmp(opt, "hotspot")) {
+			specified = static_cast<flags>(specified | sdHotspot);
+			hotspot = true;
+		}
+		if (0 == strcmp(opt, "nothotspot")) {
+			specified = static_cast<flags>(specified | sdHotspot);
+			hotspot = false;
+		}
+//!-end-[StyleDefHotspot]
 		if (cpComma)
 			opt = cpComma + 1;
 		else
@@ -435,6 +446,10 @@ void SciTEBase::SetOneStyle(GUI::ScintillaWindow &win, int style, const StyleDef
 		win.Send(SCI_STYLESETVISIBLE, style, sd.visible ? 1 : 0);
 	if (sd.specified & StyleDefinition::sdChangeable)
 		win.Send(SCI_STYLESETCHANGEABLE, style, sd.changeable ? 1 : 0);
+//!-start-[StyleDefHotspot]
+	if (sd.specified & StyleDefinition::sdHotspot)
+		win.Send(SCI_STYLESETHOTSPOT, style, sd.hotspot ? 1 : 0);
+//!-end-[StyleDefHotspot]
 	win.Send(SCI_STYLESETCHARACTERSET, style, characterSet);
 }
 
