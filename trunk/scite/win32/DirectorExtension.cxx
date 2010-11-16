@@ -256,10 +256,16 @@ bool DirectorExtension::OnDoubleClick(int){ //!-changed-[OnDoubleClick]
 }
 
 //!-start-[OnClick]
-bool DirectorExtension::OnHotSpotReleaseClick(int){ 
+bool DirectorExtension::OnClick(int){ 
 	return false;
 }
 //!-end-[OnClick]
+
+//!-start-[OnHotSpotReleaseClick]
+bool DirectorExtension::OnHotSpotReleaseClick(int){ 
+	return false;
+}
+//!-end-[OnHotSpotReleaseClick]
 
 //!-start-[OnMouseButtonUp]
 bool DirectorExtension::OnMouseButtonUp(int){ 

@@ -18,8 +18,7 @@ LEXLIB = Lexers.a
 vpath %.h ../src ../include ../lexlib
 vpath %.cxx ../src ../lexlib ../lexers
 
-#LDFLAGS=-shared -static -Wl,--enable-runtime-pseudo-reloc-v2 -mno-cygwin -mwindows --relocatable -Wl,--add-stdcall-alias
-LDFLAGS=-shared -static -Wl -mno-cygwin -mwindows --relocatable -Wl,--add-stdcall-alias
+LDFLAGS=-shared -static -Wl,--enable-runtime-pseudo-reloc-v2 -mno-cygwin -mwindows --relocatable -Wl,--add-stdcall-alias
 LIBS=-lstdc++ -limm32 -lole32 -luuid
 # Add -MMD to get dependencies
 INCLUDEDIRS=-I ../include -I ../src -I../lexlib

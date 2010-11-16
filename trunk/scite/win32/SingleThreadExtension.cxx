@@ -137,10 +137,16 @@ bool SingleThreadExtension::OnDoubleClick(int modifiers){
 //!-end-[OnDoubleClick]
 
 //!-start-[OnClick]
+bool SingleThreadExtension::OnClick(int modifiers){
+	return ext->OnClick(modifiers);
+}
+//!-end-[OnClick]
+
+//!-start-[OnHotSpotReleaseClick]
 bool SingleThreadExtension::OnHotSpotReleaseClick(int modifiers){
 	return ext->OnHotSpotReleaseClick(modifiers);
 }
-//!-end-[OnClick]
+//!-end-[OnHotSpotReleaseClick]
 
 //!-start-[OnMouseButtonUp]
 bool SingleThreadExtension::OnMouseButtonUp(int modifiers){

@@ -2121,6 +2121,7 @@ void Editor::LayoutLine(int line, Surface *surface, ViewStyle &vstyle, LineLayou
 			ll->styles[styleInLine] = static_cast<char>(styleByte & styleMask);
 			ll->indicators[styleInLine] = static_cast<char>(styleByte & ~styleMask);
 		}
+		styleByte = static_cast<char>(((lineLength > 0) ? ll->styles[lineLength-1] : 0) & styleMask);
 		if (vstyle.someStylesForceCase) {
 			for (int charInLine = 0; charInLine<lineLength; charInLine++) {
 				char chDoc = ll->chars[charInLine];
@@ -4252,6 +4253,18 @@ void Editor::NotifyDoubleClick(Point pt, bool shift, bool ctrl, bool alt) {
 	NotifyParent(scn);
 }
 
+//-start-[OnClick]
+void Editor::NotifyClick(Point pt, bool shift, bool ctrl, bool alt) {
+	SCNotification scn = {0};
+	scn.nmhdr.code = SCN_CLICK;
+	scn.line = LineFromLocation(pt);
+	scn.position = PositionFromLocation(pt, true);
+	scn.modifiers = (shift ? SCI_SHIFT : 0) | (ctrl ? SCI_CTRL : 0) |
+		(alt ? SCI_ALT : 0);
+	NotifyParent(scn);
+}
+//-end-[OnClick]
+
 //!-start-[OnMouseButtonUp]
 void Editor::NotifyMouseButtonUp(Point pt, bool ctrl) {
 	SCNotification scn = {0};
@@ -6092,7 +6105,7 @@ void Editor::ButtonDown(Point pt, unsigned int curTime, bool shift, bool ctrl, b
 	lastClickTime = curTime;
 	lastXChosen = pt.x + xOffset;
 	ShowCaretAtCurrentPosition();
-	if (notifyClick) NotifyHotSpotReleaseClick(hotSpotClickPos, shift, ctrl, alt); //-add-[OnClick]
+	if (notifyClick) NotifyClick(pt, shift, ctrl, alt); //-add-[OnClick]
 }
 
 bool Editor::PositionIsHotspot(int position) {
