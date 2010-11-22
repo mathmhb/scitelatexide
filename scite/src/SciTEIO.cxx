@@ -108,7 +108,12 @@ void SciTEBase::SetFileName(FilePath openName, bool fixCase) {
 	ReadLocalPropFile();
 
 	//[mhb] 06/23/09 added: to provide a new property "FileType" to indicate current file type xxx: file.patterns.xxx=...
-	const char *filename=FileNameExt().AsUTF8().c_str();
+	// const char *filename=FileNameExt().AsUTF8().c_str();
+	
+	//[mhb] 11/22/10 added: to replace old buggy FileNameExt() in the new version
+	std::string str_filename=filePath.BaseName().AsUTF8()+"."+filePath.Extension().AsUTF8();
+	const char *filename=str_filename.c_str();
+	
 	props.Set("FileType", props.GetFileType(filename).c_str());
 
 	props.Set("FilePath", filePath.AsUTF8().c_str());
