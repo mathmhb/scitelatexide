@@ -1,3 +1,22 @@
+lut=\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n
+a=@ARTICLE{|,\n	Author		= {},\n	Title		= {},\n	eprint		= {},\n	Journal		= {},\n	Volume		= {},\n	Pages		= {},\n	Year		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+b=@BOOK{|,\n	AUTHOR		= {},\n	editor		= {},\n	TITLE		= {},\n	PUBLISHER	= {},\n	YEAR		= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	address		= {},\n	edition		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	isbn		= {},\n	price		= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+bl=@BOOKLET{|,\n	TITLE		= {},\n	author		= {},\n	howpublished= {},\n	address		= {},\n	month		= {},\n	year		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+cf=@CONFERENCE{|,\n	author		= {},\n	title		= {},\n	booktitle	= {},\n	year		= {},\n	editor		= {},\n	volume		= {},\n	series		= {},\n	pages		= {},\n	address		= {},\n	month		= {},\n	organization= {},\n	publisher	= {},\n	note		= {},\n	key 		= {},\n	crossref	= {},\n	annote		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+ib=@INBOOK{|,\n	AUTHOR		= {},\n	editor		= {},\n	TITLE		= {},\n	CHAPTER		= {},\n	pages		= {},\n	PUBLISHER	= {},\n	YEAR		= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	type		= {},\n	address		= {},\n	edition		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+ibx=@INBOOK{|,\n	CROSSREF	= {},\n	author		= {},\n	title		= {},\n	CHAPTER		= {},\n	pages		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+ic=@INCOLLECTION{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	BOOKTITLE	= {},\n	PUBLISHER	= {},\n	YEAR		= {},\n	editor		= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	type		= {},\n	chapter		= {},\n	pages		= {},\n	address		= {},\n	edition		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+icx=@INCOLLECTION{|,\n	CROSSREF	= {},\n	author		= {},\n	TITLE		= {},\n	chapter		= {},\n	pages		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+ip=@INPROCEEDINGS{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	BOOKTITLE	= {},\n	YEAR		= {},\n	editor		= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	pages		= {},\n	address		= {},\n	month		= {},\n	organization= {},\n	publisher	= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+ipx=@INPROCEEDINGS{|,\n	CROSSREF	= {},\n	AUTHOR		= {},\n	TITLE		= {},\n	pages		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+mn=@MANUAL{|,\n	TITLE		= {},\n	author		= {},\n	organization= {},\n	address		= {},\n	edition		= {},\n	month		= {},\n	year		=  {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+ms=@MASTERSTHESIS{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	SCHOOL		= {},\n	YEAR		= {},\n	type		= {},\n	address		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+mc=@MISC{|,\n	author		= {},\n	title		= {},\n	howpublished= {},\n	year		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+phd=@PHDTHESIS{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	SCHOOL		= {},\n	YEAR		= {},\n	type		= {},\n	address		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+pc=@PROCEEDINGS{|,\n	TITLE		= {},\n	YEAR		= {},\n	editor		= {},\n	publisher	= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	organization= {},\n	address		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	isbn		= {},\n	price		= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+rp=@TECHREPORT{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	INSTITUTION	= {},\n	YEAR		= {},\n	type		= {},\n	number		= {},\n	address		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+up=@UNPUBLISHED{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	NOTE		= {},\n	year		= {},\n	month		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+ 
 Jan=January
 Feb=February
 Mar=March
@@ -11,26 +30,9 @@ Nov=November
 Dec=December
 ITAC=IEEE Transactions on Automatic Control
 ITRO=IEEE Transactions on Robotics
+SJCO=SIAM Journal on Control and Optimization
 SCL=Systems and Control Letter
 IJC=Internation Journal of Control
 Aut=Autoamtica
 IJACSP=International Journal of Adaptive Control and Signal Processing
 
-a=@ARTICLE{|,\n	Author		= {},\n	Title		= {},\n	eprint		= {},\n	Journal		= {},\n	Volume		= {},\n	Pages		= {},\n	Year		= {},\n	language	= {},\n}\n
-b=@BOOK{|,\n	AUTHOR		= {},\n	editor		= {},\n	TITLE		= {},\n	PUBLISHER	= {},\n	YEAR		= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	address		= {},\n	edition		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	isbn		= {},\n	price		= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n}\n
-bl=@BOOKLET{|,\n	TITLE		= {},\n	author		= {},\n	howpublished= {},\n	address		= {},\n	month		= {},\n	year		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n}\n
-cf=@CONFERENCE{|,\n	author		= {},\n	title		= {},\n	booktitle	= {},\n	year		= {},\n	editor		= {},\n	volume		= {},\n	series		= {},\n	pages		= {},\n	address		= {},\n	month		= {},\n	organization= {},\n	publisher	= {},\n	note		= {},\n	key 		= {},\n	crossref	= {},\n	annote		= {},\n	language	= {},\n}\n
-ib=@INBOOK{|,\n	AUTHOR		= {},\n	editor		= {},\n	TITLE		= {},\n	CHAPTER		= {},\n	pages		= {},\n	PUBLISHER	= {},\n	YEAR		= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	type		= {},\n	address		= {},\n	edition		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n}\n
-ibx=@INBOOK{|,\n	CROSSREF	= {},\n	author		= {},\n	title		= {},\n	CHAPTER		= {},\n	pages		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n}\n
-ic=@INCOLLECTION{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	BOOKTITLE	= {},\n	PUBLISHER	= {},\n	YEAR		= {},\n	editor		= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	type		= {},\n	chapter		= {},\n	pages		= {},\n	address		= {},\n	edition		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n}\n
-icx=@INCOLLECTION{|,\n	CROSSREF	= {},\n	author		= {},\n	TITLE		= {},\n	chapter		= {},\n	pages		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n}\n
-ip=@INPROCEEDINGS{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	BOOKTITLE	= {},\n	YEAR		= {},\n	editor		= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	pages		= {},\n	address		= {},\n	month		= {},\n	organization= {},\n	publisher	= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n}\n
-ipx=@INPROCEEDINGS{|,\n	CROSSREF	= {},\n	AUTHOR		= {},\n	TITLE		= {},\n	pages		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	language	= {},\n}\n
-mn=@MANUAL{|,\n	TITLE		= {},\n	author		= {},\n	organization= {},\n	address		= {},\n	edition		= {},\n	month		= {},\n	year		=  {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n}\n
-ms=@MASTERSTHESIS{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	SCHOOL		= {},\n	YEAR		= {},\n	type		= {},\n	address		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n}\n
-mc=@MISC{|,\n	author		= {},\n	title		= {},\n	howpublished= {},\n	year		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n}\n
-phd=@PHDTHESIS{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	SCHOOL		= {},\n	YEAR		= {},\n	type		= {},\n	address		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n}\n
-pc=@PROCEEDINGS{|,\n	TITLE		= {},\n	YEAR		= {},\n	editor		= {},\n	publisher	= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	organization= {},\n	address		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	isbn		= {},\n	price		= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n}\n
-rp=@TECHREPORT{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	INSTITUTION	= {},\n	YEAR		= {},\n	type		= {},\n	number		= {},\n	address		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n}\n
-up=@UNPUBLISHED{|,\n	AUTHOR		= {},\n	TITLE		= {},\n	NOTE		= {},\n	year		= {},\n	month		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n}\n
- 
