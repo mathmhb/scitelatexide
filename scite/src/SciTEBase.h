@@ -498,7 +498,7 @@ protected:
 	bool openFilesHere;
 	bool fullScreen;
 //!	enum { toolMax = 50 };
-	enum { toolMax = 300 }; //!-change-[ToolsMax]
+	enum { toolMax = 500 }; //!-change-[ToolsMax]
 	Extension *extender;
 	bool needReadProperties;
 	bool preserveFocusOnEditor; //!-add-[GoMessageImprovement]
