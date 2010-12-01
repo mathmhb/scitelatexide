@@ -762,7 +762,7 @@ void SciTEBase::SetAboutMessage(GUI::ScintillaWindow &wsci, const char *appTitle
 		SetAboutStyle(wsci, 2, ColourRGB(0, 0, 0));
 		AddStyledText(wsci, "Instanton (soft_share[at]126[dot]com)\n", 4);
 		AddStyledText(wsci, "Mathmhb (mathmhb[at]163[dot]com)\n", 4);
-		AddStyledText(wsci, "QiHS (qihongsh[at]amss[dot]ac[dot]cn)\n", 4);
+		AddStyledText(wsci, "QiHS (qihongsh[at]gmail[dot]com)\n", 4);
 		wsci.Send(SCI_STYLESETITALIC, 2, 1);
 		AddStyledText(wsci, GetTranslationToAbout("Based on version").c_str(), trsSty); //!-add-[SciTE-Ru]
 		AddStyledText(wsci, " 2.22 ", 1); 
@@ -4849,7 +4849,8 @@ void SciTEBase::Notify(SCNotification *notification) {
 			if (notification->wParam == 2)
 				ContinueMacroList(notification->text);
 			else if (extender && notification->wParam > 2)
-				extender->OnUserListSelection(notification->wParam, notification->text);
+//!				extender->OnUserListSelection(notification->wParam, notification->text);
+				extender->OnUserListSelection(notification->wParam, notification->text, notification->position+1); //!-change-[UserListItemID]
 		}
 		break;
 
@@ -5831,7 +5832,7 @@ bool SciTEBase::ShowParametersDialog(const char *msg) {
 //!-end-[ParametersDialogFromLua]
 
 //!-start-[LocalizationFromLua]
-// TODO: переделать всё на utf8, это вызывается только из луа
+// TODO: переделать всё на utf8, это вызывается только из луа
 
 
 char *SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
