@@ -215,7 +215,7 @@ function add_filetype(v)
 		local kw=props['KEYWORDS_'..n]
 		if kw~=nil and kw~='' then
 			pv_('keywords'..m,'$(KEYWORDS_'..n..')')
-			for i=2,9 do
+			for i=2,20 do
 				pv_('keywords'..i..m,'$(KEYWORDS'..i..'_'..n..')')
 			end
 		end
