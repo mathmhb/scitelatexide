@@ -44,9 +44,6 @@
 #ifdef _MSC_VER
 #include <direct.h>
 #endif
-#ifdef __BORLANDC__
-#include <dir.h>
-#endif
 
 #endif
 
@@ -67,7 +64,7 @@
 #include "SciTEBase.h"
 #include "Utf8_16.h"
 
-#ifdef unix
+#ifdef __unix__
 const GUI::gui_char propUserFileName[] = GUI_TEXT(".SciTEUser.properties");
 #else
 // Windows
@@ -120,7 +117,7 @@ void SciTEBase::SetFileName(FilePath openName, bool fixCase) {
 	props.Set("FileDir", filePath.Directory().AsUTF8().c_str());
 	props.Set("FileName", filePath.BaseName().AsUTF8().c_str());
 	props.Set("FileExt", filePath.Extension().AsUTF8().c_str());
-	props.Set("FileNameExt", filename); //[mhb] 06/23/09 changed: FileNameExt().AsFileSystem()
+	props.Set("FileNameExt", filename); //[mhb] 06/23/09 changed: props.Set("FileNameExt", FileNameExt().AsUTF8().c_str());
 	
 	//[mhb] 07/12/09 added: to support new menu "Set Main File" 
 	bool is_mainfile=filePath.IsSet() && filePath.SameNameAs(mainFilePath);

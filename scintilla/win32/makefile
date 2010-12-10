@@ -52,7 +52,7 @@ HTML Inno Kix Latex Lisp Lout Lua Markdown Matlab Metapost MSSQL MySQL Nsis Othe
 Pascal PB Perl PowerPro PowerShell PS Python R Rebol Ruby Smalltalk SQL TCL VB
 else
 LEXERS=\
-ABAP Abaqus Ada AHK1 APDL Asm Asn1 ASY AU3 \
+A68k ABAP Abaqus Ada AHK1 APDL Asm Asn1 ASY AU3 \
 AVE Baan Bash Basic BiB Bullant Caml \
 CLW Cmake COBOL Conf CPP Crontab Csound \
 CSS D Eiffel Erlang EScript Euphoria \

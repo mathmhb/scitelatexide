@@ -46,9 +46,6 @@
 #ifdef _MSC_VER
 #include <direct.h>
 #endif
-#ifdef __BORLANDC__
-#include <dir.h>
-#endif
 #ifdef __DMC__
 #include <dir.h>
 #endif
@@ -331,6 +328,9 @@ const char *contributors[] = {
             "Farshid Lashkari",
             "Sam Rawlins",
             "Michael Mullin",
+            "Carlos SS",
+            "vim",
+            "Martial Demolins",
         };
 
 // AddStyledText only called from About so static size buffer is OK
@@ -755,7 +755,7 @@ void SciTEBase::SetAboutMessage(GUI::ScintillaWindow &wsci, const char *appTitle
 		}
 #endif
 		AddStyledText(wsci, GetTranslationToAbout("Version").c_str(), trsSty);
-		AddStyledText(wsci, " 2.22 .87\n", 1); 
+		AddStyledText(wsci, " 2.23 .88\n", 1); 
 		AddStyledText(wsci, "    " __DATE__ " " __TIME__ "\n", 1);
 		SetAboutStyle(wsci, 4, ColourRGB(0, 0x7f, 0x7f)); //!-add-[SciTE-Ru]
 		//AddStyledText(wsci, "http://scite.net.ru\n", 4); 
@@ -765,11 +765,11 @@ void SciTEBase::SetAboutMessage(GUI::ScintillaWindow &wsci, const char *appTitle
 		AddStyledText(wsci, "QiHS (qihongsh[at]gmail[dot]com)\n", 4);
 		wsci.Send(SCI_STYLESETITALIC, 2, 1);
 		AddStyledText(wsci, GetTranslationToAbout("Based on version").c_str(), trsSty); //!-add-[SciTE-Ru]
-		AddStyledText(wsci, " 2.22 ", 1); 
+		AddStyledText(wsci, " 2.23 ", 1); 
 		AddStyledText(wsci, GetTranslationToAbout("by").c_str(), trsSty);
 		AddStyledText(wsci, " Neil Hodgson.\n", 2);
 		SetAboutStyle(wsci, 3, ColourRGB(0, 0, 0));
-		AddStyledText(wsci, "December 1998-October 2010.\n", 3);
+		AddStyledText(wsci, "December 1998-December 2010.\n", 3);
 		SetAboutStyle(wsci, 4, ColourRGB(0, 0x7f, 0x7f));
 		AddStyledText(wsci, "http://www.scintilla.org\n", 4);
 		AddStyledText(wsci, "Lua scripting language by TeCGraf, PUC-Rio\n", 3);
@@ -967,11 +967,6 @@ bool SciTEBase::FindMatchingPreprocessorCondition(
  * Find if there is a preprocessor condition after or before the caret position,
  * @return @c true if inside a preprocessor condition.
  */
-#ifdef __BORLANDC__
-// Borland warns that isInside is assigned a value that is never used in this method.
-// This is OK so turn off the warning just for this method.
-#pragma warn -aus
-#endif
 bool SciTEBase::FindMatchingPreprocCondPosition(
     bool isForward,   		///< @c true if search forward
     int &mppcAtCaret,   	///< Matching preproc. cond.: current position of caret
@@ -1026,9 +1021,6 @@ bool SciTEBase::FindMatchingPreprocCondPosition(
 	}
 	return isInside;
 }
-#ifdef __BORLANDC__
-#pragma warn .aus
-#endif
 
 static bool IsBrace(char ch) {
 	return ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '{' || ch == '}';
@@ -5367,10 +5359,9 @@ void SciTEBase::PerformOne(char *action) {
 }
 
 static bool IsSwitchCharacter(GUI::gui_char ch) {
-#ifdef unix
+#ifdef __unix__
 	return ch == '-';
 #else
-
 	return (ch == '-') || (ch == '/');
 #endif
 }
@@ -5833,8 +5824,6 @@ bool SciTEBase::ShowParametersDialog(const char *msg) {
 
 //!-start-[LocalizationFromLua]
 // TODO: переделать всё на utf8, это вызывается только из луа
-
-
 char *SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
 #if defined(GTK)
     //TODO: add get translation

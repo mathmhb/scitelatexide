@@ -119,7 +119,7 @@ const GUI::gui_char propDirectoryFileName[] = GUI_TEXT("SciTEDirectory.propertie
 Read global and user properties files.
 */
 void SciTEBase::ReadGlobalPropFile() {
-#ifdef unix
+#ifdef __unix__
 	extern char **environ;
 	char **e=environ;
 #else
@@ -642,6 +642,7 @@ static const char *propertiesToForward[] = {
 	"lexer.python.strings.over.newline",
 	"lexer.python.strings.u",
 	"lexer.sql.backticks.identifier",
+	"lexer.sql.numbersign.comment",
 	"lexer.xml.allow.scripts",
 	"nsis.ignorecase",
 	"nsis.uservars",
@@ -846,7 +847,7 @@ void SciTEBase::ReadProperties() {
 
 	characterSet = props.GetInt("character.set", SC_CHARSET_DEFAULT);
 
-#ifdef unix
+#ifdef __unix__
 	SString localeCType = props.Get("LC_CTYPE");
 	if (localeCType.length())
 		setlocale(LC_CTYPE, localeCType.c_str());
