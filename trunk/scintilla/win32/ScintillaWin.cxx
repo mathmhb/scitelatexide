@@ -75,10 +75,8 @@
 #endif
 
 #include <commctrl.h>
-#ifndef __BORLANDC__
 #ifndef __DMC__
 #include <zmouse.h>
-#endif
 #endif
 #include <ole2.h>
 
@@ -328,6 +326,10 @@ ScintillaWin::ScintillaWin(HWND hwnd) {
 	sysCaretHeight = 0;
 
 	keysAlwaysUnicode = false;
+
+	caret.period = ::GetCaretBlinkTime();
+	if (caret.period < 0)
+		caret.period = 0;
 
 	Initialise();
 }
