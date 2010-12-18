@@ -603,8 +603,8 @@ IDC_MARGIN         CURSOR  DISCARDABLE     "Margin.cur"
 IDC_DRAGDROP       CURSOR  DISCARDABLE     "DragDrop.cur"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION	2, 2, 3, 88
-PRODUCTVERSION	2, 2, 3, 88
+FILEVERSION	2, 2, 3, 89
+PRODUCTVERSION	2, 2, 3, 89
 FILEFLAGSMASK	0x3fL
 FILEFLAGS 0
 FILEOS VOS_NT_WINDOWS32
@@ -621,12 +621,12 @@ BEGIN
 		BEGIN
 			VALUE	"CompanyName",	"Instanton & Mathmhb & Qi HS\0"
 			VALUE	"FileDescription",	APPNAME ": an SciTE variant\0"
-			VALUE	"FileVersion",	"2.23 .88\0"
+			VALUE	"FileVersion",	"2.23 .89\0"
 			VALUE	"InternalName",	"SciTE\0"
 			VALUE	"LegalCopyright",	"Copyright 1998-2010 by Neil Hodgson\0"
 			VALUE	"OriginalFilename",	"SciTE.EXE\0"
 			VALUE	"ProductName",	"SciTE\0"
-			VALUE	"ProductVersion",	"2.23 .88\0"
+			VALUE	"ProductVersion",	"2.23 .89\0"
 		END
 	END
 END

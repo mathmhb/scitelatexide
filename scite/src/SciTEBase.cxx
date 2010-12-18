@@ -755,7 +755,7 @@ void SciTEBase::SetAboutMessage(GUI::ScintillaWindow &wsci, const char *appTitle
 		}
 #endif
 		AddStyledText(wsci, GetTranslationToAbout("Version").c_str(), trsSty);
-		AddStyledText(wsci, " 2.23 .88\n", 1); 
+		AddStyledText(wsci, " 2.23 .89\n", 1); 
 		AddStyledText(wsci, "    " __DATE__ " " __TIME__ "\n", 1);
 		SetAboutStyle(wsci, 4, ColourRGB(0, 0x7f, 0x7f)); //!-add-[SciTE-Ru]
 		//AddStyledText(wsci, "http://scite.net.ru\n", 4); 
@@ -1606,11 +1606,11 @@ void SciTEBase::ReplaceOnce() {
 	if (!FindHasText())
 		return;
 
-	if (!havefound) {
+//	if (!havefound) { //!-remove-[FixReplaceOnce]
 		Sci_CharacterRange crange = GetSelection();
 		SetSelection(crange.cpMin, crange.cpMin);
 		FindNext(false);
-	}
+//	} //!-remove-[FixReplaceOnce]
 
 	if (havefound) {
 		SString replaceTarget = EncodeString(replaceWhat);
@@ -1625,9 +1625,10 @@ void SciTEBase::ReplaceOnce() {
 			wEditor.CallString(SCI_REPLACETARGET, replaceLen, replaceTarget.c_str());
 		SetSelection(cr.cpMin + lenReplaced, cr.cpMin);
 		havefound = false;
+		FindNext(false, false); //!-add-[FixReplaceOnce]
 	}
 
-	FindNext(false);
+//!	FindNext(false); //!-remove-[FixReplaceOnce]
 }
 
 int SciTEBase::DoReplaceAll(bool inSelection) {
@@ -2041,6 +2042,7 @@ void SciTEBase::FillFunctionDefinition(int pos /*= -1*/) {
 				functionDefinition.insert(1, "\002");
 			}
 			functionDefinition.substitute("\\n", "\n"); //!-add-[CalltipBreaks]
+			functionDefinition = EncodeString(functionDefinition); //!-add-[FixEncoding]
 			wEditor.CallString(SCI_CALLTIPSHOW, lastPosCallTip - currentCallTipWord.length(), functionDefinition.c_str());
 			ContinueCallTip();
 		}
@@ -2359,31 +2361,17 @@ bool SciTEBase::StartInsertAbbreviation() {
 }
 
 bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
+	SString tmp = EncodeString(data); //!-add-[FixEncoding]
+	data = tmp.c_str(); //!-add-[FixEncoding]
 	size_t dataLength = strlen(data);
 	if (dataLength == 0) {
 		return false; // returning if abbreviation is empty
 	}
 //!-end-[InsertAbbreviation]
 
-//!-start-[VarAbbrev]
-	SString currentSelection = EncodeString(SelectionExtend(0, false));
-	bool UseSel = false;
-#if !defined(GTK)
-	SString clpBuffer;
-	BOOL IsOpen=OpenClipboard(0);
-	if(IsOpen){
-		HANDLE Data = GetClipboardData(CF_TEXT);
-		if(Data != 0){
-			clpBuffer = static_cast<char*>(GlobalLock(Data));
-			GlobalUnlock(Data);
-		}
-		CloseClipboard();
-	}
-#endif
-//!-end-[VarAbbrev]
 	char *expbuf = new char[dataLength + 1];
 //!	strcpy(expbuf, data.c_str());
-	strcpy(expbuf, data); //!-change-[AbbrevRefactoring]
+	strcpy(expbuf, data); //!-change-[InsertAbbreviation]
 	UnSlash(expbuf);
 	size_t expbuflen = strlen(expbuf);
 	int caret_pos = wEditor.Call(SCI_GETSELECTIONSTART);
@@ -2413,19 +2401,56 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 	}
 
 	wEditor.Call(SCI_BEGINUNDOACTION);
-//!-start-[AbbrevRefactoring]
-	if (props.GetInt("abbrev.preserve.selection") != 1) {
-		wEditor.CallString(SCI_REPLACESEL, 0, "");
-		sel_length = 0;
-	}
-	
+//!-start-[InsertAbbreviation]
+	class SStringEolFind : public SString {
+	public:
+		SStringEolFind() : SString() {}
+		SStringEolFind(const SString &source) : SString(source) {}
+		int findcount(const char *sFind, lenpos_t start=0) const {
+			int c = 0;
+			int posFound = search(sFind, start);
+			while (posFound >= 0) {
+				posFound = search(sFind, posFound+1);
+				c++;
+			}
+			return c;
+		}
+		int gettexteol() {
+			int linesCR = 0;
+			int linesLF = 0;
+			int linesCRLF = 0;
+			int lengthDoc = length();
+			char chPrev = ' ';
+			for (int i = 0; i < lengthDoc; i++) {
+				char ch = operator[](i);
+				char chNext = operator[](i + 1);
+				if (ch == '\r') {
+					(chNext == '\n') ? linesCRLF++ : linesCR++;
+				} else if (ch == '\n') {
+					if (chPrev != '\r') linesLF++;
+				}
+				chPrev = ch;
+			}
+			if (((linesLF >= linesCR) && (linesLF > linesCRLF)) || ((linesLF > linesCR) && (linesLF >= linesCRLF)))
+				return SC_EOL_LF;
+			if (((linesCR >= linesLF) && (linesCR > linesCRLF)) || ((linesCR > linesLF) && (linesCR >= linesCRLF)))
+				return SC_EOL_CR;
+			return SC_EOL_CRLF;
+		}
+	};
+	SStringEolFind currentSelection = EncodeString(GetRangeInUIEncoding(wEditor,sel_start,sel_start+sel_length));
 	if (expandedLength > 0) {
 		caret_pos -= expandedLength;
 		sel_start = caret_pos;
 		wEditor.Call(SCI_SETSEL, caret_pos, caret_pos + expandedLength);
 		wEditor.CallString(SCI_REPLACESEL, 0, "");
+		wEditor.Call(SCI_SETSEL, sel_start, sel_start + sel_length);
+		wEditor.CallString(SCI_REPLACESEL, 0, "");
 	}
-//!-end-[AbbrevRefactoring]
+	else {
+		wEditor.CallString(SCI_REPLACESEL, 0, "");
+	}
+//!-end-[InsertAbbreviation]
 
 	// add the abbreviation one character at a time
 	for (i = 0; i < expbuflen; i++) {
@@ -2436,7 +2461,7 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 				indentExtra++;
 				SetLineIndentation(currentLineNumber, indent + indentSize * indentExtra);
 				caret_pos += indentSize / indentChars;
-				if (at_start) sel_start += indentSize / indentChars; //-add-[AbbrevFixCaretPos]
+				if (at_start) sel_start += indentSize / indentChars; //-add-[InsertAbbreviation]
 			}
 		} else {
 			switch (c) {
@@ -2449,6 +2474,7 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 				} else if (i != last_pipe) {
 					double_pipe = true;
 				} else {
+					/* !-remove-[InsertAbbreviation]
 					// indent on multiple lines
 					int j = currentLineNumber + 1; // first line indented as others
 					currentLineNumber = wEditor.Call(SCI_LINEFROMPOSITION, caret_pos + sel_length);
@@ -2459,6 +2485,8 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 
 					at_start = false;
 					caret_pos += sel_length;
+					*/
+					at_start = false; //!-change-[InsertAbbreviation]
 				}
 				break;
 			case '\r':
@@ -2472,7 +2500,7 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 					abbrevText += '\n';
 				}
 				break;
-//!-start-[VarAbbrev]
+//!-start-[InsertAbbreviation]
 			case '%':
 				if (i < (dataLength - 1)) {
 					// user may want to insert '%' instead of begin variable construction
@@ -2489,7 +2517,7 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 							pPerc[lenPerc] = '\0'; 
 							if(strcmp(pPerc,"%SEL%")==0){
 								if (at_start) {
-									int texteol = PropFileEx::GetEOLtype(currentSelection);
+									int texteol = currentSelection.gettexteol();
 									int pos = currentSelection.search(texteol == SC_EOL_CRLF || texteol == SC_EOL_LF?"\n":"\r");
 									int tpos = currentSelection.search("\t", pos);
 									int tabcount=0;
@@ -2505,12 +2533,21 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 								}
 								abbrevText +=currentSelection;
 								i+=lenPerc-1;
-								UseSel = true;
 							}else
 #if !defined(GTK)
 							if(strcmp(pPerc,"%CLP%")==0){
+								SStringEolFind clpBuffer;
+								BOOL IsOpen=OpenClipboard(0);
+								if(IsOpen){
+									HANDLE Data = GetClipboardData(CF_TEXT);
+									if(Data != 0){
+										clpBuffer = SString(static_cast<const char*>(GlobalLock(Data)));
+										GlobalUnlock(Data);
+									}
+									CloseClipboard();
+								}
 								if (at_start) {
-									int texteol = PropFileEx::GetEOLtype(clpBuffer);
+									int texteol = clpBuffer.gettexteol();
 									int pos = clpBuffer.search(texteol == SC_EOL_CRLF || texteol == SC_EOL_LF?"\n":"\r");
 									int tpos = clpBuffer.search("\t", pos);
 									int tabcount=0;
@@ -2526,7 +2563,6 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 								}
 								abbrevText +=clpBuffer;
 								i+=lenPerc-1;
-								UseSel = true;
 							}else
 							if(strcmp(pPerc,"%GUID%")==0){
 								GUID guid;
@@ -2552,7 +2588,7 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 						}
 					}
 				}
-//!-end-[VarAbbrev]
+//!-end-[InsertAbbreviation]
 			default:
 				abbrevText += c;
 				break;
@@ -2580,13 +2616,16 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 		}
 	}
 
+/* !-remove-[InsertAbbreviation]
 	// set the caret to the desired position
 	if (double_pipe) {
 		sel_length = 0;
-//!	} else if (!at_start && sel_length == 0) { //-remove-[AbbrevFixCaretPos]
-//!		sel_start += static_cast<int>(expbuflen); //-remove-[AbbrevFixCaretPos]
+	} else if (!at_start && sel_length == 0) {
+		sel_start += static_cast<int>(expbuflen);
 	}
 	wEditor.Call(SCI_SETSEL, sel_start, sel_start + sel_length);
+*/
+	wEditor.Call(SCI_SETSEL, sel_start, sel_start); //!-change-[InsertAbbreviation]
 
 	wEditor.Call(SCI_ENDUNDOACTION);
 	delete []expbuf;
@@ -2596,68 +2635,41 @@ bool SciTEBase::InsertAbbreviation(const char* data, int expandedLength) {
 bool SciTEBase::StartExpandAbbreviation() {
 //!	int currentPos = GetCaretInLine();
 //!	int position = wEditor.Call(SCI_GETCURRENTPOS); // from the beginning
-//!-start-[VarAbbrev]
+//!-start-[InsertAbbreviation]
 	int position = wEditor.Call(SCI_GETSELECTIONSTART); // from the beginning 
 	int line = wEditor.Call(SCI_LINEFROMPOSITION, position); 
 	int lineStart = wEditor.Call(SCI_POSITIONFROMLINE, line); 
 	int currentPos = position - lineStart;
-//!-end-[VarAbbrev]
+//!-end-[InsertAbbreviation]
 	char *linebuf = new char[currentPos + 2];
 	GetLine(linebuf, currentPos + 2);	// Just get text to the left of the caret
 	linebuf[currentPos] = '\0';
-/*!
-	int abbrevPos = (currentPos > 32 ? currentPos - 32 : 0);
+
+//!	int abbrevPos = (currentPos > 32 ? currentPos - 32 : 0);
+//!-start-[InsertAbbreviation]
+	int max_abbrev_len = props.GetInt("abbrev.maximum.length", 64); // max length abbrev is 32 at scite original
+	int abbrevPos = (currentPos > max_abbrev_len ? currentPos - max_abbrev_len : 0);
+//!-end-[InsertAbbreviation]
 	const char *abbrev = linebuf + abbrevPos;
 	SString data;
 	size_t dataLength = 0;
 	int abbrevLength = currentPos - abbrevPos;
-*/
-//!-start-[AbbrevExpandIncremental]
-	int max_abbrev_len = props.GetInt("abbrev.maximum.length", 32); //-add-[AbbrevMaxLength]
-	int abbrev_expand_incremental = props.GetInt("abbrev.expand.incremental", 0);
-	SString data;
-	size_t dataLength = 0;
-	int abbrevLength;
-	if (abbrev_expand_incremental == 1) {
-		const char *abbrev = linebuf + currentPos - 1;
-		abbrevLength = 1;
-		// Try each potential abbreviation from the previous of currentPos letter on a line
-		// and expanding to the left until reached start of the line or max_abbrev_len.
-		// We arbitrarily limits the length of an abbreviation (seems a reasonable value..)
-		while (abbrevLength <= max_abbrev_len) { //-add-[AbbrevMaxLength]
-			data = propsAbbrev.Get(abbrev);
-			dataLength = data.length();
-			if (dataLength > 0) {
-				break;	/* Found */
-			}
-			if (abbrev != linebuf) {
-				abbrev--;	// One more letter to the left
-			} else {
-				break;
-			}
-			abbrevLength++;
-		}
-	} else {
-		int abbrevPos = (currentPos > max_abbrev_len ? currentPos - max_abbrev_len : 0); //-add-[AbbrevMaxLength]
-		const char *abbrev = linebuf + abbrevPos;
-		abbrevLength = currentPos - abbrevPos;
-//!-end-[AbbrevExpandIncremental]
+
 	// Try each potential abbreviation from the first letter on a line
 	// and expanding to the right.
 	// We arbitrarily limit the length of an abbreviation (seems a reasonable value..),
 	// and of course stop on the caret.
 	while (abbrevLength > 0) {
-		data = propsAbbrev.Get(abbrev);
-		dataLength = data.length();
-		if (dataLength > 0) {
-			break;	/* Found */
-		}
+			data = propsAbbrev.Get(abbrev);
+			dataLength = data.length();
+			if (dataLength > 0) {
+				break;	/* Found */
+			}
 		abbrev++;	// One more letter to the right
 		abbrevLength--;
 	}
-} //!
 
-/*! Original
+/*!-remove-[InsertAbbreviation]
 	if (dataLength == 0) {
 		delete []linebuf;
 		WarnUser(warnNotFound);	// No need for a special warning
