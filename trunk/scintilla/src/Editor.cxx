@@ -4676,6 +4676,9 @@ void Editor::NotifyMacroRecord(unsigned int iMessage, uptr_t wParam, sptr_t lPar
 	case SCI_SELECTIONDUPLICATE:
 	case SCI_COPYALLOWLINE:
 	case SCI_VERTICALCENTRECARET:
+	
+	//[mhb] 12/06/10 : added to support find text dialog
+	case SCI_FINDTEXT:
 		break;
 
 		// Filter out all others like display changes. Also, newlines are redundant

@@ -53,8 +53,10 @@ local function BakupFile(filename)
 		io.close()
 	end
 	os.rename (sfilename, filename..".bak")
+	if props['backup.quiet']~='1' then
 	if not shell.fileexists(filename..".bak") then
 		_ALERT("=>\tERROR CREATE BACKUP FILE: "..filename..".bak".."\t"..sbck)
+	end
 	end
 	return false
 end

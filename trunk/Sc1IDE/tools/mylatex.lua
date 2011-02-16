@@ -467,7 +467,7 @@ function latex_abbrev_dec()
         editor:ReplaceSel(sel)
 end
 
-
+local last_char=''
 
 scite_OnChar(function(char)
   local ext=props['FileExt']
@@ -478,12 +478,16 @@ scite_OnChar(function(char)
   if tonumber(charcode)>=256 then return false;end --[mhb] 07/21/09 : to avoid mis-handling chinese chars in UTF8 mode; this feature require Sc1IDE r117+
   local brace_auto=props['AUTO_COMPLETE_BRACE']
   if brace_auto~='0' then
+    local prefix=''
+	if (editor.Lexer==SCLEX_LATEX or editor.Lexer==SCLEX_TEX) and last_char=='\\' then
+		prefix="\\"
+	end
     if(char=="(") then 
-        add_tags("",")");
+        add_tags("",prefix .. ")");
     elseif(char=="[") then 
-        add_tags("","]");  
+        add_tags("",prefix .. "]");  
     elseif(char=="{") then 
-        add_tags("","}");
+        add_tags("",prefix .. "}");
     elseif(char=="<" and editor.Lexer==SCLEX_HTML) then 
         add_tags("",">");
     end;
@@ -494,7 +498,7 @@ scite_OnChar(function(char)
     if(char=="'") then 
         add_tags("","'");
     elseif(char=='"') then 
-        add_tags("",'"');  
+        add_tags("",'"');
     end;
   end
 
@@ -530,6 +534,8 @@ scite_OnChar(function(char)
 		Check_RefBib();
 	end
   end;
+  
+  last_char=char;
 end
 );
 
