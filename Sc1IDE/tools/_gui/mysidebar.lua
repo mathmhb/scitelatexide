@@ -1,7 +1,11 @@
 --[mhb] modified based on SideBar.lua in SciTE-Ru, by Frank Wunderlich, mozers™, VladVRO, frs, BioInfo
 
---[mhb] 04/04/09
-local s_=scite.GetTranslation
+--[mhb] 04/04/09; 07/24/11 revised: UTF8 support 
+-- local s_=scite.GetTranslation
+local function s_(s)
+	return shell.to_utf8(scite.GetTranslation(s))
+end 
+
 local function GotoLine(line)
 	editor:GotoLine(line)
 	editor:ScrollCaret()
@@ -498,19 +502,78 @@ local function color2rtf(c)
 	return '\\red'..rr..'\\green'..gg..'\\blue'..bb
 end
 
+-- [mhb] 06/26/11 : decode an UTF8 string to a table of unicode codes
+local function DecodeUTF8(s)
+    local mod = math.mod
+    local function charat(p)
+      local v = s:byte(p); if v < 0 then v = v + 256 end; return v
+    end
+    local codes={}
+    local pos=0
+    local v, c, n
+    while(pos<s:len()) do
+      pos=pos+1
+      v, c, n = 0, charat(pos), 1
+      if c < 128 then v = c
+      elseif c < 192 then
+        error("Byte values between 0x80 to 0xBF cannot start a multibyte sequence")
+      elseif c < 224 then v = mod(c, 32); n = 2
+      elseif c < 240 then v = mod(c, 16); n = 3
+      elseif c < 248 then v = mod(c,  8); n = 4
+      elseif c < 252 then v = mod(c,  4); n = 5
+      elseif c < 254 then v = mod(c,  2); n = 6
+      else
+        error("Byte values between 0xFE and OxFF cannot start a multibyte sequence")
+      end
+      for i = 2, n do
+        pos = pos + 1; c = charat(pos)
+        if c < 128 or c > 191 then
+          error("Following bytes must have values between 0x80 and 0xBF")
+        end
+        v = v * 64 + mod(c, 64)
+      end
+      table.insert(codes,v)
+    end
+    return codes
+end
+
+-- [mhb] 06/26/11 : convert an UTF8 string to RTF string representation
+local function RTF_UTF8_string(s)
+    local codes=DecodeUTF8(s)
+    local u_str=''
+    for _,v in ipairs(codes) do 
+		if(v==string.byte('\\')) then
+			u_str=u_str.."\\'5C"
+        elseif(v<256) then 
+			u_str=u_str..string.char(v)
+		else
+			u_str=u_str..'\\u'..v..','
+		end
+    end
+    -- print(u_str)
+    return u_str
+end
+
+
 local function FileMan_ShowPath()
 --[mhb] 07/09/09 : allow users configure foreground color of path & mask
 	local fg1=props['sidebar.fore.path']
 	local fg2=props['sidebar.fore.mask']
 	local bg=props['sidebar.back']
 	local color_tbl=color2rtf(bg)..';'..color2rtf(fg1)..';'..color2rtf(fg2)..';'
+	--[[ [mhb] 06/26/11 : fix the bug of chinese display 
+	-- local rtf = '{\\rtf\\ansi\\ansicpg1251{\\fonttbl{\\f0\\fcharset204 Helv;}}{\\colortbl;'..color_tbl..'}\\f0\\fs16'
+	-- local path = '{\\cb1\\cf2 '..current_path:gsub('\\', '\\\\')..'}'
+	-- local mask = '{\\cb1\\cf3 '..file_mask..'}}'
+	]]--
 	
-	local rtf = '{\\rtf\\ansi\\ansicpg1251{\\fonttbl{\\f0\\fcharset204 Helv;}}{\\colortbl;'..color_tbl..'}\\f0\\fs16'
-	local path = '{\\cb1\\cf2 '..current_path:gsub('\\', '\\\\')..'}'
-	local mask = '{\\cb1\\cf3 '..file_mask..'}}'
+	local rtf = '{\\rtf\\ansi\\ansicpg936{\\fonttbl{\\f0\\fcharset134 Helv;}}{\\colortbl;'..color_tbl..'}\\f0\\fs16'
+	local path = '{\\cb1\\cf2 '..RTF_UTF8_string(current_path)..'}'
+	local mask = '{\\cb1\\cf3 '..RTF_UTF8_string(file_mask)..'}}'
 	memo_path:set_text(rtf..path..mask)
 	memo_path:set_memo_colour(fg1,bg)
 end
+
 
 ----------------------------------------------------------
 -- tab0:list_dir   File Manager
@@ -690,9 +753,27 @@ local function FileMan_OpenItem()
 		end
 		FileMan_ListFILL()
 	else
-		OpenFile(current_path..dir_or_file)
+		local filename=current_path..dir_or_file
+		OpenFile(filename)
 	end
 end
+
+
+memo_path:on_key(function(key)
+	if key == 13 then
+		local new_path = memo_path:get_text()
+		if new_path ~= '' then
+			new_path = new_path:gsub('[\\*\.]*$','')..'\\'
+			local is_folder = gui.files(new_path..'*', true)
+			if is_folder then
+				current_path = new_path
+			end
+		end
+		FileMan_ListFILL()
+		return true
+	end
+end)
+
 
 list_dir:on_double_click(function()
 	FileMan_OpenItem()
