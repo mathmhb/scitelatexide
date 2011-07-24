@@ -1,7 +1,7 @@
 -- Word counter: revised from http://www.rrreese.com/scite/wc.html
 --[mhb] revised: to support Chinese Word Counting
 
---[mhb] 06/07/09: calculate number of Chinese chars
+--[mhb] 06/07/09: calculate number of Chinese chars; 06/04/11 : add chinese char count for selection; 07/07/11 : add other counting for selection
 
 function count_chinese_chars(p1,p2)
 	local cnt=0
@@ -18,6 +18,48 @@ function count_chinese_chars(p1,p2)
 		end
 	end
 	return cnt
+end
+
+function count_patterns(s,pattern)
+	local itt=0
+	for pat in string.gfind(s,pattern) do
+		itt=itt+1
+	end
+	return itt
+end
+
+function my_word_count()
+	local sel=editor:GetSelText()
+	local all=editor:GetText()
+	local chars=string.len(all)
+	local chars2=string.len(sel)
+	local chinesechars=count_chinese_chars(0,editor.Length)
+	local chinesechars2=count_chinese_chars(editor.SelectionStart,editor.SelectionEnd)
+	local words=count_patterns(all,'%w+')
+	local spaces=count_patterns(all,'%s')
+	local lines=count_patterns(all,'\n')
+	local nlines=count_patterns(all,'\n.*%w.*\n')
+	local texcmds=count_patterns(all,'\\%w+')
+	local texenvs=count_patterns(all,'\\begin{%w+}')
+	local words2=count_patterns(sel,'%w+')
+	local spaces2=count_patterns(sel,'%s')
+	local lines2=count_patterns(sel,'\n')
+	local nlines2=count_patterns(sel,'\r%s*\n')
+	local texcmds2=count_patterns(sel,'\\%w+')
+	local texenvs2=count_patterns(sel,'\\begin{%w+}')
+	local msg=' ('..s_('All')..'/'..s_('Selected')..'):'
+	print("-------------------------------------------")
+	print(s_('Chinese Char Count')..msg,chinesechars,chinesechars2)
+	print(s_('Char Count')..msg,chars,chars2)
+	print(s_('Word Count')..msg,words,words2)
+	print(s_('White Space')..msg,spaces,spaces2)
+	print(s_('Line Count')..msg,lines,lines2)
+	-- print(s_('Empty lines')..msg,nlines,nlines2)
+	print(s_('LaTeX Commands')..msg,texcmds,texcmds2)
+	print(s_('LaTeX Environments')..msg,texenvs,texenvs2)
+	print(s_("Current Pos")..':',editor.CurrentPos);
+	print(s_("Current Line")..':', editor:LineFromPosition(editor.CurrentPos) +1);
+	
 end
 
 function word_count()
@@ -65,10 +107,13 @@ while itt < editor.LineCount do --iterate through each line
 	itt = itt + 1;
 end
 
-print("----------------------------");
-local sep=':\t'
-print(s_("Chinese Char Count")..sep,count_chinese_chars());
 
+
+local sep=':\t'
+print("-------------------------------------------");
+print(s_("Selected")..s_("Chinese Char Count")..':',count_chinese_chars(editor.SelectionStart,editor.SelectionEnd));
+print(s_("Selected")..s_("Char Count")..':',editor.SelectionEnd-editor.SelectionStart);
+print(s_("Chinese Char Count")..sep,count_chinese_chars());
 
 print(s_("Char Count")..sep,editor.Length);
 print(s_("Word Count")..sep,wordCount);
@@ -82,4 +127,4 @@ print(s_("Current Line")..sep, editor:LineFromPosition(editor.CurrentPos) +1);
 
 end
 --你好adsfsf这是中国人
---~ word_count()
+-- my_word_count()

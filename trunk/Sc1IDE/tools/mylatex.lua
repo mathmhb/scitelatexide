@@ -479,8 +479,18 @@ scite_OnChar(function(char)
   local brace_auto=props['AUTO_COMPLETE_BRACE']
   if brace_auto~='0' then
     local prefix=''
-	if (editor.Lexer==SCLEX_LATEX or editor.Lexer==SCLEX_TEX) and last_char=='\\' then
-		prefix="\\"
+	if (editor.Lexer==SCLEX_LATEX or editor.Lexer==SCLEX_TEX) then
+		--[mhb] 03/17/11 : detect last key rather only last char!
+		local k=get_prev_keys() 
+		if string.char(k[4] or 32,k[3] or 32,k[2] or 32,k[1] or 32)=='LEFT' and k[5]==220 then 
+			prefix='\\right'
+		elseif k[1]==16 and string.char(k[5] or 32,k[4] or 32,k[3] or 32,k[2] or 32)=='LEFT' and k[6]==220 then 
+			prefix='\\right'
+		elseif k[1]==16 and k[2]==220 and string.char(k[6] or 32,k[5] or 32,k[4] or 32,k[3] or 32)=='LEFT' and k[7]==220 then 
+			prefix='\\right\\'
+		elseif last_char=='\\' and (k[1]==220 or (k[2]==220 and k[1]==16)) then
+			prefix="\\"
+		end
 	end
     if(char=="(") then 
         add_tags("",prefix .. ")");

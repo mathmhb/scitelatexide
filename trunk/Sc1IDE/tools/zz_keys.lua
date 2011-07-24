@@ -1,3 +1,5 @@
+--[mhb] 03/17/11 : revised to use scite_OnKey
+
 --[[
   Mitchell's keys.lua
   Copyright (c) 2006-2007 Mitchell Foral. All rights reserved.
@@ -162,7 +164,7 @@ local try_get_cmd1, try_get_cmd2, try_get_cmd3, try_get_cmd
 -- called every time a key is pressed; if true is returned,
 -- the key is not handled at all by SciTE afterwards (thus
 -- Alt+key sequences can be overridden)
-function OnKey(code, shift, control, alt)
+function zz_OnKey(code, shift, control, alt)
   local key_seq = ''
   if control then key_seq = key_seq..CTRL..ADD end
   if shift   then key_seq = key_seq..SHIFT..ADD end
@@ -301,3 +303,5 @@ try_get_cmd3 = function(key_seq)
   return keys[key_seq][1], keys[key_seq][2]
 end
 ]]--
+
+scite_OnKey(zz_OnKey)
