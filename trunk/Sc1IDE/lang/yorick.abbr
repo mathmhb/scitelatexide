@@ -1,0 +1,10 @@
+fun=func test()\n{|\n}\n
+ret=return |;
+if=if () {\n|\n}
+else=else {\n|\n}
+elseif=elseif () {\n|\n}
+inc=#include "|.i"
+/*=/* DOCUMENT\n * |\n */
+do=do {\n|\n} while(|);
+while=while(|) {\n|\n} 
+for=for (i=0;i<n;i++) {\n|\n}

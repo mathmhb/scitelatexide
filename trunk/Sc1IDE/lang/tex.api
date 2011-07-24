@@ -487,7 +487,9 @@ displaywidth
 divide
 divideontimes
 document
+documentclass
 documentclass[options]{class}
+documentstyle
 documentstyle[options]{class}
 dominitoc
 doteq
