@@ -17,12 +17,12 @@ subsec=\\subsection{|}
 subsub=\\subsubsection{|}
 bib=\\bibliography{|}\n\\bibliographystyle{plain} 
 
-enm=\\begin{enumerate}\n\t\\item |\n\\end{enumerate}
-itm=\\begin{itemize}\n\t\\item |\n\\end{itemize}
-des=\\begin{description}\n\t\\item |\n\\end{description}
-ver=\\begin{verbatim}\n\t|\n\\end{verbatim}
-quo=\\begin{quote}\n\t|\n\\end{quote}
-lst=\\begin{lstlisting}\n\t|\n\\end{lstlisting}
+enm=\\begin{enumerate}\n\\item |\n\\end{enumerate}
+itm=\\begin{itemize}\n\\item |\n\\end{itemize}
+des=\\begin{description}\n\\item |\n\\end{description}
+ver=\\begin{verbatim}\n|\n\\end{verbatim}
+quo=\\begin{quote}\n|\n\\end{quote}
+lst=\\begin{lstlisting}\n|\n\\end{lstlisting}
 alg=\\begin{algorithm}[H]\\label{}%\n\\caption{|}\n\\begin{algorithmic}[1]%\n\\end{algorithmic}\n\\end{algorithm}
 
 sli=\\begin{slide}\n\t|\n\\end{slide}

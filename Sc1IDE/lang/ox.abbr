@@ -1,0 +1,8 @@
+doc=#include <oxstd.h>\n#include <packages/gnudraw/gnudraw.h>\n// #import "myfunc"\nmain()\n{\n    decl n, m1, m2;\n    n=4;\n    m1=zeros(n,n);\n    m2=unit(n,n);\n    print("Matrices:",m1,m2);\n}
+if=if () {\n|\n}
+else=else {\n|\n}
+elseif=elseif () {\n|\n}
+for=for (i=0;i<n;i++) {\n|\n}
+do=do {\n|\n} while();
+while=while () {\n|\n}
+switch=switch () {case 1:\n|break;}

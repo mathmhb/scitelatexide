@@ -1,5 +1,5 @@
 lut=\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n
-a=@ARTICLE{|,\n	Author		= {},\n	Title		= {},\n	eprint		= {},\n	Journal		= {},\n	Volume		= {},\n	Pages		= {},\n	Year		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
+a=@ARTICLE{|,\n	Author		= {},\n	Title		= {},\n	eprint		= {},\n	Journal		= {},\n	Volume		= {},\n	number		= {},\n	Pages		= {},\n	Year		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
 b=@BOOK{|,\n	AUTHOR		= {},\n	editor		= {},\n	TITLE		= {},\n	PUBLISHER	= {},\n	YEAR		= {},\n	volume		= {},\n	number		= {},\n	series		= {},\n	address		= {},\n	edition		= {},\n	month		= {},\n	note		= {},\n	abstract	= {},\n	isbn		= {},\n	price		= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
 bl=@BOOKLET{|,\n	TITLE		= {},\n	author		= {},\n	howpublished= {},\n	address		= {},\n	month		= {},\n	year		= {},\n	note		= {},\n	abstract	= {},\n	keywords	= {},\n	source		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n
 cf=@CONFERENCE{|,\n	author		= {},\n	title		= {},\n	booktitle	= {},\n	year		= {},\n	editor		= {},\n	volume		= {},\n	series		= {},\n	pages		= {},\n	address		= {},\n	month		= {},\n	organization= {},\n	publisher	= {},\n	note		= {},\n	key 		= {},\n	crossref	= {},\n	annote		= {},\n	language	= {},\n	url	= {},\n	typeoflit	= {},\n}\n

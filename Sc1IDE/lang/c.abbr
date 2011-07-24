@@ -1,5 +1,6 @@
 doc=#include <stdio.h>\n\nint main(int argc, char *argv[])\n{\n\tprintf("Hello, world\\n");\n\t\n\treturn 0;\n}\n
 if=if () {\n|\n}
+else=else {\n|\n}
 elseif=elseif () {\n|\n}
 for=for (i=0;i<n;i++) {\n|\n}
 do=do {\n|\n} while();
