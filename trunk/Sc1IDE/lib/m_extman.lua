@@ -658,8 +658,35 @@ function OnOpen(file)
   return DispatchOne(_Open,file)
 end
 
+
+--[mhb] 03/17/11 : add a buffer of keys, by default, 10 keys
+local keys_buf_size=tonumber(props['keys.buf.size']) or 10
+local keys_buffer={} 
+function get_prev_key(i) --return prev i-th key
+    if not i then i=1 end
+    local k=keys_buffer[#keys_buffer-i]
+    if not k then return nil else return unpack(k) end
+end
+function get_prev_keys() --return a table of current key and previous recorded keys (reversed)
+    local keys={}
+    for i,v in ipairs(keys_buffer) do 
+        keys[#keys_buffer-i]=v[1]
+    end
+    return keys
+end
+
+
 -- new with 1.74
 function OnKey(key,shift,ctrl,alt)
+    --[mhb] 03/17/11 : save keys to a buffer
+    table.insert(keys_buffer,{key,shift,ctrl,alt})
+    if #keys_buffer>keys_buf_size then 
+        table.remove(keys_buffer,1) 
+    end
+    if(props['keys.buf.debug']=='1') then 
+        print('Key-S-C-A:',key,shift,ctrl,alt) 
+    end
+
     return Dispatch4(_Key,key,shift,ctrl,alt)
 end
 
