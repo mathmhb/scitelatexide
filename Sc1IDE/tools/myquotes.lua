@@ -2,15 +2,13 @@
 --This tool can help you to easily add quotes/tags to selected text 
 local c_sel='\127'
 local s_sel='~~~'
-local p_sel='{@@@@@}'
+local p_sel='{~!@#$&*}'
 
 function sel_quote(quote)
 	local sel=editor:GetSelText()
 	sel=string.gsub(sel,'%%',p_sel)
-	print(quote,sel)
 	rep=string.gsub(quote,c_sel,sel)
 	rep=string.gsub(rep,p_sel,'%%')
-	print(rep)
 	editor:ReplaceSel(rep)
 end
 function select_quotes()
