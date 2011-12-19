@@ -22,7 +22,7 @@ template< int commandNumber >
 class CommandSignal {
 public:
 	void Attach(GtkWidget *w, CommandHandler *object, const char *sigName="clicked") {
-		gtk_signal_connect(GTK_OBJECT(w), sigName, GtkSignalFunc(Function), object);
+		g_signal_connect(G_OBJECT(w), sigName, G_CALLBACK(Function), object);
 	}
 	static void Function(GtkWidget */*w*/, CommandHandler *object) {
 		object->PerformCommand(commandNumber);
@@ -79,6 +79,8 @@ public:
 	const GUI::gui_char *Text();
 	void SetText(const GUI::gui_char *text);
 	bool HasFocusOnSelfOrChild();
+	void RemoveText(int position);
+	void AppendText(const char *text);
 	void FillFromMemory(const std::vector<std::string> &mem, bool useTop = false);
 };
 
@@ -105,8 +107,13 @@ class WCheckDraw : public WBase {
 	static gint ButtonsPress(GtkWidget *widget, GdkEventButton *event, WCheckDraw *pcd);
 	static gboolean MouseEnterLeave(GtkWidget *widget, GdkEventCrossing *event, WCheckDraw *pcd);
 	static gboolean KeyDown(GtkWidget *widget, GdkEventKey *event, WCheckDraw *pcd);
+#if GTK_CHECK_VERSION(3,0,0)
+	gboolean Draw(GtkWidget *widget, cairo_t *cr);
+	static gboolean DrawEvent(GtkWidget *widget, cairo_t *cr, WCheckDraw *pcd);
+#else
 	gboolean Expose(GtkWidget *widget, GdkEventExpose *event);
 	static gboolean ExposeEvent(GtkWidget *widget, GdkEventExpose *event, WCheckDraw *pcd);
+#endif
 public:
 	WCheckDraw();
 	~WCheckDraw();
@@ -115,6 +122,11 @@ public:
 	void SetActive(bool active);
 	void Toggle();
 	enum {  checkIconWidth = 16, checkButtonWidth = 16 + 3 * 2 + 1};
+};
+
+class WProgress : public WBase {
+public:
+	void Create();
 };
 
 class WTable : public WBase {
@@ -138,6 +150,7 @@ public:
 	void Display(GtkWidget *parent = 0, bool modal=true);
 	GtkWidget *ResponseButton(const GUI::gui_string &text, int responseID);
 	void Present();
+	GtkWidget *ContentArea();
 
 private:
 	static void SignalDestroy(GtkWidget *, Dialog *d);
@@ -171,13 +184,13 @@ public:
 	virtual void Show(int buttonHeight);
 	virtual void Close();
 	virtual bool KeyDown(GdkEventKey *event);
-	virtual void ShowPopup() = 0;
-	virtual void MenuAction(guint action) = 0;
+	virtual void ShowPopup() {}
+	virtual void MenuAction(guint /* action */) {}
 	static void MenuSignal(GtkMenuItem *menuItem, Strip *pStrip);
 	void AddToPopUp(GUI::Menu &popup, const char *label, int cmd, bool checked);
 	virtual void ChildFocus(GtkWidget *widget);
 	static gboolean ChildFocusSignal(GtkContainer *container, GtkWidget *widget, Strip *pStrip);
-	virtual gboolean Focus(GtkDirectionType direction) = 0;
+	virtual gboolean Focus(GtkDirectionType /* direction*/ ) { return false; }
 	static gboolean FocusSignal(GtkWidget *widget, GtkDirectionType direction, Strip *pStrip);
 	bool VisibleHasFocus();
 	static gint ButtonsPress(GtkWidget *widget, GdkEventButton *event, Strip *pstrip);

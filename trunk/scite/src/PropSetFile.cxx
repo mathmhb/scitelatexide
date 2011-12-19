@@ -5,6 +5,7 @@
 // Copyright 1998-2007 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -13,30 +14,16 @@
 #include <time.h>
 #include <locale.h>
 
-#ifdef _MSC_VER
-#pragma warning(disable: 4786)
-#endif
-
 #include <string>
+#include <vector>
+#include <set>
 #include <map>
+#include <sstream>
+#include <algorithm>
 
 #if defined(GTK)
 
 #include <unistd.h>
-#else
-//!-add-[qhs] add for using MessageBoxA
-#undef _WIN32_WINNT
-#define _WIN32_WINNT  0x0500
-#ifdef _MSC_VER
-// windows.h, et al, use a lot of nameless struct/unions - can't fix it, so allow it
-#pragma warning(disable: 4201)
-#endif
-#include <windows.h>
-#ifdef _MSC_VER
-// okay, that's done, don't allow it in our code
-#pragma warning(default: 4201)
-#endif
-//-end-add-[qhs]
 
 #endif
 
@@ -47,9 +34,6 @@
 #include "SString.h"
 #include "FilePath.h"
 #include "PropSetFile.h"
-
-#include "Platform.h" 
-//~ #include "SciTEWin.h"
 
 // The comparison and case changing functions here assume ASCII
 // or extended ASCII such as the normal Windows code page.
@@ -65,9 +49,37 @@ inline bool IsASpace(unsigned int ch) {
     return (ch == ' ') || ((ch >= 0x09) && (ch <= 0x0d));
 }
 
+static std::set<std::string> FilterFromString(std::string values) {
+	std::set<std::string> fs;
+	std::istringstream isValues(values);
+	while (!isValues.eof()) {
+		std::string sValue;
+		isValues >> sValue;
+		if (!sValue.empty())
+			fs.insert(sValue);
+	}
+	return fs;
+}
+
+void ImportFilter::SetFilter(std::string sExcludes, std::string sIncludes) {
+	excludes = FilterFromString(sExcludes);
+	includes = FilterFromString(sIncludes);
+}
+
+bool ImportFilter::IsValid(std::string name) const {
+	if (!includes.empty()) {
+		return includes.count(name) > 0;
+	} else {
+		return excludes.count(name) == 0;
+	}
+}
+
 bool PropSetFile::caseSensitiveFilenames = false;
 
 PropSetFile::PropSetFile(bool lowerKeys_) : lowerKeys(lowerKeys_), superPS(0) {
+}
+
+PropSetFile::PropSetFile(const PropSetFile &copy) : lowerKeys(copy.lowerKeys), props(copy.props), superPS(copy.superPS) {
 }
 
 PropSetFile::~PropSetFile() {
@@ -75,7 +87,17 @@ PropSetFile::~PropSetFile() {
 	Clear();
 }
 
-void PropSetFile::Set(const char *key, const char *val, int lenKey, int lenVal) {
+PropSetFile &PropSetFile::operator=(const PropSetFile &assign) {
+	if (this != &assign) {
+		lowerKeys = assign.lowerKeys;
+		superPS = assign.superPS;
+		props = assign.props;
+		enumnext = "";
+	}
+	return *this;
+}
+
+void PropSetFile::Set(const char *key, const char *val, ptrdiff_t lenKey, ptrdiff_t lenVal) {
 	if (!*key)	// Empty keys are not supported
 		return;
 	if (lenKey == -1)
@@ -119,18 +141,101 @@ void PropSetFile::SetMultiple(const char *s) {
 	Set(s);
 }
 
-SString PropSetFile::Get(const char *key) const {
+bool PropSetFile::Exists(const char *key) const {
 	mapss::const_iterator keyPos = props.find(std::string(key));
 	if (keyPos != props.end()) {
-		return SString(keyPos->second.c_str());
+		return true;
 	} else {
 		if (superPS) {
 			// Failed here, so try in base property set
-			return superPS->Get(key);
+			return superPS->Exists(key);
 		} else {
-			return "";
+			return false;
 		}
 	}
+}
+
+SString PropSetFile::Get(const char *key) const {
+	const std::string sKey(key);
+	const PropSetFile *psf = this;
+	while (psf) {
+		mapss::const_iterator keyPos = psf->props.find(sKey);
+		if (keyPos != psf->props.end()) {
+			return SString(keyPos->second.c_str());
+		}
+		// Failed here, so try in base property set
+		psf = psf->superPS;
+	}
+	return "";
+}
+
+static SString ShellEscape(const char *toEscape) {
+	SString str(toEscape);
+	for (int i = static_cast<int>(str.length()-1); i >= 0; --i) {
+		switch (str[i]) {
+		case ' ':
+		case '|':
+		case '&':
+		case ',':
+		case '`':
+		case '"':
+		case ';':
+		case ':':
+		case '!':
+		case '^':
+		case '$':
+		case '{':
+		case '}':
+		case '(':
+		case ')':
+		case '[':
+		case ']':
+		case '=':
+		case '<':
+		case '>':
+		case '\\':
+		case '\'':
+			str.insert(i, "\\");
+			break;
+		default:
+			break;
+		}
+	}
+	return str.c_str();
+}
+
+SString PropSetFile::Evaluate(const char *key) const {
+	if (strchr(key, ' ')) {
+		if (isprefix(key, "escape ")) {
+			SString val = Get(key+7);
+			return ShellEscape(val.c_str());
+		} else if (isprefix(key, "star ")) {
+			const std::string sKeybase(key + 5);
+			// Create set of variables with values
+			mapss values;
+			// For this property set and all base sets
+			for (const PropSetFile *psf = this; psf; psf = psf->superPS) {
+				mapss::const_iterator it = psf->props.lower_bound(sKeybase);
+				while ((it != psf->props.end()) && (it->first.find(sKeybase) == 0)) {
+					mapss::iterator itDestination = values.find(it->first);
+					if (itDestination == values.end()) {
+						// Not present so add
+						values[it->first] = it->second;
+					}
+					++it;
+				}
+			}
+			// Concatenate all variables
+			std::string combination;
+			for (mapss::const_iterator itV = values.begin(); itV != values.end(); ++itV) {
+				combination += itV->second;
+			}
+			return SString(combination.c_str());
+		}
+	} else {
+		return Get(key);
+	}
+	return "";
 }
 
 // There is some inconsistency between GetExpanded("foo") and Expand("$(foo)").
@@ -167,7 +272,7 @@ static int ExpandAllInPlace(const PropSetFile &props, SString &withVars, int max
 		}
 
 		SString var(withVars.c_str(), varStart + 2, varEnd);
-		SString val = props.Get(var.c_str());
+		SString val = props.Evaluate(var.c_str());
 
 		if (blankVars.contains(var.c_str())) {
 			val.clear(); // treat blankVar as an empty string (e.g. to block self-reference)
@@ -228,7 +333,7 @@ void PropSetFile::Clear() {
 
 char *PropSetFile::ToString() const {
 	std::string sval;
-	for (mapss::const_iterator it=props.begin(); it != props.end(); it++) {
+	for (mapss::const_iterator it=props.begin(); it != props.end(); ++it) {
 		sval += it->first;
 		sval += "=";
 		sval += it->second;
@@ -242,7 +347,7 @@ char *PropSetFile::ToString() const {
 /**
  * Get a line of input. If end of line escaped with '\\' then continue reading.
  */
-static bool GetFullLine(const char *&fpc, int &lenData, char *s, int len) {
+static bool GetFullLine(const char *&fpc, size_t &lenData, char *s, size_t len) {
 	bool continuation = true;
 	s[0] = '\0';
 	while ((len > 1) && lenData > 0) {
@@ -284,8 +389,30 @@ static bool IsCommentLine(const char *line) {
 	return (*line == '#');
 }
 
+bool IsPropertiesFile(const FilePath &filename) {
+	FilePath ext = filename.Extension();
+	if (EqualCaseInsensitive(ext.AsUTF8().c_str(), PROPERTIES_EXTENSION + 1))
+		return true;
+	return false;
+}
+
+static bool GenericPropertiesFile(const FilePath &filename) {
+	std::string name = filename.BaseName().AsUTF8();
+	if (name == "abbrev" || name == "Embedded")
+		return true;
+	return name.find("SciTE") != std::string::npos;
+}
+
+void PropSetFile::Import(FilePath filename, FilePath directoryForImports, const ImportFilter &filter, std::vector<FilePath> *imports) {
+	if (Read(filename, directoryForImports, filter, imports)) {
+		if (imports && (std::find(imports->begin(),imports->end(), filename) == imports->end())) {
+			imports->push_back(filename);
+		}
+	}
+}
+
 bool PropSetFile::ReadLine(const char *lineBuffer, bool ifIsTrue, FilePath directoryForImports,
-                           FilePath imports[], int sizeImports) {
+                           const ImportFilter &filter, std::vector<FilePath> *imports) {
 	//UnSlash(lineBuffer);
 	if (!IsSpaceOrTab(lineBuffer[0]))    // If clause ends with first non-indented line
 		ifIsTrue = true;
@@ -310,29 +437,30 @@ bool PropSetFile::ReadLine(const char *lineBuffer, bool ifIsTrue, FilePath direc
 		
 	} else if (isPrefix(lineBuffer, "import ") && directoryForImports.IsSet()) {
 		SString importName(lineBuffer + strlen("import") + 1);
-//!		importName += ".properties";
-		bool loaded = false; //!-add-[import]
-		FilePath importPath(directoryForImports, FilePath(GUI::StringFromUTF8(importName.c_str())));
-		if (Read(importPath, directoryForImports, imports, sizeImports)) {
-//!-start-[import]
-			loaded = true;
-		} else {
-			importName += ".properties";
-			importPath.Set(directoryForImports, FilePath(GUI::StringFromUTF8(importName.c_str())));
-			if (Read(importPath, directoryForImports, imports, sizeImports)) {
-				loaded = true;
-			}
-		}
-		if (loaded) {
-//!-end-[import]
-			if (imports) {
-				for (int i = 0; i < sizeImports; i++) {
-					if (!imports[i].IsSet()) {
-						imports[i] = importPath;
-						break;
-					}
+		if (importName == "*") {
+			// Import all .properties files in this directory except for system properties
+			FilePathSet directories;
+			FilePathSet files;
+			directoryForImports.List(directories, files);
+			for (size_t i = 0; i < files.size(); i ++) {
+				FilePath fpFile = files[i];
+				if (IsPropertiesFile(fpFile) &&
+					!GenericPropertiesFile(fpFile) &&
+					filter.IsValid(fpFile.BaseName().AsUTF8())) {
+					FilePath importPath(directoryForImports, fpFile);
+					Import(importPath, directoryForImports, filter, imports);
 				}
 			}
+		} else if (filter.IsValid(importName.c_str())) {
+//!			importName += ".properties"; //!-remove-[import]
+			FilePath importPath(directoryForImports, FilePath(GUI::StringFromUTF8(importName.c_str())));
+//!-start-[import]
+            if(!importPath.Exists()) {
+                importName += ".properties";
+                importPath = FilePath(directoryForImports, FilePath(GUI::StringFromUTF8(importName.c_str())));
+            }
+//!-end-[import]
+			Import(importPath, directoryForImports, filter, imports);
 		}
 	} else if (ifIsTrue && !IsCommentLine(lineBuffer)) {
 		Set(lineBuffer);
@@ -340,8 +468,8 @@ bool PropSetFile::ReadLine(const char *lineBuffer, bool ifIsTrue, FilePath direc
 	return ifIsTrue;
 }
 
-void PropSetFile::ReadFromMemory(const char *data, int len, FilePath directoryForImports,
-                                 FilePath imports[], int sizeImports) {
+void PropSetFile::ReadFromMemory(const char *data, size_t len, FilePath directoryForImports,
+                                 const ImportFilter &filter, std::vector<FilePath> *imports) {
 	const char *pd = data;
 	char lineBuffer[60000];
 	bool ifIsTrue = true;
@@ -354,15 +482,15 @@ void PropSetFile::ReadFromMemory(const char *data, int len, FilePath directoryFo
 				}
 			}
 		}
-		ifIsTrue = ReadLine(lineBuffer, ifIsTrue, directoryForImports, imports, sizeImports);
+		ifIsTrue = ReadLine(lineBuffer, ifIsTrue, directoryForImports, filter, imports);
 	}
 }
 
 bool PropSetFile::Read(FilePath filename, FilePath directoryForImports,
-                       FilePath imports[], int sizeImports) {
+                       const ImportFilter &filter, std::vector<FilePath> *imports) {
 	FILE *rcfile = filename.Open(fileRead);
 	if (rcfile) {
-		char propsData[600000];//[mhb] 02/02/10 : char propsData[60000];
+		char propsData[200000];//[mhb] 02/02/10 : char propsData[60000];
 		int lenFile = static_cast<int>(fread(propsData, 1, sizeof(propsData), rcfile));
 		fclose(rcfile);
 		const char *data = propsData;
@@ -370,7 +498,7 @@ bool PropSetFile::Read(FilePath filename, FilePath directoryForImports,
 			data += 3;
 			lenFile -= 3;
 		}
-		ReadFromMemory(data, lenFile, directoryForImports, imports, sizeImports);
+		ReadFromMemory(data, lenFile, directoryForImports, filter, imports);
 		return true;
 	}
 	return false;
@@ -440,49 +568,51 @@ static bool MatchPatterns(const char *patterns, const char *fileName, bool caseS
 }
 
 SString PropSetFile::GetWildUsingStart(const PropSetFile &psStart, const char *keybase, const char *filename) {
-	mapss::iterator it = props.lower_bound(std::string(keybase));
-	while ((it != props.end()) && startswith(it->first, keybase)) {
-		const char *orgkeyfile = it->first.c_str() + strlen(keybase);
-		char *keyptr = NULL;
+	const std::string sKeybase(keybase);
+	const size_t lenKeybase = strlen(keybase);
+	const PropSetFile *psf = this;
+	while (psf) {
+		mapss::const_iterator it = psf->props.lower_bound(sKeybase);
+		while ((it != psf->props.end()) && startswith(it->first, keybase)) {
+			const char *orgkeyfile = it->first.c_str() + lenKeybase;
+			char *keyptr = NULL;
 
-		if (strncmp(orgkeyfile, "$(", 2) == 0) {
-			const char *cpendvar = strchr(orgkeyfile, ')');
-			if (cpendvar) {
-				SString var(orgkeyfile, 2, cpendvar-orgkeyfile);
-				SString s = psStart.GetExpanded(var.c_str());
-				keyptr = StringDup(s.c_str());
+			if (strncmp(orgkeyfile, "$(", 2) == 0) {
+				const char *cpendvar = strchr(orgkeyfile, ')');
+				if (cpendvar) {
+					SString var(orgkeyfile, 2, cpendvar-orgkeyfile);
+					SString s = psStart.GetExpanded(var.c_str());
+					keyptr = StringDup(s.c_str());
+				}
 			}
-		}
-		const char *keyfile = keyptr;
+			const char *keyfile = keyptr;
 
-		if (keyfile == NULL)
-			keyfile = orgkeyfile;
+			if (keyfile == NULL)
+				keyfile = orgkeyfile;
 
-		for (;;) {
-			const char *del = strchr(keyfile, ';');
-			if (del == NULL)
-				del = keyfile + strlen(keyfile);
-			if (MatchWild(keyfile, del - keyfile, filename, caseSensitiveFilenames)) {
-				delete []keyptr;
+			for (;;) {
+				const char *del = strchr(keyfile, ';');
+				if (del == NULL)
+					del = keyfile + strlen(keyfile);
+				if (MatchWild(keyfile, del - keyfile, filename, caseSensitiveFilenames)) {
+					delete []keyptr;
+					return SString(it->second.c_str());
+				}
+				if (*del == '\0')
+					break;
+				keyfile = del + 1;
+			}
+			delete []keyptr;
+
+			if (0 == strcmp(it->first.c_str(), keybase)) {
 				return SString(it->second.c_str());
 			}
-			if (*del == '\0')
-				break;
-			keyfile = del + 1;
+			++it;
 		}
-		delete []keyptr;
-
-		if (0 == strcmp(it->first.c_str(), keybase)) {
-			return SString(it->second.c_str());
-		}
-		it++;
+		// Failed here, so try in base property set
+		psf = psf->superPS;
 	}
-	if (superPS) {
-		// Failed here, so try in super property set
-		return static_cast<PropSetFile *>(superPS)->GetWildUsingStart(psStart, keybase, filename);
-	} else {
-		return "";
-	}
+	return "";
 }
 
 //[mhb] 06/22/09 added: to extract property "keybase.keyext"
@@ -517,7 +647,7 @@ SString PropSetFile::GetFileType(const char *filename) {
 			break;
 		}
 		if (q) {p=q+1;} else {break;}
-		if (strstr(filename,"configure") && MessageBox(NULL,GUI::StringFromUTF8(p).c_str(),GUI::StringFromUTF8(q).c_str(),MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+		//~ if (strstr(filename,"configure") && ::MessageBoxA(NULL,GUI::StringFromUTF8(p).c_str(),GUI::StringFromUTF8(q).c_str(),MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
 
 	}
 	delete []p0;
@@ -528,9 +658,9 @@ SString PropSetFile::GetWild(const char *keybase, const char *filename) {
 	//[mhb] added: use new property "get.wild.mode" to choose how to GetWild
 	SString wild_mode=GetExpanded("get.wild.mode");
 	if (wild_mode.value()==0) {// use original very slow method in SciTE
-		return GetWildUsingStart(*this, keybase, filename);
-	}
-	
+	return GetWildUsingStart(*this, keybase, filename);
+}
+
 	//[mhb] 06/22/09: use new FAST method, not searching the whole properties files
 	SString s=GetPropExt("%s%s",keybase,filename);
 	if (s.length()==0) {
@@ -572,7 +702,7 @@ SString PropSetFile::GetNewExpand(const char *keybase, const char *filename) {
 	while (cpvar && (maxExpands > 0)) {
 		const char *cpendvar = strchr(cpvar, ')');
 		if (cpendvar) {
-			int lenvar = cpendvar - cpvar - 2;  	// Subtract the $()
+			ptrdiff_t lenvar = cpendvar - cpvar - 2;  	// Subtract the $()
 			char *var = StringDup(cpvar + 2, lenvar);
 			SString val = GetWild(var, filename);
 			if (0 == strcmp(var, keybase))
@@ -602,7 +732,7 @@ bool PropSetFile::GetFirst(const char *&key, const char *&val) {
 	if (it != props.end()) {
 		key = it->first.c_str();
 		val = it->second.c_str();
-		it++;
+		++it;
 		if (it != props.end()) {
 			enumnext = it->first; // GetNext will begin here ...
 		} else {
@@ -622,7 +752,7 @@ bool PropSetFile::GetNext(const char *&key, const char *&val) {
 	if (it != props.end()) {
 		key = it->first.c_str();
 		val = it->second.c_str();
-		it++;
+		++it;
 		if (it != props.end()) {
 			enumnext = it->first; // GetNext will begin here ...
 		} else {
@@ -633,7 +763,6 @@ bool PropSetFile::GetNext(const char *&key, const char *&val) {
 		return false;
 	}
 }
-
 //!-start-[FindResultListStyle]
 const char * PropSetFile::GetString( const char *key ) const
 {
@@ -676,6 +805,13 @@ SString::SString(int i) : sizeGrowth(sizeGrowthDefault) {
 	sSize = sLen = (s) ? strlen(s) : 0;
 }
 
+SString::SString(size_t i) : sizeGrowth(sizeGrowthDefault) {
+	std::ostringstream strstrm;
+	strstrm << i;
+	s = StringAllocate(strstrm.str().c_str());
+	sSize = sLen = (s) ? strlen(s) : 0;
+}
+
 SString::SString(double d, int precision) : sizeGrowth(sizeGrowthDefault) {
 	char number[32];
 	sprintf(number, "%.*f", precision, d);
@@ -709,9 +845,9 @@ SString &SString::assign(const char *sOther, lenpos_t sSize_) {
 	if (sSize > 0 && sSize_ <= sSize) {	// Does not allocate new buffer if the current is big enough
 		if (s) {
 			if (sSize_) {
-			memcpy(s, sOther, sSize_);
-		}
-		s[sSize_] = '\0';
+				memcpy(s, sOther, sSize_);
+			}
+			s[sSize_] = '\0';
 		}
 		sLen = sSize_;
 	} else {
@@ -865,7 +1001,7 @@ int SString::search(const char *sFind, lenpos_t start) const {
 	if (start < sLen) {
 		const char *sFound = strstr(s + start, sFind);
 		if (sFound) {
-			return sFound - s;
+			return static_cast<int>(sFound - s);
 		}
 	}
 	return -1;
@@ -907,16 +1043,16 @@ char *SContainer::StringAllocate(lenpos_t len) {
 	}
 }
 
-char *SContainer::StringAllocate(const char *s, lenpos_t len) {
-	if (s == 0) {
+char *SContainer::StringAllocate(const char *sValue, lenpos_t len) {
+	if (sValue == 0) {
 		return 0;
 	}
 	if (len == measure_length) {
-		len = strlen(s);
+		len = strlen(sValue);
 	}
 	char *sNew = new char[len + 1];
 	if (sNew) {
-		memcpy(sNew, s, len);
+		memcpy(sNew, sValue, len);
 		sNew[len] = '\0';
 	}
 	return sNew;

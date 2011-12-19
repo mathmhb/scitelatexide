@@ -311,7 +311,7 @@ CXXFLAGS=$(CXXFLAGS) $(INCLUDEDIRS)
 CCFLAGS=$(CCFLAGS) $(INCLUDEDIRS)
 
 
-# ALL: $(PROG) $(PROGSTATIC) $(DLLS) $(PROPS)
+#!-[NoStatic] ALL: $(PROG) $(PROGSTATIC) $(DLLS) $(PROPS)
 ALL: $(PROG) $(DLLS)
 
 clean:
@@ -490,10 +490,10 @@ $(DIR_BIN)\ZeroEmbedded.properties:	..\src\ZeroEmbedded.properties
 	@echo You must run the Scintilla makefile to build $*.obj
 	@exit 255
 
-SciTERes.res: SciTERes.rc ..\src\SciTE.h ..\..\scintilla\win32\PlatformRes.h
+SciTERes.res: SciTERes.rc ..\src\SciTE.h
 	$(RC) $(INCLUDEDIRS) -fo$@ SciTERes.rc
 
-Sc1Res.res: SciTERes.rc ..\src\SciTE.h ..\..\scintilla\win32\PlatformRes.h
+Sc1Res.res: SciTERes.rc ..\src\SciTE.h
 	$(RC) $(INCLUDEDIRS) -dSTATIC_BUILD -fo$@ SciTERes.rc
 
 !IF "$(VENDOR)"=="MICROSOFT"

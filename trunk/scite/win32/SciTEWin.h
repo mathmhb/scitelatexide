@@ -16,13 +16,10 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 
-#ifdef _MSC_VER
-#pragma warning(disable: 4786)
-#endif
-
 #include <string>
 #include <vector>
 #include <deque>
+#include <set>
 #include <map>
 #include <algorithm>
 
@@ -65,6 +62,7 @@ typedef HANDLE HTHEME;
 #endif
 
 #include "Scintilla.h"
+#include "ILexer.h"
 
 #include "GUI.h"
 
@@ -78,6 +76,9 @@ typedef HANDLE HTHEME;
 #include "SciTE.h"
 #include "Mutex.h"
 #include "JobQueue.h"
+#include "Cookie.h"
+#include "Worker.h"
+#include "FileWorker.h"
 #include "SciTEBase.h"
 #include "SciTEKeys.h"
 #include "UniqueInstance.h"
@@ -85,10 +86,32 @@ typedef HANDLE HTHEME;
 
 const int SCITE_TRAY = WM_APP + 0;
 const int SCITE_DROP = WM_APP + 1;
+const int SCITE_WORKER = WM_APP + 2;
 
-class Dialog;
+enum { 
+	WORK_EXECUTE = WORK_PLATFORM + 1
+};
 
 class SciTEWin;
+
+class CommandWorker : public Worker {
+public:
+	SciTEWin *pSciTE;
+	int icmd;
+	int originalEnd;
+	int exitStatus;
+	GUI::ElapsedTime commandTime;
+	std::string output;
+	int flags;
+	bool seenOutput;
+	int outputScroll;
+
+	CommandWorker();
+	void Initialise(bool resetToStart);
+	virtual void Execute();
+};
+
+class Dialog;
 
 inline HWND HwndOf(GUI::Window w) {
 	return reinterpret_cast<HWND>(w.GetID());
@@ -143,6 +166,7 @@ protected:
 	virtual bool Command(WPARAM wParam);
 	virtual void Size();
 	virtual void Paint(HDC hDC);
+	virtual bool HasClose() const;
 	GUI::Rectangle CloseArea();
 	void InvalidateClose();
 	bool MouseInClose(GUI::Point pt);
@@ -161,6 +185,30 @@ public:
 	}
 };
 
+class BackgroundStrip : public Strip {
+	int entered;
+	int lineHeight;
+	GUI::Window wExplanation;
+	GUI::Window wProgress;
+public:
+	BackgroundStrip() : entered(0), lineHeight(20) {
+	}
+	virtual void Creation();
+	virtual void Destruction();
+	virtual void Close();
+	void Focus();
+	virtual bool KeyDown(WPARAM key);
+	virtual bool Command(WPARAM wParam);
+	virtual void Size();
+	//virtual void Paint(HDC hDC);
+	virtual bool HasClose() const;
+	virtual LRESULT WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam);
+	virtual int Height() {
+		return lineHeight + 1;
+	}
+	void SetProgress(const GUI::gui_string &explanation, int size, int progress);
+};
+
 class SearchStrip : public Strip {
 	int entered;
 	int lineHeight;
@@ -169,7 +217,7 @@ class SearchStrip : public Strip {
 	GUI::Window wButton;
 	Searcher *pSearcher;
 public:
-	SearchStrip() : entered(0), pSearcher(0) {
+	SearchStrip() : entered(0), lineHeight(20), pSearcher(0) {
 	}
 	virtual void Creation();
 	virtual void Destruction();
@@ -211,7 +259,7 @@ public:
 	virtual void Close();
 	void Focus();
 	virtual bool KeyDown(WPARAM key);
-	void Next(bool markAll);
+	void Next(bool markAll, bool invertDirection);
 	void AddToPopUp(GUI::Menu &popup, const char *label, int cmd, bool checked);
 	void ShowPopup();
 	virtual bool Command(WPARAM wParam);
@@ -253,8 +301,7 @@ public:
 	virtual bool KeyDown(WPARAM key);
 	void AddToPopUp(GUI::Menu &popup, const char *label, int cmd, bool checked);
 	void ShowPopup();
-//!	void HandleReplaceCommand(int cmd); 
-	void HandleReplaceCommand(int cmd, bool reverseFind = false); //!-change-[reverse.find]
+	void HandleReplaceCommand(int cmd, bool reverseFind = false);
 	virtual bool Command(WPARAM wParam);
 	virtual void Size();
 	virtual void Paint(HDC hDC);
@@ -289,6 +336,7 @@ class SciTEWin : public SciTEBase {
 	friend class ReplaceStrip;
 
 protected:
+
 //!-start-[user.toolbar]
 	void SetToolBar();
 	TMap<int,int, SString, const char *> ToolBarTips;
@@ -311,9 +359,9 @@ protected:
 	std::deque<GUI::gui_string> dropFilesQueue;
 
 	// Fields also used in tool execution thread
+	CommandWorker cmdWorker;
 	HANDLE hWriteSubProcess;
 	DWORD subProcessGroupId;
-	int outputScroll;
 
 	HACCEL hAccTable;
 
@@ -340,11 +388,12 @@ protected:
 	GUI::Window wParameters;
 
 	ContentWin contents;
+	BackgroundStrip backgroundStrip;
 	SearchStrip searchStrip;
 	FindStrip findStrip;
 	ReplaceStrip replaceStrip;
 
-	enum { bandTool, bandTab, bandContents, bandSearch, bandFind, bandReplace, bandStatus };
+	enum { bandTool, bandTab, bandContents, bandBackground, bandSearch, bandFind, bandReplace, bandStatus };
 	std::vector<Band> bands;
 
 	virtual void ReadLocalization();
@@ -392,8 +441,7 @@ protected:
 	/// Handle default print setup values and ask the user its preferences.
 	virtual void PrintSetup();
 
-//!	BOOL HandleReplaceCommand(int cmd);
-	BOOL HandleReplaceCommand(int cmd, bool reverseFind = false); //!-change-[reverse.find]
+	BOOL HandleReplaceCommand(int cmd, bool reverseFind = false);
 
 	virtual int WindowMessageBox(GUI::Window &w, const GUI::gui_string &msg, int style);
 	virtual void FindMessageBox(const SString &msg, const SString *findItem=0);
@@ -432,6 +480,7 @@ protected:
 	void Command(WPARAM wParam, LPARAM lParam);
 	HWND MainHWND();
 
+	virtual void ShowBackgroundProgress(const GUI::gui_string &explanation, int size, int progress);
 	BOOL FindMessage(HWND hDlg, UINT message, WPARAM wParam);
 	static BOOL CALLBACK FindDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 	BOOL ReplaceMessage(HWND hDlg, UINT message, WPARAM wParam);
@@ -486,19 +535,25 @@ public:
 	void CreateUI();
 	/// Management of the command line parameters.
 	void Run(const GUI::gui_char *cmdLine);
-    int EventLoop();
+	uptr_t EventLoop();
 	void OutputAppendEncodedStringSynchronised(GUI::gui_string s, int codePage);
-	DWORD ExecuteOne(const Job &jobToRun, bool &seenOutput);
+	void ResetExecution();
+	void ExecuteNext();
+	DWORD ExecuteOne(const Job &jobToRun);
 	void ProcessExecute();
 	void ShellExec(const SString &cmd, const char *dir);
 	virtual void Execute();
 	virtual void StopExecute();
 	virtual void AddCommand(const SString &cmd, const SString &dir, JobSubsystem jobType, const SString &input = "", int flags=0);
 
+	virtual bool PerformOnNewThread(Worker *pWorker);
+	virtual void PostOnMainThread(int cmd, Worker *pWorker);
+	virtual void WorkerCommand(int cmd, Worker *pWorker);
+
 	void Creation();
 	LRESULT KeyDown(WPARAM wParam);
 	LRESULT KeyUp(WPARAM wParam);
-//!	virtual void AddToPopUp(const char *label, int cmd=0, bool enabled=true);	//!-change-[ExtendedContextMenu]
+//!	virtual void AddToPopUp(const char *label, int cmd=0, bool enabled=true); //!-remove-[ExtendedContextMenu]
 	LRESULT ContextMenuMessage(UINT iMessage, WPARAM wParam, LPARAM lParam);
 	LRESULT WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam);
 
@@ -522,7 +577,10 @@ inline bool IsKeyDown(int key) {
 	return (::GetKeyState(key) & 0x80000000) != 0;
 }
 
-
-inline GUI::Point PointFromLong(long lPoint) {
+inline GUI::Point PointFromLong(LPARAM lPoint) {
 	return GUI::Point(static_cast<short>(LOWORD(lPoint)), static_cast<short>(HIWORD(lPoint)));
+}
+
+inline int ControlIDOfWParam(WPARAM wParam) {
+	return wParam & 0xffff;
 }

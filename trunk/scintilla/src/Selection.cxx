@@ -5,13 +5,11 @@
 // Copyright 2009 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#include "Platform.h" //!-add-[no_wornings]
-
 #include <stdlib.h>
 
 #include <vector>
 
-//!#include "Platform.h" //!-remove-[no_wornings]
+#include "Platform.h"
 
 #include "Scintilla.h"
 
@@ -22,6 +20,9 @@ using namespace Scintilla;
 #endif
 
 void SelectionPosition::MoveForInsertDelete(bool insertion, int startChange, int length) {
+	if (position == startChange) {
+		virtualSpace = 0;
+	}
 	if (insertion) {
 		if (position > startChange) {
 			position += length;
@@ -33,6 +34,7 @@ void SelectionPosition::MoveForInsertDelete(bool insertion, int startChange, int
 				position -= length;
 			} else {
 				position = startChange;
+				virtualSpace = 0;
 			}
 		}
 	}

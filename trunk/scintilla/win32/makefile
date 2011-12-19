@@ -18,11 +18,11 @@ LEXLIB = Lexers.a
 vpath %.h ../src ../include ../lexlib
 vpath %.cxx ../src ../lexlib ../lexers
 
-LDFLAGS=-shared -static -Wl,--enable-runtime-pseudo-reloc-v2 -mno-cygwin -mwindows --relocatable -Wl,--add-stdcall-alias
+LDFLAGS=-shared -static -Wl,--enable-runtime-pseudo-reloc-v2 -mwindows -Wl,--add-stdcall-alias
 LIBS=-lstdc++ -limm32 -lole32 -luuid
 # Add -MMD to get dependencies
 INCLUDEDIRS=-I ../include -I ../src -I../lexlib
-CXXBASEFLAGS=-Wall -Wno-missing-braces -Wno-char-subscripts -Wno-strict-overflow -pedantic $(INCLUDEDIRS) -fno-rtti -mno-cygwin
+CXXBASEFLAGS=-Wall -Wno-missing-braces -Wno-char-subscripts -pedantic $(INCLUDEDIRS) -fno-rtti
 
 ifdef DEBUG
 CXXFLAGS=-DDEBUG -g $(CXXBASEFLAGS)
@@ -50,23 +50,12 @@ LEXERS=Ada Asm ASY AU3 Bash Basic BiB Cmake COBOL Conf CPP \
 Crontab CSS D Eiffel Erlang EScript Euphoria Flagship Forth Fortran Gui4Cli \
 HTML Inno Kix Latex Lisp Lout Lua Markdown Matlab Metapost MSSQL MySQL Nsis Others\
 Pascal PB Perl PowerPro PowerShell PS Python R Rebol Ruby Smalltalk SQL TCL VB
-else
-LEXERS=\
-A68k ABAP Abaqus Ada AHK1 APDL Asm Asn1 ASY AU3 \
-AVE Baan Bash Basic BiB Bullant Caml \
-CLW Cmake COBOL Conf CPP Crontab Csound \
-CSS D Eiffel Erlang EScript Euphoria \
-Flagship Forth Fortran GAP Gui4Cli Haskell \
-HTML Inno Kix Latex Lisp Lout Lua \
-Magik Markdown Matlab Metapost MMIXAL MPT MSSQL \
-MySQL Nimrod Nsis Opal Others Pascal PB \
-Perl PLM POV PowerPro PowerShell Progress \
-PS Python R Rebol Ruby Scriptol Smalltalk \
-SML Sorcus Specman Spice SQL TACL TADS3 \
-TAL TCL Txt2tags VB Verilog VHDL YAML
-endif
 ## [mhb] 07/11/09 : now there is no need to explicitly specify Lex*.o; you need just place wanted lexers above:-)
 LEXOBJS:=$(LEXERS:%=Lex%.o)
+else
+LEXOBJS:=$(addsuffix .o,$(basename $(notdir $(wildcard ../lexers/Lex*.cxx)))) 
+endif
+
 ## [mhb] 07/11/09 : the following codes generate correct table of lexer names
 LEXNAMS:=$(LEXERS:Basic=BlitzBasic PureBasic FreeBasic)
 LEXNAMS:=$(LEXNAMS:CLW=Clw ClwNoCase)
@@ -190,6 +179,6 @@ ScintillaWinS.o:
 ScintillaWinL.o:
 	$(CC) $(CXXFLAGS) -D SCI_LEXER -c $< -o $@
 
-ScintRes.o:	ScintRes.rc PlatformRes.h
+ScintRes.o:	ScintRes.rc
 	$(WINDRES) ScintRes.rc $@
 

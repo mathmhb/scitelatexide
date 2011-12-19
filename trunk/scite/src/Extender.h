@@ -32,8 +32,8 @@ public:
 	virtual void UpdateStatusBar(bool bUpdateSlowData)=0;
 	virtual void CheckMenus()=0; //!-add-[CheckMenus]
 	virtual bool ShowParametersDialog(const char *msg)=0; //!-add-[ParametersDialogFromLua]
-	virtual bool InsertAbbreviation(const char *data, int expandedLength)=0; //!-add-[InsertAbbreviation]
-	virtual char *GetTranslation(const char *s, bool retainIfNotFound = true)=0; //!-add-[LocalizationFromLua]
+	virtual bool InsertAbbreviation(const char *data)=0; //!-add-[InsertAbbreviation]
+	virtual std::string GetTranslation(const char *s, bool retainIfNotFound = true)=0; //!-add-[LocalizationFromLua]
 };
 
 /**
@@ -65,7 +65,7 @@ public:
 		return false;
 	}
 //!	virtual bool OnDoubleClick() { return false; }
-	virtual bool OnDoubleClick(int) { return false; } //!-add-[OnDoubleClick]
+	virtual bool OnDoubleClick(int) { return false; } //!-change-[OnDoubleClick]
 	virtual bool OnClick(int) { return false; } //!-add-[OnClick]
 	virtual bool OnMouseButtonUp(int) { return false; } //!-add-[OnMouseButtonUp]
 	virtual bool OnHotSpotReleaseClick(int) { return false; } //!-add-[OnHotSpotReleaseClick]
@@ -82,7 +82,6 @@ public:
 
 //!	virtual bool OnKey(int, int) { return false; }
 	virtual bool OnKey(int, int, char) { return false; } //!-change-[OnKey]
-
 	virtual bool OnDwellStart(int, const char *) { return false; }
 	virtual bool OnClose(const char *) { return false; }
 };

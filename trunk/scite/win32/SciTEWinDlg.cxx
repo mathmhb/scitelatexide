@@ -5,7 +5,6 @@
 // Copyright 1998-2003 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#include "Platform.h" //!-add-[no_wornings]
 #include "SciTEWin.h"
 // need this header for SHBrowseForFolder
 #include <shlobj.h>
@@ -83,7 +82,7 @@ static SciTEWin *Caller(HWND hDlg, UINT message, LPARAM lParam) {
 	return reinterpret_cast<SciTEWin*>(::GetWindowLongPtr(hDlg, DWLP_USER));
 }
 
-//! void SciTEWin::WarnUser(int warnID) {
+//!void SciTEWin::WarnUser(int warnID) {
 void SciTEWin::WarnUser(int warnID, const char *msg /* = NULL */, bool isCanBeAlerted /* = true */) { //!-change-[WarningMessage]
 	SString warning;
 	SString warning_msg; //!-add-[WarningMessage]
@@ -191,7 +190,8 @@ bool SciTEWin::ModelessHandler(MSG *pmsg) {
 
 //  DoDialog is a bit like something in PC Magazine May 28, 1991, page 357
 int SciTEWin::DoDialog(HINSTANCE hInst, const TCHAR *resName, HWND hWnd, DLGPROC lpProc) {
-	int result = ::DialogBoxParam(hInst, resName, hWnd, lpProc, reinterpret_cast<LPARAM>(this));
+	int result = static_cast<int>(
+		::DialogBoxParam(hInst, resName, hWnd, lpProc, reinterpret_cast<LPARAM>(this)));
 
 	if (result == -1) {
 		GUI::gui_string errorNum = GUI::StringFromInteger(::GetLastError());
@@ -272,6 +272,7 @@ bool SciTEWin::OpenDialog(FilePath directory, const GUI::gui_char *filter) {
 		ofn.Flags |=
 		    OFN_EXPLORER |
 		    OFN_PATHMUSTEXIST |
+		    OFN_NOCHANGEDIR |
 		    OFN_ALLOWMULTISELECT;
 	}
 	if (::GetOpenFileNameW(&ofn)) {
@@ -319,7 +320,7 @@ FilePath SciTEWin::ChooseSaveName(FilePath directory, const char *title, const G
 		ofn.nMaxFile = ELEMENTS(saveName);
 		GUI::gui_string translatedTitle = localiser.Text(title);
 		ofn.lpstrTitle = translatedTitle.c_str();
-		ofn.Flags = OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT;
+		ofn.Flags = OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
 		ofn.lpstrFilter = filter;
 		ofn.lpstrInitialDir = directory.AsInternal();
 
@@ -345,7 +346,7 @@ bool SciTEWin::SaveAsDialog() {
 void SciTEWin::SaveACopy() {
 	FilePath path = ChooseSaveName(filePath.Directory(), "Save a Copy");
 	if (path.IsSet()) {
-		SaveBuffer(path);
+		SaveBuffer(path, true);
 	}
 }
 
@@ -409,7 +410,7 @@ void SciTEWin::LoadSessionDialog() {
 	ofn.lpstrFilter = GUI_TEXT("Session (.session)\0*.session\0");
 	GUI::gui_string translatedTitle = localiser.Text("Load Session");
 	ofn.lpstrTitle = translatedTitle.c_str();
-	ofn.Flags = OFN_HIDEREADONLY;
+	ofn.Flags = OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
 	if (::GetOpenFileNameW(&ofn)) {
 		LoadSessionFile(openName);
 		RestoreSession();
@@ -437,7 +438,7 @@ void SciTEWin::SaveSessionDialog() {
 	ofn.nMaxFile = ELEMENTS(saveName);
 	GUI::gui_string translatedTitle = localiser.Text("Save Current Session");
 	ofn.lpstrTitle = translatedTitle.c_str();
-	ofn.Flags = OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT;
+	ofn.Flags = OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
 	ofn.lpstrFilter = GUI_TEXT("Session (.session)\0*.session\0");
 	if (::GetSaveFileNameW(&ofn)) {
 		SaveSessionFile(saveName);
@@ -591,7 +592,7 @@ void SciTEWin::Print(
 	                           ptDpi.y, 72);
 	HFONT fontHeader = ::CreateFontA(headerLineHeight,
 	                                0, 0, 0,
-	                                sdHeader.bold ? FW_BOLD : FW_NORMAL,
+	                                sdHeader.weight,
 	                                sdHeader.italics,
 	                                sdHeader.underlined,
 	                                0, 0, 0,
@@ -609,7 +610,7 @@ void SciTEWin::Print(
 	                           ptDpi.y, 72);
 	HFONT fontFooter = ::CreateFontA(footerLineHeight,
 	                                0, 0, 0,
-	                                sdFooter.bold ? FW_BOLD : FW_NORMAL,
+	                                sdFooter.weight,
 	                                sdFooter.italics,
 	                                sdFooter.underlined,
 	                                0, 0, 0,
@@ -789,9 +790,6 @@ void SciTEWin::PrintSetup() {
 	hDevNames = pdlg.hDevNames;
 }
 
-// This is a reasonable buffer size for dialog box text conversions
-#define CTL_TEXT_BUF /* 512 */ 1024 //!-change-[TextSizeMax for Dialog]
-
 class Dialog {
 	HWND hDlg;
 public:
@@ -870,6 +868,13 @@ static void FillComboFromProps(HWND combo, PropSetFile &props) {
 	}
 }
 
+void SciTEWin::ShowBackgroundProgress(const GUI::gui_string &explanation, int size, int progress) {
+	backgroundStrip.visible = !explanation.empty();
+	SizeSubWindows();
+	if (backgroundStrip.visible)
+		backgroundStrip.SetProgress(explanation, size, progress);
+}
+
 class DialogFindReplace : public Dialog, public SearchUI  {
 	bool advanced;
 public:
@@ -916,7 +921,7 @@ void DialogFindReplace::FillFields() {
 		SetCheck(pSearcher->reverseFind ? IDDIRECTIONUP : IDDIRECTIONDOWN, true);
 	}
 	if (advanced) {
-		SetCheck(IDFINDSTYLE, pSearcher->findInStyle);
+		SetCheck(IDFINDINSTYLE, pSearcher->findInStyle);
 	}
 }
 
@@ -945,24 +950,23 @@ BOOL SciTEWin::FindMessage(HWND hDlg, UINT message, WPARAM wParam) {
 		break;
 
 	case WM_COMMAND:
-		if (ControlIDOfCommand(wParam) == IDCANCEL) {
+		if (ControlIDOfWParam(wParam) == IDCANCEL) {
 			::EndDialog(hDlg, IDCANCEL);
 			wFindReplace.Destroy();
 			return FALSE;
-		} else if ( (ControlIDOfCommand(wParam) == IDOK) ||
-		            (ControlIDOfCommand(wParam) == IDMARKALL) ) {
+		} else if ( (ControlIDOfWParam(wParam) == IDOK) ||
+		            (ControlIDOfWParam(wParam) == IDMARKALL) ) {
 			dlg.GrabFields();
 			if (closeFind) {
 				::EndDialog(hDlg, IDOK);
 				wFindReplace.Destroy();
 			}
-			if (ControlIDOfCommand(wParam) == IDMARKALL){
+			if (ControlIDOfWParam(wParam) == IDMARKALL){
 				MarkAll();
 			}
-//!			FindNext(reverseFind);
-			FindNext(reverseFind ^ IsKeyDown(VK_SHIFT)); //!-change-[reverse.find]
+			FindNext(reverseFind ^ IsKeyDown(VK_SHIFT));
 			return TRUE;
-		} else if (ControlIDOfCommand(wParam) == IDFINDINSTYLE) {
+		} else if (ControlIDOfWParam(wParam) == IDFINDINSTYLE) {
 			if (FindReplaceAdvanced()) {
 				findInStyle = dlg.Checked(IDFINDINSTYLE);
 				dlg.Enable(IDFINDSTYLE, findInStyle);
@@ -978,8 +982,7 @@ BOOL CALLBACK SciTEWin::FindDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 	return Caller(hDlg, message, lParam)->FindMessage(hDlg, message, wParam);
 }
 
-//!BOOL SciTEWin::HandleReplaceCommand(int cmd) {
-BOOL SciTEWin::HandleReplaceCommand(int cmd, bool reverseFind) { //!-change-[reverse.find]
+BOOL SciTEWin::HandleReplaceCommand(int cmd, bool reverseFind) {
 	if (!wFindReplace.GetID())
 		return TRUE;
 	HWND hwndFR = reinterpret_cast<HWND>(wFindReplace.GetID());
@@ -992,8 +995,7 @@ BOOL SciTEWin::HandleReplaceCommand(int cmd, bool reverseFind) { //!-change-[rev
 
 	int replacements = 0;
 	if (cmd == IDOK) {
-//!		FindNext(false);
-		FindNext(/*false*/ reverseFind); //!-change-[reverse.find]
+		FindNext(reverseFind);
 	} else if (cmd == IDREPLACE) {
 		ReplaceOnce();
 	} else if ((cmd == IDREPLACEALL) || (cmd == IDREPLACEINSEL)) {
@@ -1034,21 +1036,20 @@ BOOL SciTEWin::ReplaceMessage(HWND hDlg, UINT message, WPARAM wParam) {
 		break;
 
 	case WM_COMMAND:
-		if (ControlIDOfCommand(wParam) == IDCANCEL) {
+		if (ControlIDOfWParam(wParam) == IDCANCEL) {
 			props.Set("Replacements", "");
 			UpdateStatusBar(false);
 			::EndDialog(hDlg, IDCANCEL);
 			wFindReplace.Destroy();
 			return FALSE;
-		} else if (ControlIDOfCommand(wParam) == IDFINDINSTYLE) {
+		} else if (ControlIDOfWParam(wParam) == IDFINDINSTYLE) {
 			if (FindReplaceAdvanced()) {
 				findInStyle = dlg.Checked(IDFINDINSTYLE);
 				dlg.Enable(IDFINDSTYLE, findInStyle);
 			}
 			return TRUE;
 		} else {
-//!			return HandleReplaceCommand(ControlIDOfCommand(wParam));
-			return HandleReplaceCommand(ControlIDOfCommand(wParam), IsKeyDown(VK_SHIFT)); //!-change-[reverse.find]
+			return HandleReplaceCommand(ControlIDOfWParam(wParam), IsKeyDown(VK_SHIFT));
 		}
 	}
 
@@ -1207,12 +1208,12 @@ BOOL SciTEWin::GrepMessage(HWND hDlg, UINT message, WPARAM wParam) {
 		break;
 
 	case WM_COMMAND:
-		if (ControlIDOfCommand(wParam) == IDCANCEL) {
+		if (ControlIDOfWParam(wParam) == IDCANCEL) {
 			::EndDialog(hDlg, IDCANCEL);
 			wFindInFiles.Destroy();
 			return FALSE;
 
-		} else if (ControlIDOfCommand(wParam) == IDOK) {
+		} else if (ControlIDOfWParam(wParam) == IDOK) {
 			findWhat = dlg.ItemTextU(IDFINDWHAT);
 			if ( findWhat.length() == 0 ) return FALSE; //!-add-[find_in_files_no_empty]
 			props.Set("find.what", findWhat.c_str());
@@ -1239,12 +1240,12 @@ BOOL SciTEWin::GrepMessage(HWND hDlg, UINT message, WPARAM wParam) {
 			} else {
 				return FALSE;
 			}
-		} else if (ControlIDOfCommand(wParam) == IDDOTDOT) {
+		} else if (ControlIDOfWParam(wParam) == IDDOTDOT) {
 			FilePath directory(dlg.ItemTextG(IDDIRECTORY));
 			directory = directory.Directory();
 			dlg.SetItemText(IDDIRECTORY, directory.AsInternal());
 
-		} else if (ControlIDOfCommand(wParam) == IDBROWSE) {
+		} else if (ControlIDOfWParam(wParam) == IDBROWSE) {
 
 			// This code was copied and slightly modifed from:
 			// http://www.bcbdev.com/faqs/faq62.htm
@@ -1389,10 +1390,10 @@ BOOL SciTEWin::GoLineMessage(HWND hDlg, UINT message, WPARAM wParam) {
 		break;
 
 	case WM_COMMAND:
-		if (ControlIDOfCommand(wParam) == IDCANCEL) {
+		if (ControlIDOfWParam(wParam) == IDCANCEL) {
 			::EndDialog(hDlg, IDCANCEL);
 			return FALSE;
-		} else if (ControlIDOfCommand(wParam) == IDOK) {
+		} else if (ControlIDOfWParam(wParam) == IDOK) {
 			BOOL bHasLine;
 			int lineNumber = static_cast<int>(
 			                     ::GetDlgItemInt(hDlg, IDGOLINE, &bHasLine, FALSE));
@@ -1450,10 +1451,10 @@ BOOL SciTEWin::AbbrevMessage(HWND hDlg, UINT message, WPARAM wParam) {
 		break;
 
 	case WM_COMMAND:
-		if (ControlIDOfCommand(wParam) == IDCANCEL) {
+		if (ControlIDOfWParam(wParam) == IDCANCEL) {
 			::EndDialog(hDlg, IDCANCEL);
 			return FALSE;
-		} else if (ControlIDOfCommand(wParam) == IDOK) {
+		} else if (ControlIDOfWParam(wParam) == IDOK) {
 			SString sAbbrev = dlg.ItemTextU(IDABBREV);
 			strncpy(abbrevInsert, sAbbrev.c_str(), sizeof(abbrevInsert));
 			abbrevInsert[sizeof(abbrevInsert) - 1] = '\0';
@@ -1505,11 +1506,11 @@ BOOL SciTEWin::TabSizeMessage(HWND hDlg, UINT message, WPARAM wParam) {
 		break;
 
 	case WM_COMMAND:
-		if (ControlIDOfCommand(wParam) == IDCANCEL) {
+		if (ControlIDOfWParam(wParam) == IDCANCEL) {
 			::EndDialog(hDlg, IDCANCEL);
 			return FALSE;
-		} else if ((ControlIDOfCommand(wParam) == IDCONVERT) ||
-			(ControlIDOfCommand(wParam) == IDOK)) {
+		} else if ((ControlIDOfWParam(wParam) == IDCONVERT) ||
+			(ControlIDOfWParam(wParam) == IDOK)) {
 			BOOL bOK;
 			int tabSize = static_cast<int>(::GetDlgItemInt(hDlg, IDTABSIZE, &bOK, FALSE));
 			if (tabSize > 0)
@@ -1519,10 +1520,10 @@ BOOL SciTEWin::TabSizeMessage(HWND hDlg, UINT message, WPARAM wParam) {
 				wEditor.Call(SCI_SETINDENT, indentSize);
 			bool useTabs = static_cast<bool>(::IsDlgButtonChecked(hDlg, IDUSETABS));
 			wEditor.Call(SCI_SETUSETABS, useTabs);
-			if (ControlIDOfCommand(wParam) == IDCONVERT) {
+			if (ControlIDOfWParam(wParam) == IDCONVERT) {
 				ConvertIndentation(tabSize, useTabs);
 			}
-			::EndDialog(hDlg, ControlIDOfCommand(wParam));
+			::EndDialog(hDlg, ControlIDOfWParam(wParam));
 			return TRUE;
 		}
 	}
@@ -1581,13 +1582,13 @@ BOOL SciTEWin::ParametersMessage(HWND hDlg, UINT message, WPARAM wParam) {
 		break;
 
 	case WM_COMMAND:
-		if (ControlIDOfCommand(wParam) == IDCANCEL) {
+		if (ControlIDOfWParam(wParam) == IDCANCEL) {
 			::EndDialog(hDlg, IDCANCEL);
 			if (!modalParameters) {
 				wParameters.Destroy();
 			}
 			return FALSE;
-		} else if (ControlIDOfCommand(wParam) == IDOK) {
+		} else if (ControlIDOfWParam(wParam) == IDOK) {
 			ParamGrab();
 			::EndDialog(hDlg, IDOK);
 			if (!modalParameters) {
@@ -1681,10 +1682,10 @@ BOOL SciTEWin::AboutMessage(HWND hDlg, UINT message, WPARAM wParam) {
 		break;
 
 	case WM_COMMAND:
-		if (ControlIDOfCommand(wParam) == IDOK) {
+		if (ControlIDOfWParam(wParam) == IDOK) {
 			::EndDialog(hDlg, IDOK);
 			return TRUE;
-		} else if (ControlIDOfCommand(wParam) == IDCANCEL) {
+		} else if (ControlIDOfWParam(wParam) == IDCANCEL) {
 			::EndDialog(hDlg, IDCANCEL);
 			return FALSE;
 		}

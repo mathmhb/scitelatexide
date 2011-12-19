@@ -17,7 +17,7 @@
 #include "Scintilla.h"
 #include "SciLexer.h"
 
-#include "PropSetSimple.h"
+#include "PropSetSimple.h"  //!-add-[FindResultListStyle]
 #include "WordList.h"
 #include "LexAccessor.h"
 #include "Accessor.h"
@@ -60,10 +60,8 @@ static bool IsBOperator(char ch) {
 // Tests for BATCH Separators
 static bool IsBSeparator(char ch) {
 	return (ch == '\\') || (ch == '.') || (ch == ';') ||
-//!		(ch == '\"') || (ch == '\'') || (ch == '/') || (ch == ')');
-		(ch == '\"') || (ch == '\'') || (ch == '/'); //!-change-[BatchLexerImprovement]
+		(ch == '\"') || (ch == '\'') || (ch == '/');
 }
-
 //!-start-[BatchLexerImprovement]
 // Tests for Environment Variable simbol
 static inline bool IsEnvironmentVar(char ch) {
@@ -279,14 +277,13 @@ static void ColouriseBatchLine(
 		wordBuffer[wbl] = '\0';
 		wbo = 0;
 
-/*!-start-remove-[BatchLexerImprovement]
-// REM is comment only when it's a first word in line
+/*!-remove-[BatchLexerImprovement]
 		// Check for Comment - return if found
 		if (CompareCaseInsensitive(wordBuffer, "rem") == 0) {
 			styler.ColourTo(endPos, SCE_BAT_COMMENT);
 			return;
 		}
-*/ //!-end-remove-[BatchLexerImprovement]
+*/
 		// Check for Separator
 		if (IsBSeparator(wordBuffer[0])) {
 			// Check for External Command / Program
@@ -684,7 +681,7 @@ static void ColouriseBatchLine(
 			while ((wbo < wbl) &&
 				(wordBuffer[wbo] != '%') &&
 //!				(wordBuffer[wbo] != '!') &&
-				(!isDelayedExpansion || wordBuffer[wbo] != '!') && //!-add-[BatchLexerImprovement]
+				(!isDelayedExpansion || wordBuffer[wbo] != '!') && //!-change-[BatchLexerImprovement]
 				(!IsBOperator(wordBuffer[wbo])) &&
 				(!IsBSeparator(wordBuffer[wbo]))) {
 				wbo++;
@@ -732,7 +729,6 @@ static void ColouriseBatchDoc(
 		                   keywordlists, styler);
 	}
 }
-
 //!-start-[BatchLexerImprovement]
 static void FoldBatchDoc(unsigned int startPos, int length, int,
     WordList *[], Accessor &styler)
@@ -782,7 +778,7 @@ static void ColouriseDiffLine(char *lineBuffer, int endLine, Accessor &styler) {
 		styler.ColourTo(endLine, SCE_DIFF_COMMAND);
 	} else if (0 == strncmp(lineBuffer, "Index: ", 7)) {  // For subversion's diff
 		styler.ColourTo(endLine, SCE_DIFF_COMMAND);
-	} else if (0 == strncmp(lineBuffer, "---", 3)) {
+	} else if (0 == strncmp(lineBuffer, "---", 3) && lineBuffer[3] != '-') {
 		// In a context diff, --- appears in both the header and the position markers
 		if (lineBuffer[3] == ' ' && atoi(lineBuffer + 4) && !strchr(lineBuffer, '/'))
 			styler.ColourTo(endLine, SCE_DIFF_POSITION);
@@ -966,7 +962,6 @@ static bool isprefix(const char *target, const char *prefix) {
 		return true;
 }
 //!-end-[PropsKeywords]
-
 //!static void ColourisePropsLine(
 static char ColourisePropsLine( // return last style //!-change-[PropsColouriseFix]
     char *lineBuffer,
@@ -1062,9 +1057,9 @@ static char ColourisePropsLine( // return last style //!-change-[PropsColouriseF
 	}
 	return SCE_PROPS_DEFAULT; //!-add-[PropsColouriseFix]
 }
-
 //!static void ColourisePropsDoc(unsigned int startPos, int length, int, WordList *[], Accessor &styler) {
 static void ColourisePropsDoc(unsigned int startPos, int length, int, WordList *keywordlists[], Accessor &styler) { //!-change-[PropsKeysSets]
+
 	char lineBuffer[1024];
 	styler.StartAt(startPos);
 	styler.StartSegment(startPos);
@@ -1090,7 +1085,7 @@ static void ColourisePropsDoc(unsigned int startPos, int length, int, WordList *
 			// End of line (or of line buffer) met, colourise it
 			lineBuffer[linePos] = '\0';
 //!			ColourisePropsLine(lineBuffer, linePos, startLine, i, styler, allowInitialSpaces);
-//!-start-[PropsColouriseFix][PropsKeysSets]
+//!-start-[PropsKeysSets]
 			if (continuation)
 				styler.ColourTo(i, SCE_PROPS_DEFAULT);
 			else
@@ -1099,7 +1094,7 @@ static void ColourisePropsDoc(unsigned int startPos, int length, int, WordList *
 			continuation = (linePos >= sizeof(lineBuffer) - 1) ||
 				(style != SCE_PROPS_COMMENT &&  ((lineBuffer[linePos-2] == '\\')
 				|| (lineBuffer[linePos-3] == '\\' && lineBuffer[linePos-2] == '\r')));
-//!-end-[PropsColouriseFix][PropsKeysSets]
+//!-end-[PropsKeysSets]
 			linePos = 0;
 			startLine = i + 1;
 		}
@@ -1218,13 +1213,17 @@ static void ColouriseMakeLine(
 		styler.ColourTo(endPos, SCE_MAKE_PREPROCESSOR);
 		return;
 	}
+	int varCount = 0;
 	while (i < lengthLine) {
 		if (lineBuffer[i] == '$' && lineBuffer[i + 1] == '(') {
 			styler.ColourTo(startLine + i - 1, state);
 			state = SCE_MAKE_IDENTIFIER;
+			varCount++;
 		} else if (state == SCE_MAKE_IDENTIFIER && lineBuffer[i] == ')') {
+			if (--varCount == 0) {
 			styler.ColourTo(startLine + i, state);
 			state = SCE_MAKE_DEFAULT;
+		}
 		}
 
 		// skip identifier and target styling if this is a command line
@@ -1293,8 +1292,8 @@ static int RecogniseErrorListLine(const char *lineBuffer, unsigned int lengthLin
 		// Command or return status
 		return SCE_ERR_CMD;
 	} else if (lineBuffer[0] == '<') {
-		// Diff removal, but not interested. Trapped to avoid hitting CTAG cases.
-		return SCE_ERR_DEFAULT;
+		// Diff removal.
+		return SCE_ERR_DIFF_DELETION;
 	} else if (lineBuffer[0] == '!') {
 		return SCE_ERR_DIFF_CHANGED;
 	} else if (lineBuffer[0] == '+') {
@@ -1522,7 +1521,6 @@ static void ColouriseFindListLine(
 	styler.ColourTo(endPos, SCE_ERR_VALUE);
 }
 //!-end-[FindResultListStyle]
-
 static void ColouriseErrorListLine(
     char *lineBuffer,
     unsigned int lengthLine,
