@@ -18,13 +18,16 @@
 #include "Scintilla.h"
 #include "SciLexer.h"
 
-#include "PropSetSimple.h"
 #include "WordList.h"
 #include "LexAccessor.h"
 #include "Accessor.h"
 #include "StyleContext.h"
 #include "CharacterSet.h"
 #include "LexerModule.h"
+
+#ifdef SCI_NAMESPACE
+using namespace Scintilla;
+#endif
 
 #define KEYWORDS_FOLD 8
 #define MAX_CMD_LENGTH  100
@@ -307,7 +310,7 @@ static void ColouriseLatexDoc(unsigned int startPos, int length, int initStyle, 
                 // word characters
                 else if(!iscmdletter(sc.ch)){
                     sc.GetCurrent(word, sizeof(word)-1);
-                    int length = strlen(word);
+                    int length = static_cast<int>(strlen(word));
 
                     if(length>1){
                         memmove(word, word+1, length) ;

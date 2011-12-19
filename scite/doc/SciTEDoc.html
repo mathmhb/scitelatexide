@@ -1751,20 +1751,104 @@ NameError: mistake
 	<td>Script in ASP code is initially assumed to be in JavaScript. To change this to VBScript set asp.default.language to 2. Python is 3.</td>
 	</tr>
 	<tr>
+	<td>fold.asm.comment.explicit</td>
+	<td>This option enables folding explicit fold points when using the Asm lexer. Explicit fold points allows adding extra folding by placing a ;{ comment at the start and a ;} at the end of a section that should fold.</td>
+	</tr>
+	<tr>
+	<td>fold.asm.comment.multiline</td>
+	<td>Set this property to 1 to enable folding multi-line comments.</td>
+	</tr>
+	<tr>
+	<td>fold.asm.explicit.anywhere</td>
+	<td>Set this property to 1 to enable explicit fold points anywhere, not just in line comments.</td>
+	</tr>
+	<tr>
+	<td>fold.asm.explicit.end</td>
+	<td>The string to use for explicit fold end points, replacing the standard ;}.</td>
+	</tr>
+	<tr>
+	<td>fold.asm.explicit.start</td>
+	<td>The string to use for explicit fold start points, replacing the standard ;{.</td>
+	</tr>
+	<tr>
+	<td>fold.asm.syntax.based</td>
+	<td>Set this property to 0 to disable syntax based folding.</td>
+	</tr>
+	<tr>
 	<td>fold.at.else</td>
 	<td>This option enables C++ folding on a "} else {" line of an if statement.</td>
 	</tr>
 	<tr>
-	<td>fold.comment</td>
-	<td>This option enables folding multi-line comments and explicit fold points when using the C++ lexer.  Explicit fold points allows adding extra folding by placing a //{ comment at the start and a //}  at the end of a section that should fold.</td>
+	<td>fold.basic.comment.explicit</td>
+	<td>This option enables folding explicit fold points when using the Basic lexer. Explicit fold points allows adding extra folding by placing a ;{ (BB/PB) or '{ (FB) comment at the start and a ;} (BB/PB) or '} (FB) at the end of a section that should be folded.</td>
 	</tr>
 	<tr>
-	<td>fold.comment.python</td>
-	<td>This option enables folding multi-line comments when using the Python lexer.</td>
+	<td>fold.basic.explicit.anywhere</td>
+	<td>Set this property to 1 to enable explicit fold points anywhere, not just in line comments.</td>
+	</tr>
+	<tr>
+	<td>fold.basic.explicit.end</td>
+	<td>The string to use for explicit fold end points, replacing the standard ;} (BB/PB) or '} (FB).</td>
+	</tr>
+	<tr>
+	<td>fold.basic.explicit.start</td>
+	<td>The string to use for explicit fold start points, replacing the standard ;{ (BB/PB) or '{ (FB).</td>
+	</tr>
+	<tr>
+	<td>fold.basic.syntax.based</td>
+	<td>Set this property to 0 to disable syntax based folding.</td>
+	</tr>
+	<tr>
+	<td>fold.comment</td>
+	<td>This option enables folding multi-line comments and explicit fold points when using the C++ lexer. Explicit fold points allows adding extra folding by placing a //{ comment at the start and a //} at the end of a section that should fold.</td>
 	</tr>
 	<tr>
 	<td>fold.cpp.comment.explicit</td>
 	<td>Set this property to 0 to disable folding explicit fold points when fold.comment=1.</td>
+	</tr>
+	<tr>
+	<td>fold.cpp.comment.multiline</td>
+	<td>Set this property to 0 to disable folding multi-line comments when fold.comment=1.</td>
+	</tr>
+	<tr>
+	<td>fold.cpp.explicit.anywhere</td>
+	<td>Set this property to 1 to enable explicit fold points anywhere, not just in line comments.</td>
+	</tr>
+	<tr>
+	<td>fold.cpp.explicit.end</td>
+	<td>The string to use for explicit fold end points, replacing the standard //}.</td>
+	</tr>
+	<tr>
+	<td>fold.cpp.explicit.start</td>
+	<td>The string to use for explicit fold start points, replacing the standard //{.</td>
+	</tr>
+	<tr>
+	<td>fold.cpp.syntax.based</td>
+	<td>Set this property to 0 to disable syntax based folding.</td>
+	</tr>
+	<tr>
+	<td>fold.d.comment.explicit</td>
+	<td>Set this property to 0 to disable folding explicit fold points when fold.comment=1.</td>
+	</tr>
+	<tr>
+	<td>fold.d.comment.multiline</td>
+	<td>Set this property to 0 to disable folding multi-line comments when fold.comment=1.</td>
+	</tr>
+	<tr>
+	<td>fold.d.explicit.anywhere</td>
+	<td>Set this property to 1 to enable explicit fold points anywhere, not just in line comments.</td>
+	</tr>
+	<tr>
+	<td>fold.d.explicit.end</td>
+	<td>The string to use for explicit fold end points, replacing the standard //}.</td>
+	</tr>
+	<tr>
+	<td>fold.d.explicit.start</td>
+	<td>The string to use for explicit fold start points, replacing the standard //{.</td>
+	</tr>
+	<tr>
+	<td>fold.d.syntax.based</td>
+	<td>Set this property to 0 to disable syntax based folding.</td>
 	</tr>
 	<tr>
 	<td>fold.html</td>
@@ -1783,36 +1867,56 @@ NameError: mistake
 	<td>Allow folding for heredocs in scripts embedded in HTML. The default is off.</td>
 	</tr>
 	<tr>
+	<td>fold.perl.at.else</td>
+	<td>This option enables Perl folding on a "} else {" line of an if statement.</td>
+	</tr>
+	<tr>
+	<td>fold.perl.comment.explicit</td>
+	<td>Set to 0 to disable explicit folding.</td>
+	</tr>
+	<tr>
 	<td>fold.perl.package</td>
-	<td>Enable folding packages when using the Perl lexer.</td>
+	<td>Set to 0 to disable folding packages when using the Perl lexer.</td>
 	</tr>
 	<tr>
 	<td>fold.perl.pod</td>
-	<td>Enable folding Pod blocks when using the Perl lexer.</td>
+	<td>Set to 0 to disable folding Pod blocks when using the Perl lexer.</td>
 	</tr>
 	<tr>
 	<td>fold.preprocessor</td>
-	<td>This option enables folding preprocessor directives when using the C++ lexer.  Includes C#'s explicit #region and #endregion folding directives.</td>
+	<td>This option enables folding preprocessor directives when using the C++ lexer. Includes C#'s explicit #region and #endregion folding directives.</td>
 	</tr>
 	<tr>
 	<td>fold.quotes.python</td>
 	<td>This option enables folding multi-line quoted strings when using the Python lexer.</td>
 	</tr>
 	<tr>
-	<td>fold.sql.exists</td>
-	<td>Enables "EXISTS" to end a fold as is started by "IF" in "DROP TABLE IF EXISTS".</td>
+	<td>fold.sql.at.else</td>
+	<td>This option enables SQL folding on a "ELSE" and "ELSIF" line of an IF statement.</td>
 	</tr>
 	<tr>
 	<td>html.tags.case.sensitive</td>
 	<td>For XML and HTML, setting this property to 1 will make tags match in a case sensitive way which is the expected behaviour for XML and XHTML.</td>
 	</tr>
 	<tr>
+	<td>lexer.asm.comment.delimiter</td>
+	<td>Character used for COMMENT directive's delimiter, replacing the standard "~".</td>
+	</tr>
+	<tr>
 	<td>lexer.cpp.allow.dollars</td>
 	<td>Set to 0 to disallow the '$' character in identifiers with the cpp lexer.</td>
 	</tr>
 	<tr>
+	<td>lexer.cpp.hashquoted.strings</td>
+	<td>Set to 1 to enable highlighting of hash-quoted strings.</td>
+	</tr>
+	<tr>
 	<td>lexer.cpp.track.preprocessor</td>
 	<td>Set to 1 to interpret #if/#else/#endif to grey out code that is not active.</td>
+	</tr>
+	<tr>
+	<td>lexer.cpp.triplequoted.strings</td>
+	<td>Set to 1 to enable highlighting of triple-quoted strings.</td>
 	</tr>
 	<tr>
 	<td>lexer.cpp.update.preprocessor</td>
@@ -1843,6 +1947,10 @@ NameError: mistake
 	<td>For properties files, set to 0 to style all lines that start with whitespace in the default style. This is not suitable for SciTE .properties files which use indentation for flow control but can be used for RFC2822 text where indentation is used for continuation lines.</td>
 	</tr>
 	<tr>
+	<td>lexer.python.keywords2.no.sub.identifiers</td>
+	<td>When enabled, it will not style keywords2 items that are used as a sub-identifier. Example: when set, will not highlight "foo.open" when "open" is a keywords2 item.</td>
+	</tr>
+	<tr>
 	<td>lexer.python.literals.binary</td>
 	<td>Set to 0 to not recognise Python 3 binary and octal literals: 0b1011 0o712.</td>
 	</tr>
@@ -1859,6 +1967,10 @@ NameError: mistake
 	<td>Set to 0 to not recognise Python Unicode literals u"x" as used before Python 3.</td>
 	</tr>
 	<tr>
+	<td>lexer.sql.allow.dotted.word</td>
+	<td>Set to 1 to colourise recognized words with dots (recommended for Oracle PL/SQL objects).</td>
+	</tr>
+	<tr>
 	<td>lexer.sql.numbersign.comment</td>
 	<td>If "lexer.sql.numbersign.comment" property is set to 0 a line beginning with '#' will not be a comment.</td>
 	</tr>
@@ -1872,7 +1984,7 @@ NameError: mistake
 	</tr>
 	<tr>
 	<td>styling.within.preprocessor</td>
-	<td>For C++ code, determines whether all preprocessor code is styled in the  preprocessor style (0, the default) or only from the initial # to the end  of the command word(1).</td>
+	<td>For C++ code, determines whether all preprocessor code is styled in the preprocessor style (0, the default) or only from the initial # to the end of the command word(1).</td>
 	</tr>
 	<tr>
 	<td>tab.timmy.whinge.level</td>

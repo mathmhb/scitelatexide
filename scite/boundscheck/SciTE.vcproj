@@ -388,6 +388,9 @@
 				RelativePath="..\..\scintilla\lexers\LexMMIXAL.cxx">
 			</File>
 			<File
+				RelativePath="..\..\scintilla\lexers\LexModula.cxx">
+			</File>
+			<File
 				RelativePath="..\..\scintilla\lexers\LexMPT.cxx">
 			</File>
 			<File
@@ -714,10 +717,16 @@
 				RelativePath="..\src\FilePath.h">
 			</File>
 			<File
+				RelativePath="..\src\GUI.h">
+			</File>
+			<File
 				RelativePath="..\src\IFaceTable.h">
 			</File>
 			<File
 				RelativePath="..\..\scintilla\src\Indicator.h">
+			</File>
+			<File
+				RelativePath="..\src\JobQueue.h">
 			</File>
 			<File
 				RelativePath="..\..\scintilla\src\KeyMap.h">
@@ -735,13 +744,16 @@
 				RelativePath="..\src\MultiplexExtension.h">
 			</File>
 			<File
+				RelativePath="..\src\Mutex.h">
+			</File>
+			<File
 				RelativePath="..\..\scintilla\Include\Platform.h">
 			</File>
 			<File
-				RelativePath="..\..\scintilla\Win32\PlatformRes.h">
+				RelativePath="..\..\scintilla\Include\PropSet.h">
 			</File>
 			<File
-				RelativePath="..\..\scintilla\Include\PropSet.h">
+				RelativePath="..\src\PropSetFile.h">
 			</File>
 			<File
 				RelativePath="..\..\scintilla\src\RESearch.h">
@@ -759,6 +771,9 @@
 				RelativePath="..\Src\SciTE.h">
 			</File>
 			<File
+				RelativePath="..\src\scite_lua_win.h">
+			</File>
+			<File
 				RelativePath="..\Src\SciTEBase.h">
 			</File>
 			<File
@@ -774,10 +789,16 @@
 				RelativePath="..\src\SString.h">
 			</File>
 			<File
+				RelativePath="..\src\StringHelpers.h">
+			</File>
+			<File
+				RelativePath="..\src\StringList.h">
+			</File>
+			<File
 				RelativePath="..\..\scintilla\src\Style.h">
 			</File>
 			<File
-				RelativePath="..\..\scintilla\src\StyleContext.h">
+				RelativePath="..\src\StyleWriter.h">
 			</File>
 			<File
 				RelativePath="..\..\scintilla\src\SVector.h">

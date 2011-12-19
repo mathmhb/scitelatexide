@@ -9,13 +9,9 @@
 #include <stdio.h>
 #include <time.h>
 
-#ifdef _MSC_VER
-#pragma warning(disable: 4786)
-#endif
-
-#include "Platform.h" //!-add-[no_wornings]
 #include <string>
 #include <vector>
+#include <set>
 #include <map>
 
 #undef _WIN32_WINNT
@@ -32,6 +28,7 @@
 #include <commctrl.h>
 
 #include "Scintilla.h"
+#include "ILexer.h"
 
 #include "GUI.h"
 #include "SString.h"
@@ -44,6 +41,8 @@
 #include "SciTE.h"
 #include "Mutex.h"
 #include "JobQueue.h"
+#include "Cookie.h"
+#include "Worker.h"
 #include "SciTEBase.h"
 
 static ExtensionAPI *host = 0;
@@ -60,7 +59,7 @@ static void SendDirector(const char *verb, const char *arg = 0) {
 		SString addressedMessage;
 		if (wDestination) {
 			addressedMessage += ":";
-			SString address(reinterpret_cast<int>(wDestination));
+			SString address(reinterpret_cast<size_t>(wDestination));
 			addressedMessage += address;
 			addressedMessage += ":";
 		} else {
@@ -86,7 +85,7 @@ static void SendDirector(const char *verb, const char *arg = 0) {
 }
 
 static void SendDirector(const char *verb, sptr_t arg) {
-	SString s(arg);
+	SString s(static_cast<size_t>(arg));
 	::SendDirector(verb, s.c_str());
 }
 
@@ -102,9 +101,8 @@ static void CheckEnvironment(ExtensionAPI *host) {
 			}
 			delete []director;
 		}
-		char number[32];
-		sprintf(number, "%0d", reinterpret_cast<int>(wReceiver));
-		host->SetProperty("WindowID", number);
+		SString sReceiver(reinterpret_cast<size_t>(wReceiver));
+		host->SetProperty("WindowID", sReceiver.c_str());
 	}
 }
 
@@ -250,25 +248,22 @@ bool DirectorExtension::OnStyle(unsigned int, int, int, StyleWriter *) {
 
 // These should probably have arguments
 
-//! bool DirectorExtension::OnDoubleClick() {
-bool DirectorExtension::OnDoubleClick(int){ //!-changed-[OnDoubleClick]
+//!bool DirectorExtension::OnDoubleClick() {
+bool DirectorExtension::OnDoubleClick(int){ //!-change-[OnDoubleClick]
 	return false;
 }
-
 //!-start-[OnClick]
-bool DirectorExtension::OnClick(int){ 
+bool DirectorExtension::OnClick(int){
 	return false;
 }
 //!-end-[OnClick]
-
 //!-start-[OnHotSpotReleaseClick]
-bool DirectorExtension::OnHotSpotReleaseClick(int){ 
+bool DirectorExtension::OnHotSpotReleaseClick(int){
 	return false;
 }
 //!-end-[OnHotSpotReleaseClick]
-
 //!-start-[OnMouseButtonUp]
-bool DirectorExtension::OnMouseButtonUp(int){ 
+bool DirectorExtension::OnMouseButtonUp(int){
 	return false;
 }
 //!-end-[OnMouseButtonUp]

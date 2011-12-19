@@ -8,30 +8,18 @@ rem
 cd ..\..
 set
 set BORLAND_BASE=C:\Borland\bcc55
-set MSDEV_BASE=D:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin
-set MSDEV71_BASE=D:\Program Files\Microsoft Visual Studio .NET 2003\Common7\Tools
+set MSDEV_BASE=C:\Program Files (x86)\Microsoft Visual Studio\Common\MSDev98\Bin
+set MSDEV71_BASE=C:\Program Files\Microsoft Visual Studio .NET 2003\Common7\Tools
 rem
 rem ************************************************************
-rem Target 1: Borland C++ build
+rem Target 1: basic unit tests with gcc
 call scite\scripts\clearboth
-cd scintilla\win32
-set SAVE_PATH=%path%
-set SAVE_INCLUDE=%INCLUDE%
-path %BORLAND_BASE%\Bin;%path%
-set libpath=%BORLAND_BASE%\lib
-set INCLUDE=%BORLAND_BASE%\include
-make -f scintilla.mak QUIET=1
+cd scintilla\test\unit
+mingw32-make
 if ERRORLEVEL 2 goto ERROR
-cd ..\test
-pythonw simpleTests.py
-pythonw lexTests.py
-pythonw performanceTests.py
-cd ..\..\scite\win32
-make -f scite.mak QUIET=1
+.\unitTest
 if ERRORLEVEL 2 goto ERROR
-cd ..\..
-path %SAVE_PATH%
-set INCLUDE=%SAVE_INCLUDE%
+cd ..\..\..
 rem
 rem ************************************************************
 rem Target 2: Normal gcc build
@@ -39,6 +27,10 @@ call scite\scripts\clearboth
 cd scintilla\win32
 mingw32-make
 if ERRORLEVEL 2 goto ERROR
+cd ..\test
+pythonw simpleTests.py
+pythonw lexTests.py
+pythonw performanceTests.py
 cd ..\..\scite\win32
 mingw32-make
 if ERRORLEVEL 2 goto ERROR
@@ -88,20 +80,10 @@ if ERRORLEVEL 2 goto ERROR
 cd ..\..
 rem
 rem ************************************************************
-rem Target 7: Visual C++ using scintilla\vcbuild\SciLexer.dsp
-call scite\scripts\clearboth
-cd scintilla\vcbuild
-msdev SciLexer.dsp /MAKE "SciLexer - Win32 Release" /REBUILD
-if ERRORLEVEL 2 goto ERROR
-cd ..\..
+rem Removed: Target 7
 rem
 rem ************************************************************
-rem Target 8: Visual C++ using scite\vcbuild\SciTE.dsp
-call scite\scripts\clearboth
-cd scite\vcbuild
-msdev SciTE.dsp /MAKE "SciTE - Win32 Release" /REBUILD
-if ERRORLEVEL 2 goto ERROR
-cd ..\..
+rem Removed: Target 8
 rem
 rem ************************************************************
 rem Target 9: Visual C++ using scite\boundscheck\SciTE.dsp

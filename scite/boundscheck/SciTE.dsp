@@ -207,19 +207,11 @@ SOURCE=..\..\scintilla\lexers\LexA68k.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\scintilla\lexers\LexABAP.cxx
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\scintilla\lexers\LexAbaqus.cxx
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\scintilla\lexers\LexAda.cxx
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\scintilla\lexers\LexAHK1.cxx
 # End Source File
 # Begin Source File
 
@@ -409,6 +401,10 @@ SOURCE=..\..\scintilla\lexers\LexMetapost.cxx
 # Begin Source File
 
 SOURCE=..\..\scintilla\lexers\LexMMIXAL.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\scintilla\lexers\LexModula.cxx
 # End Source File
 # Begin Source File
 
@@ -788,10 +784,6 @@ SOURCE=..\..\scintilla\Include\Platform.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\scintilla\Win32\PlatformRes.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\scintilla\Include\SciLexer.h
 # End Source File
 # Begin Source File
@@ -824,19 +816,7 @@ SOURCE=..\..\scintilla\lexlib\WordList.cxx
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
-SOURCE=..\win32\DragDrop.cur
-# End Source File
-# Begin Source File
-
 SOURCE=..\Win32\SciBall.ico
-# End Source File
-# Begin Source File
-
-SOURCE="..\win32\SciTE-file.ico"
-# End Source File
-# Begin Source File
-
-SOURCE="..\win32\SciTE-ses.ico"
 # End Source File
 # End Group
 # End Target

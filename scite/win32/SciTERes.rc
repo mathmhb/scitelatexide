@@ -8,7 +8,6 @@
 #include <windows.h>
 
 #include "SciTE.h"
-#include "PlatformRes.h"
 
 SciTE ICON SciBall.ico
 // SciTEfile ICON "SciTE-file.ico" //!-add-[NewIcons]
@@ -597,14 +596,12 @@ Embedded Properties ZeroEmbedded.properties
 #else
 Embedded Properties Embedded.properties
 #endif
-
-IDC_MARGIN         CURSOR  DISCARDABLE     "Margin.cur"
 #endif
 IDC_DRAGDROP       CURSOR  DISCARDABLE     "DragDrop.cur"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION	2, 2, 3, 89
-PRODUCTVERSION	2, 2, 3, 89
+FILEVERSION	VERSION_WORDS
+PRODUCTVERSION	VERSION_WORDS
 FILEFLAGSMASK	0x3fL
 FILEFLAGS 0
 FILEOS VOS_NT_WINDOWS32
@@ -621,12 +618,12 @@ BEGIN
 		BEGIN
 			VALUE	"CompanyName",	"Instanton & Mathmhb & Qi HS\0"
 			VALUE	"FileDescription",	APPNAME ": an SciTE variant\0"
-			VALUE	"FileVersion",	"2.23 .89\0"
+			VALUE	"FileVersion",	VERSION_SCITE "\0"
 			VALUE	"InternalName",	"SciTE\0"
-			VALUE	"LegalCopyright",	"Copyright 1998-2010 by Neil Hodgson\0"
+			VALUE	"LegalCopyright",	"Copyright " COPYRIGHT_YEARS " by Neil Hodgson\0"
 			VALUE	"OriginalFilename",	"SciTE.EXE\0"
 			VALUE	"ProductName",	"SciTE\0"
-			VALUE	"ProductVersion",	"2.23 .89\0"
+			VALUE	"ProductVersion",	VERSION_SCITE "\0"
 		END
 	END
 END

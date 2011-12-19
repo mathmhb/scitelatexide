@@ -9,8 +9,7 @@
 
 #ifndef GUI_H
 #define GUI_H
-
-#include <algorithm>
+#include <algorithm>  //!-add-[EncodingToLua]
 
 namespace GUI {
 
@@ -47,9 +46,9 @@ public:
 	}
 };
 
-#if defined(GTK)
+#if defined(GTK) || defined(__APPLE__)
 
-// On GTK+ use UTF-8 char strings
+// On GTK+ and OS X use UTF-8 char strings
 
 typedef char gui_char;
 typedef std::string gui_string;
@@ -67,40 +66,11 @@ typedef std::wstring gui_string;
 
 #endif
 
-//typedef std::basic_string<gui_char> gui_string;
-
 gui_string StringFromUTF8(const char *s);
 std::string UTF8FromString(const gui_string &s);
 gui_string StringFromInteger(int i);
-
 //!-start-[FixEncoding]
-static int CodePageFromName(const std::string &encodingName) {
-	struct Encoding {
-		const char *name;
-		int codePage;
-	} knownEncodings[] = {
-		{ "ascii", SC_CP_UTF8 },
-		{ "utf-8", SC_CP_UTF8 },
-		{ "latin1", 1252 },
-		{ "latin2", 28592 },
-		{ "big5", 950 },
-		{ "gbk", 936 },
-		{ "shift_jis", 932 },
-		{ "euc-kr", 949 },
-		{ "cyrillic", 1251 },
-		{ "iso-8859-5", 28595 },
-		{ "iso8859-11", 874 },
-		{ "1250", 1250 },
-		{ "windows-1251", 1251 },
-		{ 0, 0 },
-	};
-	for (Encoding *enc=knownEncodings; enc->name; enc++) {
-		if (encodingName == enc->name) {
-			return enc->codePage;
-		}
-	}
-	return SC_CP_UTF8;
-}
+int CodePageFromName(const std::string &encodingName);
 unsigned int CodePageFromCharSet(unsigned long characterSet, unsigned int documentCodePage);
 std::string ConvertFromUTF8(const std::string &s, int codePage);
 std::string ConvertToUTF8(const std::string &s, int codePage);
@@ -162,8 +132,8 @@ public:
 };
 
 struct ScintillaFailure {
-	int status;
-	ScintillaFailure(int status_) : status(status_) {
+	sptr_t status;
+	ScintillaFailure(sptr_t status_) : status(status_) {
 	}
 };
 
@@ -189,15 +159,32 @@ public:
 	bool CanCall() const {
 		return wid && fn && ptr;
 	}
-//!	sptr_t Call(unsigned int msg, uptr_t wParam=0, sptr_t lParam=0) {
-	virtual sptr_t Call(unsigned int msg, uptr_t wParam=0, sptr_t lParam=0) {//!-chage-[OnSendEditor]
+//!	int Call(unsigned int msg, uptr_t wParam=0, sptr_t lParam=0) {
+	virtual int Call(unsigned int msg, uptr_t wParam=0, sptr_t lParam=0) {//!-change-[OnSendEditor]
+		switch (msg) {
+		case SCI_CREATEDOCUMENT:
+		case SCI_CREATELOADER:
+		case SCI_PRIVATELEXERCALL:
+		case SCI_GETDIRECTFUNCTION:
+		case SCI_GETDIRECTPOINTER:
+		case SCI_GETDOCPOINTER:
+		case SCI_GETCHARACTERPOINTER:
+			throw ScintillaFailure(SC_STATUS_FAILURE);
+		}
+		sptr_t retVal = fn(ptr, msg, wParam, lParam);
+		sptr_t status = fn(ptr, SCI_GETSTATUS, 0, 0);
+		if (status > 0)
+			throw ScintillaFailure(status);
+		return static_cast<int>(retVal);
+	}
+	sptr_t CallReturnPointer(unsigned int msg, uptr_t wParam=0, sptr_t lParam=0) {
 		sptr_t retVal = fn(ptr, msg, wParam, lParam);
 		sptr_t status = fn(ptr, SCI_GETSTATUS, 0, 0);
 		if (status > 0)
 			throw ScintillaFailure(status);
 		return retVal;
 	}
-	sptr_t CallString(unsigned int msg, uptr_t wParam, const char *s) {
+	int CallString(unsigned int msg, uptr_t wParam, const char *s) {
 		return Call(msg, wParam, reinterpret_cast<sptr_t>(s));
 	}
 	sptr_t Send(unsigned int msg, uptr_t wParam=0, sptr_t lParam=0);
@@ -207,5 +194,17 @@ public:
 bool IsDBCSLeadByte(int codePage, char ch);
 
 }
+
+#if defined(SCI_NAMESPACE)
+
+// Scintilla namespace may or may not be turned on.
+// If it is turned on, then make the structures usable without the Scintilla:: prefix
+
+using Scintilla::Sci_CharacterRange;
+using Scintilla::Sci_TextRange;
+using Scintilla::Sci_TextToFind;
+using Scintilla::SCNotification;
+
+#endif
 
 #endif

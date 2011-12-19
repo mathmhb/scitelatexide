@@ -56,6 +56,9 @@ INCLUDEDIRS=-I../../scintilla/include -I../../scintilla/win32 -I../src
 
 OBJS=\
 	SciTEBase.obj \
+	FileWorker.obj \
+	Cookie.obj \
+	Credits.obj \
 	FilePath.obj \
 	SciTEBuffers.obj \
 	SciTEIO.obj \
@@ -80,6 +83,9 @@ LEXLIB=..\..\scintilla\win32\Lexers.lib
 
 OBJSSTATIC=\
 	SciTEBase.obj \
+	FileWorker.obj \
+	Cookie.obj \
+	Credits.obj \
 	FilePath.obj \
 	SciTEBuffers.obj \
 	SciTEIO.obj \
@@ -182,7 +188,7 @@ LUA_CORE_OBJS = lapi.obj lcode.obj ldebug.obj ldo.obj ldump.obj lfunc.obj lgc.ob
 LUA_LIB_OBJS =	lauxlib.obj lbaselib.obj ldblib.obj liolib.obj lmathlib.obj ltablib.obj \
                 lstrlib.obj loadlib.obj loslib.obj linit.obj
 
-LUA_OBJS = LuaExtension.obj SingleThreadExtension.obj $(LUA_CORE_OBJS) $(LUA_LIB_OBJS)
+LUA_OBJS = LuaExtension.obj LuaUtf8.obj SingleThreadExtension.obj $(LUA_CORE_OBJS) $(LUA_LIB_OBJS)
 
 OBJS = $(OBJS) $(LUA_OBJS)
 OBJSSTATIC = $(OBJSSTATIC) $(LUA_OBJS)
@@ -226,10 +232,10 @@ $(DIR_BIN)\abbrev.properties: ..\src\abbrev.properties
 	@echo You must run the Scintilla makefile to build $*.obj
 	@exit 255
 
-SciTERes.res: SciTERes.rc ..\src\SciTE.h ..\..\scintilla\win32\PlatformRes.h SciTE.exe.manifest
+SciTERes.res: SciTERes.rc ..\src\SciTE.h SciTE.exe.manifest
 	$(RC) $(INCLUDEDIRS) -fo$@ SciTERes.rc
 
-Sc1Res.res: SciTERes.rc ..\src\SciTE.h ..\..\scintilla\win32\PlatformRes.h SciTE.exe.manifest
+Sc1Res.res: SciTERes.rc ..\src\SciTE.h SciTE.exe.manifest
 	$(RC) $(INCLUDEDIRS) -dSTATIC_BUILD -fo$@ SciTERes.rc
 
 $(PROG): $(OBJS) SciTERes.res
@@ -440,6 +446,37 @@ SciTEBase.obj: \
 	../src/SciTE.h \
 	../src/Mutex.h \
 	../src/JobQueue.h \
+	../src/Worker.h \
+	../src/SciTEBase.h
+FileWorker.obj: \
+	../src/FileWorker.cxx \
+	../../scintilla/include/Scintilla.h \
+	../../scintilla/include/SciLexer.h \
+	../src/GUI.h \
+	../src/SString.h \
+	../src/Worker.h \
+	../src/FileWorker.h
+Cookie.obj: \
+	../src/Cookie.cxx \
+	../../scintilla/include/Scintilla.h \
+	../../scintilla/include/SciLexer.h \
+	../src/GUI.h \
+	../src/SString.h \
+	../src/Cookie.h
+Credits.obj: \
+	../src/Credits.cxx \
+	../../scintilla/include/Scintilla.h \
+	../src/GUI.h \
+	../src/SString.h \
+	../src/StringHelpers.h \
+	../src/StringList.h \
+	../src/FilePath.h \
+	../src/PropSetFile.h \
+	../src/StyleWriter.h \
+	../src/Extender.h \
+	../src/SciTE.h \
+	../src/Mutex.h \
+	../src/JobQueue.h \
 	../src/SciTEBase.h
 SciTEBuffers.obj: \
 	../src/SciTEBuffers.cxx \
@@ -472,6 +509,7 @@ SciTEIO.obj: \
 	../src/Mutex.h \
 	../src/JobQueue.h \
 	../src/SciTEBase.h \
+	../src/Cookie.h \
 	../src/Utf8_16.h
 SciTEProps.obj: \
 	../src/SciTEProps.cxx \
@@ -514,6 +552,11 @@ LuaExtension.obj: \
 	../src/LuaExtension.h \
 	../src/IFaceTable.h \
 	../src/SciTEKeys.h
+
+LuaUtf8.obj: \
+	../src/LuaUtf8.cxx \
+	../../scintilla/include/Scintilla.h \
+	../src/GUI.h \
 
 IFaceTable.obj: \
 	../src/IFaceTable.cxx \
