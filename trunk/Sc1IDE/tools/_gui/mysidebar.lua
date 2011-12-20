@@ -1,10 +1,6 @@
---[mhb] modified based on SideBar.lua in SciTE-Ru, by Frank Wunderlich, mozers™, VladVRO, frs, BioInfo
+--[mhb] modified based on SideBar.lua in SciTE-Ru, by Frank Wunderlich, mozers, VladVRO, frs, BioInfo
 
---[mhb] 04/04/09; 07/24/11 revised: UTF8 support 
--- local s_=scite.GetTranslation
-local function s_(s)
-	return shell.to_utf8(scite.GetTranslation(s))
-end 
+local s_=scite.GetTranslation
 
 local function GotoLine(line)
 	editor:GotoLine(line)
@@ -477,6 +473,17 @@ win_parent:client(tab_3)
 win_parent:client(tab2)
 win_parent:client(tab1)
 win_parent:client(tab0)
+
+--[[
+local ff = io.open('test-encoding.tmp', 'wb')
+if not ff then 
+	print('Can not open the temporary file')
+	return 
+else
+ff:write(s_('Files'))
+ff:close()
+end
+--]]
 
 if tonumber(props['sidebar.show'])==1 then
 	if win then
@@ -981,10 +988,10 @@ local _sort = 'order'
 -- Note:
 	- only upper char
 	- ()function name()
-	Правила создания регсепов:
-	- использовать только заглавные буквы
-	- имя функции должно быть выделено с обеих сторон парами скобок "()function name()" . Не путать с %b()!
-	- если для языка задано несколько регсепов, то функция должна находится только одним из них
+	  :
+	-    
+	-           "()function name()" .    %b()!
+	-      ,        
 
 
 local Lang2RegEx = {
@@ -1056,7 +1063,7 @@ local function Functions_GetNames()
 			findString = findString:gsub("[Ss][Uu][Bb] ", "[s] ") -- VB
 			findString = findString:gsub("[Ff][Uu][Nn][Cc][Tt][Ii][Oo][Nn] ", "[f] ") -- JS, VB,...
 			findString = findString:gsub("[Pp][Rr][Oo][Cc][Ee][Dd][Uu][Rr][Ee] ", "[p] ") -- Pascal
-			findString = findString:gsub("[Pp][Rr][Oo][Сс] ", "[p] ") -- C
+			findString = findString:gsub("[Pp][Rr][Oo][] ", "[p] ") -- C
 			findString = findString:gsub("[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Yy] [Ll][Ee][Tt] ", "[pl] ") -- VB
 			findString = findString:gsub("[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Yy] [Gg][Ee][Tt] ", "[pg] ") -- VB
 			findString = findString:gsub("[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Yy] [Ss][Ee][Tt] ", "[ps] ") -- VB

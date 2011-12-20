@@ -6,6 +6,7 @@
 // The License.txt file describes the conditions under which this software may be distributed.
 
 #include "SciTEWin.h"
+#include "IFaceTable.h"
 
 /**
  * Set up properties for FileTime, FileDate, CurrentTime, CurrentDate and FileAttr.
@@ -265,7 +266,6 @@ void SciTEWin::Notify(SCNotification *notification) {
 				GUI::gui_string localised = localiser.Text(stext.c_str());
 				wcscpy(ttt, localised.c_str());
 				
-/** leave for later to solve
 				//[mhb] 07/21/09 : allow showing tool shortcut in tooltip
 				int id=notification->nmhdr.idFrom;
 				int show_shortcut=props.GetInt("tooltip.show.shortcut");
@@ -325,28 +325,28 @@ void SciTEWin::Notify(SCNotification *notification) {
 						HMENU hMenu = ::GetMenu(MainHWND()); 
 						GUI::gui_char buff[100]; 
 						buff[0] = '\0';
-						MENUITEMINFO mii; 
+						MENUITEMINFOW mii; 
 						memset(&mii, 0, sizeof(mii)); 
-						mii.cbSize = 44; 
+						mii.cbSize = sizeof(mii); 
 						mii.fMask = MIIM_TYPE; 
 						mii.dwTypeData = buff; 
 						mii.cch = sizeof(buff) - 1; 
-						if (::GetMenuItemInfo(hMenu, id, FALSE, &mii)) { 
+						if (::GetMenuItemInfoW(hMenu, id, FALSE, &mii)) { 
 							if (mii.fType == MFT_STRING) { 
 								if (mii.dwTypeData) { 
 									GUI::gui_string accel(mii.dwTypeData); 
-									int tab = accel.search("\t"); 
-									if (tab != -1) { 
-									accel.remove(0, tab + 1);
-									strcat(buf,"  ");
-									strcat(buf,accel.c_str());
+									size_t tab = accel.find(GUI_TEXT("\t")); 
+									if (tab != GUI::gui_string::npos) {
+										accel.erase(0, tab + 1);
+										strcat(buf,"  ");
+										strcat(buf,GUI::UTF8FromString(accel.c_str()).c_str());
 									} 
 								} 
 							}
                         } 
 					}
 				}
-				if (show_shortcut>0) {strcat(ttt, buf);}
+				if (show_shortcut>0) {wcscat(ttt, GUI::StringFromUTF8(buf).c_str());}
 
 				//[mhb] 10/24/09 moved to here so as to show id number in any case
 				if (show_shortcut>1) {
@@ -355,7 +355,7 @@ void SciTEWin::Notify(SCNotification *notification) {
 					//[mhb] 10/24/09 refined: allow to show shortcut and id number together
 					char bbb[100];
 					sprintf(bbb,"  (#%d)",id);
-					strcat(ttt,bbb);
+					wcscat(ttt,GUI::StringFromUTF8(bbb).c_str());
 					
 				}
 				
@@ -363,29 +363,28 @@ void SciTEWin::Notify(SCNotification *notification) {
 				int show_command=props.GetInt("tooltip.show.command");
 				if (show_command>0) {
 					SString kkk;
-					strcat(ttt,"\n");
+					wcscat(ttt,GUI_TEXT("\n"));
 					if (id>=IDM_TOOLS && id<IDM_TOOLSMAX) {
 						sprintf(buf,"command.%d.",id-IDM_TOOLS);
-						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsUTF8().c_str());
 					} else if (id==IDM_COMPILE) {
 						strcpy(buf,"command.compile.");
-						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsUTF8().c_str());
 					} else if (id==IDM_BUILD) {
 						strcpy(buf,"command.build.");
-						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsUTF8().c_str());
 					} else if (id==IDM_GO) {
 						strcpy(buf,"command.go.");
-						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsInternal());
+						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsUTF8().c_str());
 					} else {
 						if (IFaceTable::GetConstantName(id, buf, 100) > 0) {
 							kkk=buf;
 						}
 					}
-					strcat(ttt,kkk.c_str());
+					wcscat(ttt,GUI::StringFromUTF8(kkk.c_str()).c_str());
 				}
-*/
 
-				pDispInfo->lpszText = ttt;
+				pDispInfo->lpszText = const_cast<GUI::gui_char *>(ttt);
 			}
 			else {
 //!-end-[user.toolbar]
