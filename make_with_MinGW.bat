@@ -18,8 +18,7 @@ make ONEIDE=-DONEIDE ZERO_EMBED=-DZERO_EMBED
 
 cd ..\..
 del Sc1IDE\Sc1.exe
-rem upx -o Sc1IDE\Sc1.exe scite\bin\SciTE.exe
-copy scite\bin\SciTE.exe Sc1IDE\Sc1.exe
+upx -o Sc1IDE\Sc1.exe scite\bin\SciTE.exe
 
 cd iconlib
 cmd.exe /c call make.cmd
