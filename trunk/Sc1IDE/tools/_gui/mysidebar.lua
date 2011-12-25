@@ -1,6 +1,12 @@
---[mhb] modified based on SideBar.lua in SciTE-Ru, by Frank Wunderlich, mozers, VladVRO, frs, BioInfo
+--[mhb] modified based on SideBar.lua in SciTE-Ru, by Frank Wunderlich, mozers™, VladVRO, frs, BioInfo
 
-local s_=scite.GetTranslation
+--[mhb] 12/25/11 revised: fix UTF8 support since SciTE 3.0.2
+--[mhb] 04/04/09; 07/24/11 revised: UTF8 support 
+-- local s_=scite.GetTranslation
+local function s_(s)
+	-- return shell.to_utf8(scite.GetTranslation(s)) --[mhb] before 3.0.2
+	return scite.GetTranslation(s) --[mhb] since 3.0.2
+end 
 
 local function GotoLine(line)
 	editor:GotoLine(line)
@@ -97,11 +103,18 @@ local tab2 = gui.panel(panel_width + 18)
 local list_abbrev = gui.list(true)
 list_abbrev:add_column(s_("Abbrev"), 60)
 list_abbrev:add_column(s_("Expansion"), 600)
+
+-- [mhb]: 08/09/11 added to support API list
+local api=gui.list(true)
+api:add_column(s_("API File"), 600)
+tab2:add(api,"bottom",200)
+
 tab2:client(list_abbrev)
 
 --[mhb] added: use open_abbrfile from open_abbrfile.lua
 tab2:context_menu {
 	s_('Abbrev: Edit abbreviations')..'|open_abbrfile',
+	s_('API: Edit API File')..'|open_apifile',--[mhb] added:08/09/11 
 }
 
 -------------------------
@@ -473,17 +486,6 @@ win_parent:client(tab_3)
 win_parent:client(tab2)
 win_parent:client(tab1)
 win_parent:client(tab0)
-
---[[
-local ff = io.open('test-encoding.tmp', 'wb')
-if not ff then 
-	print('Can not open the temporary file')
-	return 
-else
-ff:write(s_('Files'))
-ff:close()
-end
---]]
 
 if tonumber(props['sidebar.show'])==1 then
 	if win then
@@ -988,10 +990,10 @@ local _sort = 'order'
 -- Note:
 	- only upper char
 	- ()function name()
-	  :
-	-    
-	-           "()function name()" .    %b()!
-	-      ,        
+	Правила создания регсепов:
+	- использовать только заглавные буквы
+	- имя функции должно быть выделено с обеих сторон парами скобок "()function name()" . Не путать с %b()!
+	- если для языка задано несколько регсепов, то функция должна находится только одним из них
 
 
 local Lang2RegEx = {
@@ -1063,7 +1065,7 @@ local function Functions_GetNames()
 			findString = findString:gsub("[Ss][Uu][Bb] ", "[s] ") -- VB
 			findString = findString:gsub("[Ff][Uu][Nn][Cc][Tt][Ii][Oo][Nn] ", "[f] ") -- JS, VB,...
 			findString = findString:gsub("[Pp][Rr][Oo][Cc][Ee][Dd][Uu][Rr][Ee] ", "[p] ") -- Pascal
-			findString = findString:gsub("[Pp][Rr][Oo][] ", "[p] ") -- C
+			findString = findString:gsub("[Pp][Rr][Oo][Сс] ", "[p] ") -- C
 			findString = findString:gsub("[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Yy] [Ll][Ee][Tt] ", "[pl] ") -- VB
 			findString = findString:gsub("[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Yy] [Gg][Ee][Tt] ", "[pg] ") -- VB
 			findString = findString:gsub("[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Yy] [Ss][Ee][Tt] ", "[ps] ") -- VB
@@ -1210,6 +1212,16 @@ list_bookmarks:on_key(function(key)
 	end
 end)
 
+
+----------------------------------------------------------
+-- tab2:api   API list
+----------------------------------------------------------
+local function API_ListFILL()
+	local apifilename=get_apifile()
+	local api_lines=f_read(apifilename,true)
+	fill_list(api,api_lines)
+end
+
 ----------------------------------------------------------
 -- tab2:list_abbrev   Abbreviations
 ----------------------------------------------------------
@@ -1246,6 +1258,18 @@ local function Abbreviations_InsertExpansion()
 
 	--[mhb] commented 12/26/09: to fix a bug 
 	-- 	expansion = expansion:gsub('\\r','\r'):gsub('\\n','\n'):gsub('\\t','\t')
+	
+	--[mhb] added 08/08/11 : support parameter prompt and expansion, e.g. $[1],$[2],$[3],...
+	if string.find(expansion,'%$%[(%d+)%]') then
+		local params={}
+		local ask_param=function(s) 
+			if params[s] then return params[s] end
+			params[s]=gui.prompt_value(s_('Please input parameter ')..s,'')
+			return params[s]
+		end
+		expansion=string.gsub(expansion,'%$%[(%w+)%]',ask_param)
+		print(expansion)
+	end
 	
 	--[mhb] added 06/01/09: support property expansion, e.g. $[CurrentDate]
 	local get_prop=function(s) return props[s];end
@@ -1331,6 +1355,7 @@ local function OnSwitch()
 		
 	elseif tab_index == 2 then
 		Abbreviations_ListFILL()
+		API_ListFILL() --[mhb] 08/09/11 added
 	elseif tab_index == 3 then
 		doc:clear()
 		docs_FILL()
