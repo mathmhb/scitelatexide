@@ -1962,7 +1962,7 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 
 				::AppendMenu(popup, MF_STRING, SW_RESTORE, GUI::StringFromUTF8(restore.c_str()).c_str());
 				::AppendMenu(popup, MF_STRING, IDM_QUIT, GUI::StringFromUTF8(quit.c_str()).c_str());
-				::SetForegroundWindow(reinterpret_cast<HWND>(wSciTE.GetID()));
+				::SetForegroundWindow(MainHWND());
 				UINT iSelection = ::TrackPopupMenu(popup, TPM_LEFTALIGN | TPM_RETURNCMD, pt.x - 4, pt.y, 0, reinterpret_cast<HWND>(wSciTE.GetID()), NULL);
 
 				if (iSelection == IDM_QUIT)
@@ -2078,6 +2078,7 @@ LRESULT SciTEWin::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 
 		case WM_ACTIVATE:
 			if (wParam != WA_INACTIVE) {
+				::SetForegroundWindow(MainHWND()); // [qhs] 02/25/2010 added: to avoid sometimes the main window can not be activated
 				if (searchStrip.visible)
 					searchStrip.Focus();
 				else if (findStrip.visible)
