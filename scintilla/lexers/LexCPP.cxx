@@ -5,7 +5,7 @@
  **/
 // Copyright 1998-2005 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
-
+#include <windows.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -217,6 +217,7 @@ struct OptionsCPP {
 	bool foldPreprocessor;
 	bool foldCompact;
 	bool foldAtElse;
+	bool ignoreSingleQuote;//[mhb] 04/06/11 : allow to ignore lexing for single quote
 	OptionsCPP() {
 		stylingWithinPreprocessor = false;
 		identifiersAllowDollars = true;
@@ -235,6 +236,7 @@ struct OptionsCPP {
 		foldPreprocessor = false;
 		foldCompact = false;
 		foldAtElse = false;
+		ignoreSingleQuote = false;//[mhb] 04/06/11 : by default, style for chars quoted in single quotes
 	}
 };
 
@@ -302,6 +304,10 @@ struct OptionSetCPP : public OptionSet<OptionsCPP> {
 
 		DefineProperty("fold.at.else", &OptionsCPP::foldAtElse,
 			"This option enables C++ folding on a \"} else {\" line of an if statement.");
+
+		//[mhb] 04/06/11 added: allow to ignore single quote lexing, so as to correctly colourise chars after an unmatched single quote
+		DefineProperty("lexer.cpp.ignore.single.quote", &OptionsCPP::ignoreSingleQuote,
+			"This option disables styling the chars quoted by single quotes.");
 
 		DefineWordListSets(cppWordLists);
 	}
@@ -838,6 +844,7 @@ void SCI_METHOD LexerCPP::Lex(unsigned int startPos, int length, int initStyle, 
 			} else if (isIncludePreprocessor && sc.ch == '<') {
 				sc.SetState(SCE_C_STRING|activitySet);
 			} else if (sc.ch == '\'') {
+				if (! options.ignoreSingleQuote) //[mhb] 04/06/11 added: to allow disable styling single quotes
 				sc.SetState(SCE_C_CHARACTER|activitySet);
 			} else if (sc.ch == '#' && visibleChars == 0) {
 				// Preprocessor commands are alone on their line
