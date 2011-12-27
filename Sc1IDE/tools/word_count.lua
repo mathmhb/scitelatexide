@@ -3,6 +3,11 @@
 
 --[mhb] 06/07/09: calculate number of Chinese chars; 06/04/11 : add chinese char count for selection; 07/07/11 : add other counting for selection
 
+--[qhs] 12/27/11: output encoding support
+local function _s_(str)
+return s_(str):to_utf8(props["editor.code.page"]):from_utf8(props["output.code.page"])
+end
+
 function count_chinese_chars(p1,p2)
 	local cnt=0
 	local p=p1 or 0
@@ -48,17 +53,18 @@ function my_word_count()
 	local texcmds2=count_patterns(sel,'\\%w+')
 	local texenvs2=count_patterns(sel,'\\begin{%w+}')
 	local msg=' ('..s_('All')..'/'..s_('Selected')..'):'
+	msg=msg:to_utf8(props["editor.code.page"]):from_utf8(props["output.code.page"]) -- [qhs] 12/27/11
 	print("-------------------------------------------")
-	print(s_('Chinese Char Count')..msg,chinesechars,chinesechars2)
-	print(s_('Char Count')..msg,chars,chars2)
-	print(s_('Word Count')..msg,words,words2)
-	print(s_('White Space')..msg,spaces,spaces2)
-	print(s_('Line Count')..msg,lines,lines2)
-	-- print(s_('Empty lines')..msg,nlines,nlines2)
-	print(s_('LaTeX Commands')..msg,texcmds,texcmds2)
-	print(s_('LaTeX Environments')..msg,texenvs,texenvs2)
-	print(s_("Current Pos")..':',editor.CurrentPos);
-	print(s_("Current Line")..':', editor:LineFromPosition(editor.CurrentPos) +1);
+	print(_s_('Chinese Char Count')..msg,chinesechars,chinesechars2)
+	print(_s_('Char Count')..msg,chars,chars2)
+	print(_s_('Word Count')..msg,words,words2)
+	print(_s_('White Space')..msg,spaces,spaces2)
+	print(_s_('Line Count')..msg,lines,lines2)
+	-- print(_s_('Empty lines')..msg,nlines,nlines2)
+	print(_s_('LaTeX Commands')..msg,texcmds,texcmds2)
+	print(_s_('LaTeX Environments')..msg,texenvs,texenvs2)
+	print(_s_("Current Pos")..':',editor.CurrentPos);
+	print(_s_("Current Line")..':', editor:LineFromPosition(editor.CurrentPos) +1);
 	
 end
 
@@ -111,19 +117,19 @@ end
 
 local sep=':\t'
 print("-------------------------------------------");
-print(s_("Selected")..s_("Chinese Char Count")..':',count_chinese_chars(editor.SelectionStart,editor.SelectionEnd));
-print(s_("Selected")..s_("Char Count")..':',editor.SelectionEnd-editor.SelectionStart);
-print(s_("Chinese Char Count")..sep,count_chinese_chars());
+print(_s_("Selected")..s_("Chinese Char Count")..':',count_chinese_chars(editor.SelectionStart,editor.SelectionEnd));
+print(_s_("Selected")..s_("Char Count")..':',editor.SelectionEnd-editor.SelectionStart);
+print(_s_("Chinese Char Count")..sep,count_chinese_chars());
 
-print(s_("Char Count")..sep,editor.Length);
-print(s_("Word Count")..sep,wordCount);
-print(s_("Line Count")..sep,editor.LineCount);
-print(s_("Non empty lines")..sep, nonEmptyLine);
-print(s_("Empty lines")..sep, editor.LineCount - nonEmptyLine);
-print(s_("White Space")..sep, whiteSpace);
-print(s_("Non white space chars")..sep,(editor.Length)-whiteSpace);
-print(s_("Current Pos")..sep,editor.CurrentPos);
-print(s_("Current Line")..sep, editor:LineFromPosition(editor.CurrentPos) +1);
+print(_s_("Char Count")..sep,editor.Length);
+print(_s_("Word Count")..sep,wordCount);
+print(_s_("Line Count")..sep,editor.LineCount);
+print(_s_("Non empty lines")..sep, nonEmptyLine);
+print(_s_("Empty lines")..sep, editor.LineCount - nonEmptyLine);
+print(_s_("White Space")..sep, whiteSpace);
+print(_s_("Non white space chars")..sep,(editor.Length)-whiteSpace);
+print(_s_("Current Pos")..sep,editor.CurrentPos);
+print(_s_("Current Line")..sep, editor:LineFromPosition(editor.CurrentPos) +1);
 
 end
 --你好adsfsf这是中国人
