@@ -242,6 +242,9 @@ local function funcs_FILL(sort_alpha)
 		s1=string.sub(v,1,j-1)
 		s2=string.sub(v,j+1)
 		s2=s2:gsub("\n",""):gsub("\r","")
+		if tonumber(props["editor.unicode.mode"]) == IDM_ENCODING_DEFAULT then
+			s2 = s2:to_utf8(editor:codepage())
+		end
 		table.insert(tbl,{s1,s2})
 	end
 	if sort_alpha then
@@ -318,6 +321,9 @@ local function fill_items(ref,cite,sbf)
 	--local sf = subfile_list()
 	local sf = list_subfiles()  --[mhb] 04/23/09: from myrefbib.lua
 	for _,v in pairs(sf) do
+		if tonumber(props["editor.unicode.mode"]) == IDM_ENCODING_DEFAULT then
+			v = v:to_utf8(editor:codepage())
+		end
 		sbf:add_item{v}
 	end
 	
@@ -391,12 +397,18 @@ sbf:on_double_click(function() local idx=sbf:get_selected_item()
 				scite.Open(f)
 			else
 				f=find_tex_file(item) --[mhb] 04/23/09
-				print('Found ',item,':',f)
+				local str = item
+				if props['output.code.page']=='' then
+					str = item:from_utf8(editor:codepage())
+				else
+					str = item:from_utf8(props['output.code.page'])
+				end
+				print('Found ',str,':',f)
 				if f and f_exist(f) then  --[mhb] 04/23/09
 					scite.Open(f) --[mhb] 04/23/09
 				else 
-					local str = item
-					local pos = editor.CurrentPos + string.len(str)
+					if editor:codepage() ~= 65001 then item = item:from_utf8(editor:codepage()) end 
+					local pos = editor.CurrentPos + string.len(item)
 					editor:InsertText(-1,item)
 					editor:GotoPos(pos)
 					editor:GrabFocus()
@@ -1142,6 +1154,9 @@ local function Bookmark_Add(line_number)
 		line_text = ' - empty line - ('..(line_number+1)..')'
 	end
 	local buffer_number = GetBufferNumber()
+	if tonumber(props["editor.unicode.mode"]) == IDM_ENCODING_DEFAULT then
+		line_text = line_text:to_utf8(editor:codepage())
+	end
 	table.insert (table_bookmarks, {props['FilePath'], buffer_number, line_number, line_text})
 end
 

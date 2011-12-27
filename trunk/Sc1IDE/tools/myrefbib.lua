@@ -3,7 +3,9 @@ local pattern_label={'\\label{(%a.-)}','\\eq%[(%a.-)%]'}
 local pattern_index={'\\index{(%a.-)}'}
 local pattern_bibitem={'\\bibitem%s*%{([^}]+)%}'}
 local pattern_bibentry={'@.+%{(.+),'}
-local pattern_subfile={'\\input{(%a.-)}','\\input%s+(%a.-)','\\include{(%a.-)}','\\include%s+(%a.-)}'}
+-- [qhs] 12/27/11: make the subfile pattern support Chinese
+-- local pattern_subfile={'\\input{(%a.-)}','\\input%s+(%a.-)','\\include{(%a.-)}','\\include%s+(%a.-)}'}
+local pattern_subfile={'\\input{([^%s]+)}','\\input%s+([^%s]+)','\\include{([^%s]+)}','\\include%s+([^%s]+)}'}
 local pattern_package={'\\usepackage.*%{(.*)%}'}
 local pattern_figure={'\\includegraphics.*%{(.*)%}'}
 local pattern_table={'\\begin%s*{tabular}'}
