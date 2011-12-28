@@ -28,7 +28,7 @@ alg=\\begin{algorithm}[H]\\label{}%\n\\caption{|}\n\\begin{algorithmic}[1]%\n\\e
 sli=\\begin{slide}\n\t|\n\\end{slide}
 frm=\\begin{frame}\n\t|\n\\end{frame}
 eq=\\begin{equation}\\label{}\n| = \n\\end{equation}\n
-eq=\\begin{equation*}\\label{}\n| = \n\\end{equation*}\n
+eq*=\\begin{equation*}\\label{}\n| = \n\\end{equation*}\n
 eqa=\\begin{equation}\\label{}\n\\begin{array}{rclll}\n|\n\\end{array}\n\\end{equation}
 eqa*=\\begin{equation*}\n\\begin{array}{rclll}\n|\n\\end{array}\n\\end{equation*}
 eqb=\\begin{equation*}\n\\begin{array}{rclll}\n|\n\\end{array}\n\\end{equation*}
