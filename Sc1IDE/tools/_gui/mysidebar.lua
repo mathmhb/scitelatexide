@@ -214,6 +214,7 @@ end)
 
 local function fill_list(lst,tbl)
 	local w
+	if not tbl then return end
 	lst:clear()
 	for i,v in ipairs(tbl) do
 		if type(v)=='table' then w=v else w={v} end
