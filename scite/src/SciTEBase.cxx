@@ -4602,7 +4602,10 @@ void SciTEBase::CheckMenus() {
 			int itemID = IDM_LANGUAGE + item;
 			SString fn = "x.";
 			fn += languageMenu[item].extension;
-			if(language == props.GetNewExpand("lexer.", fn.c_str())) {
+			
+			//[mhb] 12/31/11 revised to use property 'FileType' directly so as to fix language menu display bug // if(language == props.GetNewExpand("lexer.", fn.c_str())) { 
+			SString lexer=languageMenu[item].extension;
+			if(language == lexer && language!="") {
 				CheckAMenuItem(itemID, true);
 				last_lang = language;
 				//break;
