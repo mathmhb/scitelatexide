@@ -77,6 +77,8 @@ CurrentOption
 DeclareFontEncoding
 DeclareFontShape
 DeclareFontSubstitution
+DeclareGraphicsExtentions{.eps,.mps}
+DeclareGraphicsRule{*}{eps}{*}{command}
 DeclareInputMath
 DeclareInputText
 DeclareMathAccent
