@@ -55,7 +55,7 @@ local old_current_pos
 function CopyTags()
 	if t.tag_start == nil then
 		print("Error : "..scite.GetTranslation("Move the cursor on a tag to copy it!"))
-		return 
+		return
 	end
 	local tag = editor:textrange(t.tag_start, t.tag_end+1)
 	if t.paired_start~=nil then
@@ -115,7 +115,7 @@ end
 function highlighting_paired_tags_switch()
 	local prop_name = 'hypertext.highlighting.paired.tags'
 	props[prop_name] = 1 - tonumber(props[prop_name])
-	EditorClearMarks(1)
+	EditorClearMarks(0)
 	EditorClearMarks(2)
 end
 
@@ -124,7 +124,7 @@ local function PairedTagsFinder()
 	if current_pos == old_current_pos then return end
 	old_current_pos = current_pos
 
-	EditorClearMarks(1)
+	EditorClearMarks(0)
 	EditorClearMarks(2)
 
 	t.tag_start = nil
@@ -132,16 +132,25 @@ local function PairedTagsFinder()
 	t.paired_start = nil
 	t.paired_end = nil
 
-	local tag_start = editor:findtext("[<>]", SCFIND_REGEXP, current_pos, 0)
+	local tag_start = editor:findtext("[<{}>]", SCFIND_REGEXP, current_pos, 0)
 	if tag_start == nil then return end
-	if editor.CharAt[tag_start] ~= 60 then return end
-	if editor.StyleAt[tag_start+1] ~= 1 then return end
+	if editor.CharAt[tag_start] ~= 60  and editor.CharAt[tag_start] ~= 123 then return end
+	t.style = editor.StyleAt[tag_start+1]
+	if t.style ~= 1 and t.style ~= 2 then return end
 	if tag_start == t.tag_start then return end
 	t.tag_start = tag_start
+	 
 
-	t.tag_end = editor:findtext("[<>]", SCFIND_REGEXP, current_pos, editor.Length)
-	if t.tag_end == nil then return end
-	if editor.CharAt[t.tag_end] ~= 62 then t.tag_end = nil return end
+	local tag_end = editor:findtext("[<{}>]", SCFIND_REGEXP, current_pos, editor.Length)
+	if tag_end == nil then return end
+	if editor.CharAt[tag_end] ~= 62 and editor.CharAt[tag_end] ~= 125 then t.tag_end = nil return end
+	t.tag_end = tag_end
+
+	if editor.CharAt[t.tag_end-1] == 47 then
+		-- paint in green
+		EditorMarkText(t.tag_start + 1, t.tag_end - t.tag_start - 1, 0)
+		return
+	end
 
 	local dec, find_end
 	if editor.CharAt[t.tag_start+1] == 47 then
@@ -151,11 +160,14 @@ local function PairedTagsFinder()
 	end
 
 	-- Find paired tag
-	local tag = editor:textrange(editor:findtext("\\w+", SCFIND_REGEXP, t.tag_start, t.tag_end))
+	local begin_pos,end_pos = editor:findtext("\\w+", SCFIND_REGEXP, t.tag_start, t.tag_end)
+	if begin_pos == nil or end_pos == nil then return end
+	local tag = editor:textrange(begin_pos,end_pos)
 	local count = 1
 	local find_start = t.tag_start+dec
+	
 	repeat
-		t.paired_start, t.paired_end = editor:findtext("</*"..tag.."[^>]*", SCFIND_REGEXP, find_start, find_end)
+		t.paired_start, t.paired_end = editor:findtext("[<{]/*"..tag.."[^}>]*", SCFIND_REGEXP, find_start, find_end)
 		if t.paired_start == nil then break end
 		if editor.CharAt[t.paired_start+1] == 47 then
 			count = count - dec
@@ -167,14 +179,12 @@ local function PairedTagsFinder()
 	until false
 
 	if t.paired_start ~= nil then
-		-- paint in Blue
-		EditorMarkText(t.tag_start + 1, t.tag_end - t.tag_start - 1, 1)
-		EditorMarkText(t.paired_start + 1, t.paired_end - t.paired_start - 1, 1)
+		-- paint in green
+		EditorMarkText(t.tag_start + 1, t.tag_end - t.tag_start - 1, 0)
+		EditorMarkText(t.paired_start + 1, t.paired_end - t.paired_start - 1, 0)
 	else
-		if props["find.mark.2"] ~= '' then
-			-- paint in Red
-			EditorMarkText(t.tag_start + 1, t.tag_end - t.tag_start - 1, 2)
-		end
+		-- paint in Red
+		EditorMarkText(t.tag_start + 1, t.tag_end - t.tag_start - 1, 2)
 	end
 end
 
