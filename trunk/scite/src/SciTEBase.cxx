@@ -5433,3 +5433,16 @@ std::string SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
 	return GUI::UTF8FromString(localiser.Text(s, retainIfNotFound));
 }
 //!-end-[LocalizationFromLua]
+
+
+//[mhb] 04/14/12 added to allow load truetype fonts from specified folders
+int SciTEBase::LoadWinFonts(const char *dirs,int recursive=0) {
+	char *p=dirs;
+	char buf[1000];
+	/* to be finished later
+	for (;p && (*p);p=strchr(p+1,';')) {
+		strcpy(buf,p);
+		
+	}
+	*/
+}
