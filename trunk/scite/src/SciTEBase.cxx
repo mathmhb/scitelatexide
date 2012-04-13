@@ -5436,7 +5436,7 @@ std::string SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
 
 
 //[mhb] 04/14/12 added to allow load truetype fonts from specified folders
-int SciTEBase::LoadWinFonts(const char *dirs,int recursive=0) {
+int SciTEBase::LoadWinFonts(const char *dirs,int recursive) {
 	/*???
 	
 	char *p=dirs;
