@@ -959,6 +959,9 @@ protected:
 
 	CurrentWordHighlight currentWordHighlight;
 	void HighlightCurrentWord(bool highlight);
+	
+	int LoadWinFonts(const char *dirs,int recursive=0);//[mhb] 04/14/12 added to allow load truetype fonts from specified folders
+	
 public:
 
 	enum { maxParam = 4 };
@@ -1008,3 +1011,4 @@ void WindowSetFocus(GUI::ScintillaWindow &w);
 inline bool isspacechar(unsigned char ch) {
     return (ch == ' ') || ((ch >= 0x09) && (ch <= 0x0d));
 }
+

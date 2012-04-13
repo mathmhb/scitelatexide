@@ -1764,6 +1764,15 @@ void SciTEBase::ReadPropertiesInitial() {
 		long wl = ::GetWindowLong(reinterpret_cast<HWND>(wTabBar.GetID()), GWL_STYLE);
 		::SetWindowLong(reinterpret_cast<HWND>(wTabBar.GetID()), GWL_STYLE, wl | TCS_MULTILINE);
 	}
+	
+	//[mhb] 04/13/12 added: to support automatically load local truetype fonts by adding properties "autoload.fonts" and "autoload.fonts.directory" 
+	int autoloadFonts = props.GetInt("autoload.fonts", 0);
+	int autoloadFontsRecursive = props.GetInt("autoload.fonts.recursive", 0);
+	SString autoloadFontsDir = props.GetNewExpand("autoload.fonts.directory");
+	if (autoloadFonts) {
+		LoadWinFonts(autoloadFontsDir.c_str(),autoloadFontsRecursive);
+	}
+	
 #endif
 
 	FilePath homepath = GetSciteDefaultHome();
