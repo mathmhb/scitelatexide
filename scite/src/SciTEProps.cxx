@@ -307,8 +307,8 @@ const char *SciTEBase::GetNextPropItem(
 }
 
 StyleDefinition::StyleDefinition(const char *definition) :
-//!		sizeFractional(10.0), size(0), fore("#000000"), back("#FFFFFF"),
-		sizeFractional(10.0), size(0), fore(""), back(""), //!-change-[StyleDefault]
+//!		sizeFractional(10.0), size(10), fore("#000000"), back("#FFFFFF"),
+		sizeFractional(10.0), size(10), fore(""), back(""), //!-change-[StyleDefault]
 		weight(SC_WEIGHT_NORMAL), italics(false), eolfilled(false), underlined(false),
 		caseForce(SC_CASE_MIXED),
 		visible(true), changeable(true),
@@ -502,15 +502,6 @@ void SciTEBase::SetStyleFor(GUI::ScintillaWindow &win, const char *lang) {
 	SetStyleBlock(win, lang, 0, maxStyle);
 }
 
-void LowerCaseString(char *s) {
-	while (*s) {
-		if ((*s >= 'A') && (*s <= 'Z')) {
-			*s = static_cast<char>(*s - 'A' + 'a');
-		}
-		s++;
-	}
-}
-
 SString SciTEBase::ExtensionFileName() {
 	if (CurrentBuffer()->overrideExtension.length()) {
 		return CurrentBuffer()->overrideExtension;
@@ -518,15 +509,14 @@ SString SciTEBase::ExtensionFileName() {
 		FilePath name = FileNameExt();
 		if (name.IsSet()) {
 			// Force extension to lower case
-			char fileNameWithLowerCaseExtension[MAX_PATH];
-			strcpy(fileNameWithLowerCaseExtension, name.AsUTF8().c_str());
+			SString fileNameWithLowerCaseExtension = name.AsUTF8().c_str();
 #if !defined(GTK)
-			char *extension = strrchr(fileNameWithLowerCaseExtension, '.');
+			const char *extension = strrchr(fileNameWithLowerCaseExtension.c_str(), '.');
 			if (extension) {
-				LowerCaseString(extension);
+				fileNameWithLowerCaseExtension.lowercase(extension - fileNameWithLowerCaseExtension.c_str());
 			}
 #endif
-			return SString(fileNameWithLowerCaseExtension);
+			return fileNameWithLowerCaseExtension;
 		} else {
 			return props.Get("default.file.ext");
 		}
@@ -651,6 +641,7 @@ static const char *propertiesToForward[] = {
 	"fold.basic.explicit.end",
 	"fold.basic.explicit.start",
 	"fold.basic.syntax.based",
+	"fold.coffeescript.comment",
 	"fold.comment",
 	"fold.comment.nimrod",
 	"fold.comment.yaml",
@@ -689,10 +680,12 @@ static const char *propertiesToForward[] = {
 	"lexer.caml.magic",
 	"lexer.cpp.allow.dollars",
 	"lexer.cpp.hashquoted.strings",
-	"lexer.cpp.ignore.single.quote",
 	"lexer.cpp.track.preprocessor",
 	"lexer.cpp.triplequoted.strings",
 	"lexer.cpp.update.preprocessor",
+	"lexer.css.hss.language",
+	"lexer.css.less.language",
+	"lexer.css.scss.language",
 	"lexer.d.fold.at.else",
 	"lexer.errorlist.value.separate",
 	"lexer.flagship.styling.within.preprocessor",
@@ -1108,6 +1101,8 @@ void SciTEBase::ReadProperties() {
 
 	sval = FindLanguageProperty("calltip.*.ignorecase");
 	callTipIgnoreCase = sval == "1";
+	sval = FindLanguageProperty("calltip.*.use.escapes");
+	callTipUseEscapes = sval == "1";
 //!-start-[BetterCalltips]
 	calltipShowPerPage = FindIntLanguageProperty("calltip.*.show.per.page", 1);
 	if (calltipShowPerPage < 1) calltipShowPerPage = 1;
@@ -1115,7 +1110,6 @@ void SciTEBase::ReadProperties() {
 
 	calltipWordCharacters = FindLanguageProperty("calltip.*.word.characters",
 		"_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
-
 	calltipParametersStart = FindLanguageProperty("calltip.*.parameters.start", "(");
 	calltipParametersEnd = FindLanguageProperty("calltip.*.parameters.end", ")");
 	calltipParametersSeparators = FindLanguageProperty("calltip.*.parameters.separators", ",;");
@@ -1151,7 +1145,7 @@ void SciTEBase::ReadProperties() {
 	wOutput.Call(SCI_AUTOCSETIGNORECASE, 1);
 
 	int autoCChooseSingle = props.GetInt("autocomplete.choose.single");
-	wEditor.Call(SCI_AUTOCSETCHOOSESINGLE, autoCChooseSingle),
+	wEditor.Call(SCI_AUTOCSETCHOOSESINGLE, autoCChooseSingle);
 
 	wEditor.Call(SCI_AUTOCSETCANCELATSTART, 0);
 	wEditor.Call(SCI_AUTOCSETDROPRESTOFWORD, 0);
@@ -1488,6 +1482,14 @@ void SciTEBase::ReadProperties() {
 			}
 		}
 	}
+
+	delayBeforeAutoSave = props.GetInt("save.on.timer");
+	if (delayBeforeAutoSave) {
+		TimerStart(timerAutoSave);
+	} else {
+		TimerEnd(timerAutoSave);
+	}
+
 	firstPropertiesRead = false;
 	needReadProperties = false;
 }
@@ -1764,15 +1766,15 @@ void SciTEBase::ReadPropertiesInitial() {
 		long wl = ::GetWindowLong(reinterpret_cast<HWND>(wTabBar.GetID()), GWL_STYLE);
 		::SetWindowLong(reinterpret_cast<HWND>(wTabBar.GetID()), GWL_STYLE, wl | TCS_MULTILINE);
 	}
-	
-	//[mhb] 04/13/12 added: to support automatically load local truetype fonts by adding properties "autoload.fonts" and "autoload.fonts.directory" 
+
+	//[mhb] 04/13/12 added: to support automatically load local truetype fonts by adding properties "autoload.fonts" and "autoload.fonts.directory"
 	int autoloadFonts = props.GetInt("autoload.fonts", 0);
 	int autoloadFontsRecursive = props.GetInt("autoload.fonts.recursive", 0);
 	SString autoloadFontsDir = props.GetNewExpand("autoload.fonts.directory");
 	if (autoloadFonts) {
 		LoadWinFonts(autoloadFontsDir.c_str(),autoloadFontsRecursive);
 	}
-	
+
 #endif
 
 	FilePath homepath = GetSciteDefaultHome();

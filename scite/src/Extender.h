@@ -30,6 +30,10 @@ public:
 	virtual void Perform(const char *actions)=0;
 	virtual void DoMenuCommand(int cmdID)=0;
 	virtual void UpdateStatusBar(bool bUpdateSlowData)=0;
+	virtual void UserStripShow(const char *description)=0;
+	virtual void UserStripSet(int control, const char *value)=0;
+	virtual void UserStripSetList(int control, const char *value)=0;
+	virtual const char *UserStripValue(int control)=0;
 	virtual void CheckMenus()=0; //!-add-[CheckMenus]
 	virtual bool ShowParametersDialog(const char *msg)=0; //!-add-[ParametersDialogFromLua]
 	virtual bool InsertAbbreviation(const char *data)=0; //!-add-[InsertAbbreviation]
@@ -84,6 +88,7 @@ public:
 	virtual bool OnKey(int, int, char) { return false; } //!-change-[OnKey]
 	virtual bool OnDwellStart(int, const char *) { return false; }
 	virtual bool OnClose(const char *) { return false; }
+	virtual bool OnUserStrip(int /* control */, int /* change */) { return false; }
 };
 
 #endif

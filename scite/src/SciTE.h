@@ -9,19 +9,16 @@
 #define SCITE_H
 
 // Version numbers and dates
-#define VERSION_SCITE "3.0.2 .94"
-#define VERSION_WORDS 3, 0, 2, 94
-#define COPYRIGHT_DATES "December 1998-December 2011"
-#define COPYRIGHT_YEARS "1998-2011"
+#define VERSION_SCITE "3.2.3"
+#define VERSION_WORDS 3, 2, 3, 0
+#define COPYRIGHT_DATES "December 1998-July 2012"
+#define COPYRIGHT_YEARS "1998-2012"
 
 // Menu IDs.
 // These are located 100 apart. No one will want more than 100 in each menu ;)
 #define IDM_MRUFILE			1000
 //!#define IDM_TOOLS			1100
-//!-start-[ToolsMax]
-#define IDM_TOOLS			9000
-#define IDM_TOOLSMAX		9300
-//!-end-[ToolsMax]
+#define IDM_TOOLS			9000 //!-change-[ToolsMax]
 #define IDM_BUFFER			1200
 #define IDM_IMPORT			1300
 #define IDM_LANGUAGE			1400
@@ -42,6 +39,7 @@
 #define IDM_SAVEACOPY		116
 #define IDM_SAVEASXML		117
 #define IDM_COPYPATH			118
+#define IDM_ALLOWACCESS		119
 #define IDM_MRU_SEP			120
 #define IDM_MRU_SUB			121
 #define IDM_PRINTSETUP		130
@@ -108,7 +106,6 @@
 
 #define IDC_INCFINDTEXT     253
 #define IDC_INCFINDBTNOK	254
-#define IDD_FIND2           255
 #define IDC_EDIT1           1000
 #define IDC_STATIC          -1
 
