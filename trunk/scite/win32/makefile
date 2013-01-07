@@ -19,6 +19,20 @@ DEL = rm
 COPY = cp
 endif
 
+# Discover Windows version by running 'VER' command and parsing output
+# For Windows 2000 looks like:Microsoft Windows 2000 [Version 5.00.2195]
+WINVERWORDS:=$(wordlist 1,2,$(subst ., ,$(lastword $(shell ver))))
+WINVER:=$(firstword $(WINVERWORDS)).$(lastword $(WINVERWORDS))
+# Windows NT 4 and Windows 2000 do not support themes so turn off
+ifeq '$(WINVER)' '4.0'
+	VERSION_DEFINES:=-DDISABLE_THEMES -DWIN_TARGET=0x0400
+else
+ifeq '$(WINVER)' '5.00'
+	VERSION_DEFINES:=-DDISABLE_THEMES
+else
+	UXLIB:=-luxtheme
+endif
+endif
 
 PROG	= ../bin/SciTE-Dynamic.exe
 PROGSTATIC = ../bin/SciTE.exe
@@ -37,7 +51,7 @@ LUA_CORE_OBJS = lapi.o lcode.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o \
 LUA_LIB_OBJS =	lauxlib.o lbaselib.o ldblib.o liolib.o lmathlib.o ltablib.o \
 		lstrlib.o loadlib.o loslib.o linit.o
 
-LUA_OBJS = LuaExtension.o LuaUtf8.o SingleThreadExtension.o $(LUA_CORE_OBJS) $(LUA_LIB_OBJS)
+LUA_OBJS = LuaExtension.o LuaUtf8.o $(LUA_CORE_OBJS) $(LUA_LIB_OBJS)
 
 vpath %.c ../lua/src ../lua/src/lib
 
@@ -53,7 +67,7 @@ RCINCLUDEDIRS=--include-dir ../../scintilla/win32 --include-dir ../src
 
 #[mhb] 05/22/09: define ONEIDE=-DONEIDE to use "All-In-One IDE" as the editor's name
 #~ ONEIDE=-DONEIDE
-CBASEFLAGS = -W -Wall $(INCLUDEDIRS) $(LUA_DEFINES) $(WIDEFLAGS) $(ONEIDE)
+CBASEFLAGS = -W -Wall $(INCLUDEDIRS) $(LUA_DEFINES) $(WIDEFLAGS) $(VERSION_DEFINES) $(ONEIDE)
 
 ifdef DEBUG
 CFLAGS=-DDEBUG -g $(CBASEFLAGS)
@@ -64,7 +78,7 @@ endif
 
 CXXFLAGS = $(CFLAGS) -Wno-char-subscripts -pedantic -fno-rtti
 
-LDFLAGS=-mwindows -lmsimg32 -lcomctl32 -limm32 -lole32 -luuid -luxtheme $(LUA_LDFLAGS)
+LDFLAGS=-mwindows -lmsimg32 -lcomctl32 -limm32 -lole32 -luuid $(UXLIB) $(LUA_LDFLAGS)
 
 .cxx.o:
 	$(CC) $(CXXFLAGS) -c $< -o $@
@@ -72,9 +86,9 @@ LDFLAGS=-mwindows -lmsimg32 -lcomctl32 -limm32 -lole32 -luuid -luxtheme $(LUA_LD
 .c.o:
 	$(GCC) $(CFLAGS) -c $< -o $@
 
-OTHER_OBJS	= FileWorker.o Cookie.o Credits.o FilePath.o SciTEBuffers.o SciTEIO.o Exporters.o PropSetFile.o StringHelpers.o \
-StringList.o SciTEProps.o SciTEWin.o SciTEWinBar.o SciTEWinDlg.o MultiplexExtension.o \
-StyleWriter.o UniqueInstance.o \
+OTHER_OBJS	= FileWorker.o Cookie.o Credits.o FilePath.o JobQueue.o SciTEBuffers.o SciTEIO.o \
+Exporters.o PropSetFile.o StringHelpers.o StringList.o SciTEProps.o SciTEWin.o SciTEWinBar.o \
+SciTEWinDlg.o MultiplexExtension.o StyleWriter.o UniqueInstance.o \
 Utf8_16.o SciTERes.o GUIWin.o \
 IFaceTable.o DirectorExtension.o JobQueue.o WinMutex.o $(LUA_OBJS)
 
@@ -87,25 +101,26 @@ DLLS=..\bin\Scintilla.dll ..\bin\SciLexer.dll
 LEXPROPS=\
 ../bin/abap.properties ../bin/abaqus.properties ../bin/ada.properties \
 ../bin/asm.properties ../bin/asn1.properties ../bin/asymptote.properties \
-../bin/au3.properties ../bin/ave.properties ../bin/baan.properties \
-../bin/bibtex.properties ../bin/blitzbasic.properties \
+../bin/au3.properties ../bin/ave.properties ../bin/avs.properties \
+../bin/baan.properties ../bin/bibtex.properties ../bin/blitzbasic.properties \
 ../bin/bullant.properties ../bin/caml.properties ../bin/cmake.properties \
 ../bin/CN_B5.properties ../bin/CN_GB.properties ../bin/cobol.properties \
 ../bin/conf.properties ../bin/cpp.properties ../bin/csound.properties \
-../bin/css.properties ../bin/d.properties ../bin/eiffel.properties \
-../bin/erlang.properties ../bin/escript.properties ../bin/euphoria.properties \
-../bin/flagship.properties ../bin/forth.properties ../bin/fortran.properties \
-../bin/freebasic.properties ../bin/gap.properties ../bin/haskell.properties \
-../bin/html.properties ../bin/inno.properties ../bin/kix.properties \
-../bin/latex.properties ../bin/lisp.properties ../bin/lot.properties \
-../bin/lout.properties ../bin/lua.properties ../bin/matlab.properties \
-../bin/metapost.properties ../bin/mmixal.properties ../bin/modula3.properties \
-../bin/nimrod.properties ../bin/nncrontab.properties ../bin/nsis.properties \
-../bin/opal.properties ../bin/others.properties ../bin/pascal.properties \
-../bin/perl.properties ../bin/pov.properties ../bin/powerpro.properties \
-../bin/powershell.properties ../bin/ps.properties ../bin/purebasic.properties \
-../bin/python.properties ../bin/r.properties ../bin/rebol.properties \
-../bin/ruby.properties ../bin/scriptol.properties ../bin/smalltalk.properties \
+../bin/css.properties ../bin/d.properties ../bin/ecl.properties \
+../bin/eiffel.properties ../bin/erlang.properties ../bin/escript.properties \
+../bin/euphoria.properties ../bin/flagship.properties ../bin/forth.properties \
+../bin/fortran.properties ../bin/freebasic.properties ../bin/gap.properties \
+../bin/haskell.properties ../bin/html.properties ../bin/inno.properties \
+../bin/kix.properties ../bin/latex.properties ../bin/lisp.properties \
+../bin/lot.properties ../bin/lout.properties ../bin/lua.properties \
+../bin/matlab.properties ../bin/metapost.properties ../bin/mmixal.properties \
+../bin/modula3.properties ../bin/nimrod.properties ../bin/nncrontab.properties \
+../bin/nsis.properties ../bin/opal.properties ../bin/oscript.properties \
+../bin/others.properties ../bin/pascal.properties ../bin/perl.properties \
+../bin/pov.properties ../bin/powerpro.properties ../bin/powershell.properties \
+../bin/ps.properties ../bin/purebasic.properties ../bin/python.properties \
+../bin/r.properties ../bin/rebol.properties ../bin/ruby.properties \
+../bin/scriptol.properties ../bin/smalltalk.properties \
 ../bin/sorcins.properties ../bin/specman.properties ../bin/spice.properties \
 ../bin/sql.properties ../bin/tacl.properties ../bin/tal.properties \
 ../bin/tcl.properties ../bin/txt2tags.properties ../bin/vb.properties \
@@ -122,6 +137,8 @@ clean:
 
 deps:
 	$(CC) -MM $(CXXFLAGS) *.cxx ../src/*.cxx ../lua/src/*.c ../lua/src/lib/*.c >deps.mak
+
+embedded: ..\src\Embedded.properties
 
 ..\bin\Scintilla.dll:	..\..\scintilla\bin\Scintilla.dll
 	$(COPY) ..\..\scintilla\bin\Scintilla.dll $@
