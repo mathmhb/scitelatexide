@@ -2553,7 +2553,6 @@ val SCLEX_AHK1=109
 ##!-start-[Euphoria]
 val SCLEX_EUPHORIA=110
 ##!-end-[Euphoria]
-val SCLEX_ASY=111
 
 # When a lexer specifies its language as SCLEX_AUTOMATIC it receives a
 # value assigned in sequence from SCLEX_AUTOMATIC+1.
