@@ -994,7 +994,7 @@ protected:
 	void HighlightCurrentWord(bool highlight);
 	
 	int LoadFonts(const char *dirs,int recursive=0);//[mhb] 04/14/12 added to allow load truetype fonts from specified folders
-	int LoadDirFonts(const char *arg,int recursive=0);//[mhb] 04/14/12 added to allow load truetype fonts from specified folder or specified font file 
+	int LoadFontFiles(const char *arg,int recursive=0);//[mhb] 04/14/12 added to allow load truetype fonts from specified font files (containing wildcards)
 	
 public:
 

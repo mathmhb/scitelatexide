@@ -1770,9 +1770,9 @@ void SciTEBase::ReadPropertiesInitial() {
 	//[mhb] 04/13/12 added: to support automatically load local truetype fonts by adding properties "autoload.fonts" and "autoload.fonts.directory"
 	int autoloadFonts = props.GetInt("autoload.fonts", 0);
 	int autoloadFontsRecursive = props.GetInt("autoload.fonts.recursive", 0);
-	SString autoloadFontsDir = props.GetNewExpand("autoload.fonts.directory");
+	SString autoloadFontsFiles = props.GetNewExpand("autoload.fonts.files");
 	if (autoloadFonts) {
-		LoadFonts(autoloadFontsDir.c_str(),autoloadFontsRecursive);
+		LoadFonts(autoloadFontsFiles.c_str(),autoloadFontsRecursive);
 	}
 
 #endif
