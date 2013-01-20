@@ -11,3 +11,6 @@ class=class {\n|\n}
 dpr=Platform::DebugPrintf("Opening %s\n", file);
 dstr=\nif (MessageBox(NULL,"Error!|","DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]\n
 dint=\n{char s[1000];sprintf(s,"Value:%d",|);if (MessageBox(NULL,s,"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}}//[mhb]\n
+
+CLASS=class $[1] {\n\t|\npublic:\n\t$[1](){}\n\t~$[1](){}\n}
+cla=class $[1] {\n\t|\npublic:\n\t$[1](){}\n\t~$[1](){}\n}

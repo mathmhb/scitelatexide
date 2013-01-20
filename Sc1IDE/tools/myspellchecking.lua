@@ -1,6 +1,6 @@
 --[mhb] new version of my previous mini-spell-checking
 -- this version uses m_spell.dll to look up words 
-
+Err=showmsg
 local user_dict_file=props['spell.user_dict'] or props['SciteDefaultHome']..'\\m_spell.usr'
 local user_dict={}
 local word_list={}
@@ -16,8 +16,10 @@ local delims={
    lua=com_delims,
 }
 
-local in_file='c:\\m_spell.in'
-local out_file='c:\\m_spell.out'
+-- local in_file='c:\\temp\\m_spell.in'
+-- local out_file='c:\\temp\\m_spell.out'
+local env_in='MSPELL_WORD'
+local env_out='MSPELL_SUGGESTIONS'
 local ini_file=props['SciteDefaultHome']..'\\m_spell.ini'
 
 
@@ -28,10 +30,12 @@ local spell_suggestions=package.loadlib(mspell_dll,'SpellCheckerSuggestions')
 local sp_load_userdicts=package.loadlib(mspell_dll,'ReadUserDicts')
 
 local speller_inited=false
+-- Err(mspell_dll)
 
 local function write_spell_ini()
    local keys={
-   'in_file','out_file','debugging','index_level','max_errors','max_error_ratio','max_word_length','max_lookups','max_suggestions','check_uppercase','check_ignore_case','keep_capital_initial','dict_path','dict_file','userdict_file'
+   -- 'in_file','out_file',
+   'debugging','index_level','max_errors','max_error_ratio','max_word_length','max_lookups','max_suggestions','check_uppercase','check_ignore_case','keep_capital_initial','dict_path','dict_file','userdict_file'
    }
    local s=''
    for _,v in ipairs(keys) do
@@ -52,25 +56,31 @@ function LoadUserDict(user_dict_file)
 end
 
 function SaveUserDict(user_dict_file) 
-   if tonumber(props['spell.user_dict.autosave']) == 1 then
-      f_write(user_dict_file,user_dict)
-      sp_load_userdicts()
-   end
+   if speller_inited then
+      if tonumber(props['spell.user_dict.autosave']) == 1 then
+         f_write(user_dict_file,user_dict)
+         sp_load_userdicts()
+      end
+    end
 end
 
 function spell_init()
    if not sp_init then
-	print('Cannot find m_spell.dll!')
-    return
+     Err('Cannot find m_spell.dll!')
+     return 0
    end
+   -- in_file=props['spell.in_file'];
+   -- out_file=props['spell.out_file'];
    word_list={}
    write_spell_ini()
    sp_init()
    print('Spell checker m_spell.dll loaded into memory!')
+   
    LoadUserDict(user_dict_file) 
    print('User dict file loaded into memory!')
+   
    speller_inited=true
---    os.remove(ini_file)
+   -- os.remove(ini_file)
 end
 
 function spell_exit()
@@ -80,7 +90,7 @@ function spell_exit()
    end
    sp_exit()
    word_list={}
-   print('Spell checker m_spell.dll unloaded from memory!')
+-- Err('Spell checker m_spell.dll unloaded from memory!')
 end
 
 
@@ -191,15 +201,17 @@ function GetSuggestions(w)
    if not speller_inited then 
       spell_init()
       if not speller_inited then
-         print('Cannot initialize the spell checker library!')
+         Err('Cannot initialize the spell checker library!')
          return
       end
    end
-	f_write(in_file,w)
+	set_env(env_in,w) -- [mhb] 08/07/12 -- f_write(in_file,w)
 	spell_suggestions()
-	tbl=f_read(out_file,true)
-    os.remove(in_file)
-    os.remove(out_file)
+    local s=get_env(env_out)
+    print(s)
+	tbl=split_s(s,';') -- [mhb] 08/07/12 -- tbl=f_read(out_file,true)
+    -- os.remove(in_file)
+    -- os.remove(out_file)
     return tbl
 end
 
@@ -302,7 +314,7 @@ end
 function SpellCheckerSel()
    local s=editor:GetSelText()
    if (s=='') then 
-      print('Please select some text for spell checking!')
+      Err('Please select some text for spell checking!')
       return
    end
    local p1,p2
