@@ -5542,23 +5542,36 @@ std::string SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
 //!-end-[LocalizationFromLua]
 
 
-//[mhb] 04/14/12 added to allow load truetype fonts from specified folders
-int SciTEBase::LoadDirFonts(const char *arg,int recursive) {
-		if (MessageBoxA(NULL,arg,"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
-		if (AddFontResource(arg)) {return;}
-/*
-		HANDLE hFFile;
-		if ( (hFFile = ::FindFirstFile(arg, &ffile)) != INVALID_HANDLE_VALUE) {
-			do {
-				if (!(ffile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {	// Skip directories
-					wcscpy(lastslash, ffile.cFileName);
-					Open(filename);
-					--nbuffers;
-				}
-			} while (nbuffers > 0 && ::FindNextFile(hFFile, &ffile));
-			::FindClose(hFFile);
-		}
-*/
+//[mhb] 04/14/12 added to allow loading truetype fonts from specified folders, currently recursive is not supported
+int SciTEBase::LoadFontFiles(const char *arg,int recursive) {
+	if (AddFontResourceA(arg)) {return 1;}
+
+	int num=0;
+	WIN32_FIND_DATA ffile;
+	DWORD fileattributes = ::GetFileAttributesA(arg);
+	GUI::gui_char filename[MAX_PATH];
+	HANDLE hFFile;
+	
+	char buf[MAX_PATH];
+	strcpy(buf,arg);
+	MultiByteToWideChar(CP_ACP,0,buf,strlen(buf),filename,MAX_PATH);
+
+	GUI::gui_char *lastslash;
+	if (NULL == (lastslash = wcsrchr(filename, GUI_TEXT('\\'))))
+		lastslash = filename;	// No path
+	else
+		lastslash++;
+
+	if ( (hFFile = ::FindFirstFile(filename, &ffile)) != INVALID_HANDLE_VALUE) {
+		do {
+			if (!(ffile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {	// Skip directories
+				wcscpy(lastslash, ffile.cFileName);
+				if (AddFontResource(filename))	{num++;}
+			}
+		} while (::FindNextFile(hFFile, &ffile));
+		::FindClose(hFFile);
+	}
+	return num;
 }
 
 int SciTEBase::LoadFonts(const char *dirs,int recursive) {
@@ -5567,27 +5580,13 @@ int SciTEBase::LoadFonts(const char *dirs,int recursive) {
 		if ((*p)=='/') {*p='\\';}
 		p++;
 	};
+	int num=0;
 	p=strtok(d,";");
 	while (p!=NULL) {
-		LoadDirFonts(p,recursive);
+		num+=LoadFontFiles(p,recursive);
 		p=strtok(NULL,";");
 	};
 	free(d);
+	return num;
 }
 
-/*
-	bool isHandled = false;
-	
-	WIN32_FIND_DATA ffile;
-	DWORD fileattributes = ::GetFileAttributes(arg);
-	GUI::gui_char filename[MAX_PATH];
-	int nbuffers = props.GetInt("buffers");
-
-	if (fileattributes != (DWORD) -1) {	// arg is an existing directory or filename
-		// if the command line argument is a directory, use OpenDialog()
-		if (fileattributes & FILE_ATTRIBUTE_DIRECTORY) {
-			OpenDialog(FilePath(arg), GUI::StringFromUTF8(props.GetExpanded("open.filter").c_str()).c_str());
-			isHandled = true;
-		}
-	} else 
-*/
