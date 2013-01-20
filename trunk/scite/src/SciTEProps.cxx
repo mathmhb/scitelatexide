@@ -1772,7 +1772,7 @@ void SciTEBase::ReadPropertiesInitial() {
 	int autoloadFontsRecursive = props.GetInt("autoload.fonts.recursive", 0);
 	SString autoloadFontsDir = props.GetNewExpand("autoload.fonts.directory");
 	if (autoloadFonts) {
-		LoadWinFonts(autoloadFontsDir.c_str(),autoloadFontsRecursive);
+		LoadFonts(autoloadFontsDir.c_str(),autoloadFontsRecursive);
 	}
 
 #endif

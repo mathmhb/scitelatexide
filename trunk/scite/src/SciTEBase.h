@@ -993,7 +993,8 @@ protected:
 	CurrentWordHighlight currentWordHighlight;
 	void HighlightCurrentWord(bool highlight);
 	
-	int LoadWinFonts(const char *dirs,int recursive=0);//[mhb] 04/14/12 added to allow load truetype fonts from specified folders
+	int LoadFonts(const char *dirs,int recursive=0);//[mhb] 04/14/12 added to allow load truetype fonts from specified folders
+	int LoadDirFonts(const char *arg,int recursive=0);//[mhb] 04/14/12 added to allow load truetype fonts from specified folder or specified font file 
 	
 public:
 
