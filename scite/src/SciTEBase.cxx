@@ -5543,14 +5543,51 @@ std::string SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
 
 
 //[mhb] 04/14/12 added to allow load truetype fonts from specified folders
-int SciTEBase::LoadWinFonts(const char *dirs,int recursive) {
-	/*???
-	
-	char *p=dirs;
-	char buf[1000];
-	for (;p && (*p);p=strchr(p+1,';')) {
-		strcpy(buf,p);
-		
-	}
-	*/
+int SciTEBase::LoadDirFonts(const char *arg,int recursive) {
+		if (MessageBoxA(NULL,arg,"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+		if (AddFontResource(arg)) {return;}
+/*
+		HANDLE hFFile;
+		if ( (hFFile = ::FindFirstFile(arg, &ffile)) != INVALID_HANDLE_VALUE) {
+			do {
+				if (!(ffile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {	// Skip directories
+					wcscpy(lastslash, ffile.cFileName);
+					Open(filename);
+					--nbuffers;
+				}
+			} while (nbuffers > 0 && ::FindNextFile(hFFile, &ffile));
+			::FindClose(hFFile);
+		}
+*/
 }
+
+int SciTEBase::LoadFonts(const char *dirs,int recursive) {
+	char *d=strdup(dirs),*p=d;
+	while(*p) {
+		if ((*p)=='/') {*p='\\';}
+		p++;
+	};
+	p=strtok(d,";");
+	while (p!=NULL) {
+		LoadDirFonts(p,recursive);
+		p=strtok(NULL,";");
+	};
+	free(d);
+}
+
+/*
+	bool isHandled = false;
+	
+	WIN32_FIND_DATA ffile;
+	DWORD fileattributes = ::GetFileAttributes(arg);
+	GUI::gui_char filename[MAX_PATH];
+	int nbuffers = props.GetInt("buffers");
+
+	if (fileattributes != (DWORD) -1) {	// arg is an existing directory or filename
+		// if the command line argument is a directory, use OpenDialog()
+		if (fileattributes & FILE_ATTRIBUTE_DIRECTORY) {
+			OpenDialog(FilePath(arg), GUI::StringFromUTF8(props.GetExpanded("open.filter").c_str()).c_str());
+			isHandled = true;
+		}
+	} else 
+*/
