@@ -195,7 +195,8 @@ function OnUpdateUI ()
 	if old_OnUpdateUI then result = old_OnUpdateUI() end
 	if props['FileName'] ~= '' then
 		if tonumber(props["hypertext.highlighting.paired.tags"]) == 1 then
-			if editor:GetLexerLanguage() == "hypertext" or editor:GetLexerLanguage() == "xml" then
+			local lexer=props["FileType"]
+			if lexer == "hypertext" or lexer == "xml" then
 				PairedTagsFinder()
 			end
 		end
