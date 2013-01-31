@@ -246,6 +246,7 @@ const char *contributors[] = {
             "Yuval Papish",
             "instanton",
             "Mathmhb",
+            "QiHS",
             "Sergio Lucato",
             "VladVRO",
             "Dmitry Maslov",
