@@ -76,7 +76,8 @@ CFLAGS=-DNDEBUG -Os $(CBASEFLAGS)
 STRIPFLAG="-Wl,-s"
 endif
 
-CXXFLAGS = $(CFLAGS) -Wno-char-subscripts -pedantic -fno-rtti
+#[mhb] 02/10/13 add -fpermissive to enable string conversion
+CXXFLAGS = $(CFLAGS) -Wno-char-subscripts -pedantic -fno-rtti -fpermissive
 
 LDFLAGS=-mwindows -lmsimg32 -lcomctl32 -limm32 -lole32 -luuid $(UXLIB) $(LUA_LDFLAGS)
 
