@@ -193,9 +193,9 @@ local old_OnUpdateUI = OnUpdateUI
 function OnUpdateUI ()
 	local result
 	if old_OnUpdateUI then result = old_OnUpdateUI() end
+	local lexer=props["FileType"]
 	if props['FileName'] ~= '' then
 		if tonumber(props["hypertext.highlighting.paired.tags"]) == 1 then
-			local lexer=props["FileType"]
 			if lexer == "hypertext" or lexer == "xml" then
 				PairedTagsFinder()
 			end

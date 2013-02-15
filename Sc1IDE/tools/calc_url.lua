@@ -1,3 +1,4 @@
+-- [mhb] 02/12/13 fix some errors and enable operator ^
 -- [mhb] modified: use winexec instead of shell.exec 
 -- Version: 1.2
 -- Author: HSolo, mozers 
@@ -6,7 +7,7 @@
 ---------------------------------------------------
 
 local function FormulaDetect(str)
-  local PatternNum = "([\-\+\*\/%b()%s]*%d+[\.\,]*%d*[\)]*)"
+  local PatternNum = "([%-%+%*%/%^%b()%s]*%d+[%.%,]*%d*[%)]*)"
   local startPos, endPos, Num, Formula
   startPos = 1
   Formula = ''
@@ -16,20 +17,17 @@ local function FormulaDetect(str)
       startPos = endPos + 1
 --~ print(Num)
       Num = string.gsub (Num, '%s+', '')                           
-      Num = string.gsub (Num, '^([\(%d]+)', '+%1')                 
-      Num = string.gsub (Num, '^([\)]+)([%d]+)', '%1+%2')          
+      Num = string.gsub (Num, '^([%(%d]+)', '+%1')                 
+      Num = string.gsub (Num, '^([%)]+)([%d]+)', '%1+%2')          
       Formula = Formula..Num                                       
   end
-  Formula = string.gsub (Formula, '^[\+]', '')                     
-  Formula = string.gsub(Formula,"[\,]+",'.')                       
-  Formula = string.gsub(Formula,"([\+])([\+]+)",'%1')              
-  Formula = string.gsub(Formula,"([\-])([\+]+)",'%1')              
-
-  Formula = string.gsub(Formula,"([\+\-\*\/])([\*\/]+)",'%1')      
-  Formula = string.gsub(Formula,"([\+\-\*\/])([\*\/]+)",'%1')      
-
-  Formula = string.gsub(Formula,"([%d\)]+)([\+\*\/\-])",'%1 %2 ')  
-
+  Formula = string.gsub (Formula, '^[%+]', '')                     
+  -- Formula = string.gsub(Formula,"[%,]+",'.')                       
+  Formula = string.gsub(Formula,"([%+])([%+]+)",'%1')              
+  Formula = string.gsub(Formula,"([%-])([%+]+)",'%1')              
+  Formula = string.gsub(Formula,"([%+%-%*%/%^])([%*%/]+)",'%1')      
+  Formula = string.gsub(Formula,"([%+%-%*%/%^])([%*%/]+)",'%1')      
+  Formula = string.gsub(Formula,"([%d%)]+)([%+%*%/%-%^]+)",'%1 %2 ')  
   return Formula
 end
 
@@ -53,7 +51,7 @@ if (string.len(str) > 2) then
     winexec(browser)
     --~ os.execute (browser)
   else
-    if string.find(str, "(math\.%w+)") then 
+    if string.find(str, "(math%.%w+)") then 
       str = string.gsub(str,"[=]",'')
     else
       str = FormulaDetect(str)
@@ -61,12 +59,14 @@ if (string.len(str) > 2) then
 
     print('->Expr: '..str)
     local res = assert(loadstring('return '..str),str)()
-    editor:CharRight()
-    editor:LineEnd()
-    local sel_start = editor.SelectionStart + 1
-    local sel_end = sel_start + string.len(res)
-    editor:AddText('\n= '..res)
-    editor:SetSel(sel_start, sel_end)
+    if editor.Focus then
+      editor:CharRight()
+      editor:LineEnd()
+      local sel_start = editor.SelectionStart + 1
+      local sel_end = sel_start + string.len(res)+3
+      editor:AddText('\n= '..res)
+      editor:SetSel(sel_start, sel_end)
+    end
     print('>> Result= '..res)
   end
 end

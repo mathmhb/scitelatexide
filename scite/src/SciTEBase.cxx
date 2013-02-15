@@ -5544,17 +5544,19 @@ std::string SciTEBase::GetTranslation(const char *s, bool retainIfNotFound) {
 
 //[mhb] 04/14/12 added to allow loading truetype fonts from specified folders, currently recursive is not supported
 int SciTEBase::LoadFontFiles(const char *arg,int recursive) {
-	if (AddFontResourceA(arg)) {return 1;}
+	// char buf[MAX_PATH];
+	// strcpy(buf,arg);
+	// MultiByteToWideChar(CP_ACP,0,buf,strlen(buf),filename,MAX_PATH);
+
+	GUI::gui_string s=GUI::StringFromUTF8(arg);
+	GUI::gui_char *filename=s.c_str();
+	if (AddFontResource(filename)) {return 1;}
 
 	int num=0;
 	WIN32_FIND_DATA ffile;
 	DWORD fileattributes = ::GetFileAttributesA(arg);
-	GUI::gui_char filename[MAX_PATH];
 	HANDLE hFFile;
 	
-	char buf[MAX_PATH];
-	strcpy(buf,arg);
-	MultiByteToWideChar(CP_ACP,0,buf,strlen(buf),filename,MAX_PATH);
 
 	GUI::gui_char *lastslash;
 	if (NULL == (lastslash = wcsrchr(filename, GUI_TEXT('\\'))))
@@ -5562,11 +5564,18 @@ int SciTEBase::LoadFontFiles(const char *arg,int recursive) {
 	else
 		lastslash++;
 
+	// if (MessageBoxW(NULL,/*"Error!"*/ filename,L"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+
 	if ( (hFFile = ::FindFirstFile(filename, &ffile)) != INVALID_HANDLE_VALUE) {
 		do {
 			if (!(ffile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {	// Skip directories
 				wcscpy(lastslash, ffile.cFileName);
-				if (AddFontResource(filename))	{num++;}
+					
+				// if (MessageBoxW(NULL,/*"Error!"*/ filename,L"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+					
+				if (AddFontResourceW(filename))	{
+					num++;
+				}
 			}
 		} while (::FindNextFile(hFFile, &ffile));
 		::FindClose(hFFile);

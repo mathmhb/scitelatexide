@@ -21,3 +21,46 @@ function text_toggle_case()
 	editor:ReplaceSel(t)
 	print(t)
 end
+
+function capital_word(w)
+	return string.upper(string.sub(w,1,1))..string.lower(string.sub(w,2))
+end
+
+function capitalise_word_initial()
+	local s=cur_sel_word()
+	local t=string.gsub(s,'%a%l+',capital_word)
+	editor:ReplaceSel(t)
+	print(t)
+end
+
+local quanjiao_puncts={
+['.']='¡£',
+[',']='£¬',
+[';']='£»',
+[':']='£º',
+}
+
+function use_quanjiao_punct()
+	local s=cur_sel_word()
+	local t=string.gsub(s,'[,.;:]',quanjiao_puncts)
+	editor:ReplaceSel(t)
+	print(t)
+end
+
+local banjiao_puncts={
+['¡£']='.',
+['£¬']=',',
+['£»']=';',
+['£º']=':',
+}
+
+function use_banjiao_punct()
+	local s=cur_sel_word()
+	local t=s
+	for _,v in pairs(banjiao_puncts) do
+		t=string.gsub(t,_,v)
+	end
+	editor:ReplaceSel(t)
+	print(t)
+end
+
