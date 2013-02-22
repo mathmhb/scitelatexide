@@ -18,7 +18,7 @@
 #include <map>
 
 #undef _WIN32_WINNT
-#define _WIN32_WINNT  0x0500
+#define _WIN32_WINNT 0x0500
 #undef WINVER
 #define WINVER 0x0500
 #include <windows.h>
@@ -283,6 +283,7 @@ class ScintillaWin :
 	void ChangeScrollPos(int barType, int pos);
 
 	void InsertPasteText(const char *text, int len, SelectionPosition selStart, bool isRectangular, bool isLine);
+	void InsertMultiPasteText(const char *text, int len); //!-add-[InsertMultiPasteText]
 
 public:
 	// Public for benefit of Scintilla_DirectFunction
@@ -388,7 +389,7 @@ void ScintillaWin::Initialise() {
 	// Find TrackMouseEvent which is available on Windows > 95
 	HMODULE user32 = ::GetModuleHandle(TEXT("user32.dll"));
 	if (user32)
-	TrackMouseEventFn = (TrackMouseEventSig)::GetProcAddress(user32, "TrackMouseEvent");
+		TrackMouseEventFn = (TrackMouseEventSig)::GetProcAddress(user32, "TrackMouseEvent");
 	if (TrackMouseEventFn == NULL) {
 		// Windows 95 has an emulation in comctl32.dll:_TrackMouseEvent
 		HMODULE commctrl32 = ::LoadLibrary(TEXT("comctl32.dll"));
@@ -771,7 +772,7 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 				::SendMessage(hWnd, iMessage, wParam, lParam);
 				break;
 			}
-			
+
 			// Don't handle datazoom.
 			// (A good idea for datazoom would be to "fold" or "unfold" details.
 			// i.e. if datazoomed out only class structures are visible, when datazooming in the control
@@ -1170,7 +1171,7 @@ sptr_t ScintillaWin::WndProc(unsigned int iMessage, uptr_t wParam, sptr_t lParam
 
 		case SCI_GETKEYSUNICODE:
 			return keysAlwaysUnicode;
-		
+
 		case SCI_SETTECHNOLOGY:
 			if ((wParam == SC_TECHNOLOGY_DEFAULT) || (wParam == SC_TECHNOLOGY_DIRECTWRITE)) {
 				if (technology != static_cast<int>(wParam)) {
@@ -1447,7 +1448,7 @@ void ScintillaWin::NotifyDoubleClick(Point pt, bool shift, bool ctrl, bool alt) 
 	// Send myself a WM_LBUTTONDBLCLK, so the container can handle it too.
 	::SendMessage(MainHWND(),
   			  WM_LBUTTONDBLCLK,
-			  (shift ? SCI_SHIFT : 0) | 
+			  (shift ? SCI_SHIFT : 0) |
 			  (ctrl ? SCI_CTRL : 0) |
 			  (alt ? SCI_ALT : 0),
 			  MAKELPARAM(pt.x, pt.y));
@@ -1763,10 +1764,52 @@ void ScintillaWin::InsertPasteText(const char *text, int len, SelectionPosition 
 		delete []convertedText;
 	}
 }
+//!-start-[InsertMultiPasteText]
+void ScintillaWin::InsertMultiPasteText(const char *text, int len) {
+	char *convertedText = 0;
+	if (convertPastes) {
+		// Convert line endings of the paste into our local line-endings mode
+		convertedText = Document::TransformLineEnds(&len, text, len, pdoc->eolMode);
+		text = convertedText;
+	}
+	FilterSelections();
+	UndoGroup ug(pdoc, (sel.Count() > 1) || !sel.Empty());
+	for (size_t r=0; r<sel.Count(); r++) {
+		if (!RangeContainsProtected(sel.Range(r).Start().Position(),
+			sel.Range(r).End().Position())) {
+			int positionInsert = sel.Range(r).Start().Position();
+			if (!sel.Range(r).Empty()) {
+				if (sel.Range(r).Length()) {
+					pdoc->DeleteChars(positionInsert, sel.Range(r).Length());
+					sel.Range(r).ClearVirtualSpace();
+				} else {
+					// Range is all virtual so collapse to start of virtual space
+					sel.Range(r).MinimizeVirtualSpace();
+				}
+			}
+			positionInsert = InsertSpace(positionInsert, sel.Range(r).caret.VirtualSpace());
+			if (pdoc->InsertString(positionInsert, text, len)) {
+				sel.Range(r).caret.SetPosition(positionInsert + len);
+				sel.Range(r).anchor.SetPosition(positionInsert + len);
+			}
+			sel.Range(r).ClearVirtualSpace();
+			// If in wrap mode rewrap current line so EnsureCaretVisible has accurate information
+			if (wrapState != eWrapNone) {
+				AutoSurface surface(this);
+				if (surface) {
+					WrapOneLine(surface, pdoc->LineFromPosition(positionInsert));
+				}
+			}
+		}
+	}
+	delete []convertedText;
+}
+//!-end-[InsertMultiPasteText]
 
 void ScintillaWin::Paste() {
 	if (!::OpenClipboard(MainHWND()))
 		return;
+/*!-remove-[InsertMultiPasteText]
 	UndoGroup ug(pdoc);
 	bool isLine = SelectionEmpty() && (::IsClipboardFormatAvailable(cfLineSelect) != 0);
 	ClearSelection(multiPasteMode == SC_MULTIPASTE_EACH);
@@ -1774,6 +1817,20 @@ void ScintillaWin::Paste() {
 		sel.Rectangular().Start() :
 		sel.Range(sel.Main()).Start();
 	bool isRectangular = ::IsClipboardFormatAvailable(cfColumnSelect) != 0;
+*/
+//!-start-[InsertMultiPasteText]
+	bool isLine = SelectionEmpty() && (::IsClipboardFormatAvailable(cfLineSelect) != 0);
+	SelectionPosition selStart;
+	bool isRectangular = ::IsClipboardFormatAvailable(cfColumnSelect) != 0;
+	bool isMultiPaste = (!isRectangular)&&(!isLine)&&(sel.Count()>1);
+	if(!isMultiPaste) {
+		UndoGroup ug(pdoc);
+		ClearSelection();
+		selStart = sel.IsRectangular() ?
+			sel.Rectangular().Start() :
+			sel.Range(sel.Main()).Start();
+	}
+//!-end-[InsertMultiPasteText]
 
 	// Always use CF_UNICODETEXT if available
 	GlobalMemory memUSelection(::GetClipboardData(CF_UNICODETEXT));
@@ -1799,7 +1856,14 @@ void ScintillaWin::Paste() {
 					                      putf, len + 1, NULL, NULL);
 			}
 
-			InsertPasteText(putf, len, selStart, isRectangular, isLine);
+//!			InsertPasteText(putf, len, selStart, isRectangular, isLine);
+//!-start-[InsertMultiPasteText]
+			if(!isMultiPaste) {
+				InsertPasteText(putf, len, selStart, isRectangular, isLine);
+			} else {
+				InsertMultiPasteText(putf, len);
+			}
+//!-end-[InsertMultiPasteText]
 			delete []putf;
 		}
 		memUSelection.Unlock();
@@ -1833,11 +1897,25 @@ void ScintillaWin::Paste() {
 					delete []uptr;
 
 					if (putf) {
-						InsertPasteText(putf, mlen, selStart, isRectangular, isLine);
+//!						InsertPasteText(putf, mlen, selStart, isRectangular, isLine);
+//!-begin-[InsertMultiPasteText]
+						if(!isMultiPaste) {
+							InsertPasteText(putf, mlen, selStart, isRectangular, isLine);
+						} else {
+							InsertMultiPasteText(putf, mlen);
+						}
+//!-end-[InsertMultiPasteText]
 						delete []putf;
 					}
 				} else {
-					InsertPasteText(ptr, len, selStart, isRectangular, isLine);
+//!					InsertPasteText(ptr, len, selStart, isRectangular, isLine);
+//!-begin-[InsertMultiPasteText]
+					if(!isMultiPaste) {
+						InsertPasteText(ptr, len, selStart, isRectangular, isLine);
+					} else {
+						InsertMultiPasteText(ptr, len);
+					}
+//!-end-[InsertMultiPasteText]
 				}
 			}
 			memSelection.Unlock();
@@ -2582,29 +2660,29 @@ STDMETHODIMP ScintillaWin::Drop(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
 		if (SUCCEEDED(hr) && medium.hGlobal) {
 			wchar_t *udata = static_cast<wchar_t *>(::GlobalLock(medium.hGlobal));
 			if (udata) {
-			if (IsUnicodeMode()) {
-				int tlen = ::GlobalSize(medium.hGlobal);
-				// Convert UTF-16 to UTF-8
-				int dataLen = UTF8Length(udata, tlen/2);
-				data = new char[dataLen+1];
-				UTF8FromUTF16(udata, tlen/2, data, dataLen);
-				dataAllocated = true;
-			} else {
-				// Convert UTF-16 to ANSI
-				//
-				// Default Scintilla behavior in Unicode mode
-				// CF_UNICODETEXT available, but not in Unicode mode
-				// Convert from Unicode to current Scintilla code page
-				UINT cpDest = CodePageOfDocument();
-				int tlen = ::WideCharToMultiByte(cpDest, 0, udata, -1,
-					NULL, 0, NULL, NULL) - 1; // subtract 0 terminator
-				data = new char[tlen + 1];
-				memset(data, 0, (tlen+1));
-				::WideCharToMultiByte(cpDest, 0, udata, -1,
-						data, tlen + 1, NULL, NULL);
-				dataAllocated = true;
+				if (IsUnicodeMode()) {
+					int tlen = ::GlobalSize(medium.hGlobal);
+					// Convert UTF-16 to UTF-8
+					int dataLen = UTF8Length(udata, tlen/2);
+					data = new char[dataLen+1];
+					UTF8FromUTF16(udata, tlen/2, data, dataLen);
+					dataAllocated = true;
+				} else {
+					// Convert UTF-16 to ANSI
+					//
+					// Default Scintilla behavior in Unicode mode
+					// CF_UNICODETEXT available, but not in Unicode mode
+					// Convert from Unicode to current Scintilla code page
+					UINT cpDest = CodePageOfDocument();
+					int tlen = ::WideCharToMultiByte(cpDest, 0, udata, -1,
+						NULL, 0, NULL, NULL) - 1; // subtract 0 terminator
+					data = new char[tlen + 1];
+					memset(data, 0, (tlen+1));
+					::WideCharToMultiByte(cpDest, 0, udata, -1,
+							data, tlen + 1, NULL, NULL);
+					dataAllocated = true;
+				}
 			}
-		}
 		}
 
 		if (!data) {
