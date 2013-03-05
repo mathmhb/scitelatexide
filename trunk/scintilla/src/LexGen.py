@@ -264,10 +264,10 @@ def UpdateLineInFile(path, linePrefix, lineReplace):
 def UpdateVersionNumbers(root):
     with open(root + "scintilla/version.txt") as f:
 #!        version = f.read()
-        (version, ru_subversion) = f.read().strip().split(' ') #!-changed-[UpdateRuVersionNumbers]
+        (version, ru_subversion) = f.read().strip().split(' ') #!-change-[UpdateRuVersionNumbers]
     
     versionDotted = version[0] + '.' + version[1] + '.' + version[2]
-    versionDottedRu = version[0] + '.' + version[1] + '.' + version[2] + ' .' + ru_subversion #!-add-[UpdateRuVersionNumbers]
+    versionDottedRu = version[0] + '.' + version[1] + '.' + version[2] + ' .' + ru_subversion  #!-add-[UpdateRuVersionNumbers]
     versionCommad = version[0] + ', ' + version[1] + ', ' + version[2] + ', 0'
     versionCommadRu = version[0] + ', ' + version[1] + ', ' + version[2] + ', ' + ru_subversion #!-add-[UpdateRuVersionNumbers]
 

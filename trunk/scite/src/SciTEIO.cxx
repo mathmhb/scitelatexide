@@ -1359,6 +1359,8 @@ class FileReader {
 	SString lineToShow;
 //!-end-[FileReaderUnlimitedLen]
 	bool caseSensitive;
+	// Private so FileReader objects can not be copied
+	FileReader(const FileReader &);
 public:
 
 	FileReader(FilePath fPath, bool caseSensitive_) {

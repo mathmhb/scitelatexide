@@ -18,7 +18,7 @@
 #include <map>
 
 #undef _WIN32_WINNT
-#define _WIN32_WINNT  0x0500
+#define _WIN32_WINNT 0x0500
 #undef WINVER
 #define WINVER 0x0500
 #include <windows.h>
@@ -448,6 +448,9 @@ void Font::Release() {
 template<typename T, int lengthStandard>
 class VarBuffer {
 	T bufferStandard[lengthStandard];
+	// Private so VarBuffer objects can not be copied
+	VarBuffer(const VarBuffer &);
+	VarBuffer &operator=(const VarBuffer &);
 public:
 	T *buffer;
 	VarBuffer(size_t length) : buffer(0) {
@@ -779,44 +782,44 @@ void SurfaceGDI::AlphaRectangle(PRectangle rc, int cornerSize, ColourDesired fil
 			DIB_RGB_COLORS, &image, NULL, 0);
 
 		if (hbmMem) {
-		HBITMAP hbmOld = SelectBitmap(hMemDC, hbmMem);
+			HBITMAP hbmOld = SelectBitmap(hMemDC, hbmMem);
 
-		DWORD valEmpty = dwordFromBGRA(0,0,0,0);
-		DWORD valFill = dwordFromBGRA(
-			static_cast<byte>(GetBValue(fill.AsLong()) * alphaFill / 255),
-			static_cast<byte>(GetGValue(fill.AsLong()) * alphaFill / 255),
-			static_cast<byte>(GetRValue(fill.AsLong()) * alphaFill / 255),
-			static_cast<byte>(alphaFill));
-		DWORD valOutline = dwordFromBGRA(
-			static_cast<byte>(GetBValue(outline.AsLong()) * alphaOutline / 255),
-			static_cast<byte>(GetGValue(outline.AsLong()) * alphaOutline / 255),
-			static_cast<byte>(GetRValue(outline.AsLong()) * alphaOutline / 255),
-			static_cast<byte>(alphaOutline));
-		DWORD *pixels = reinterpret_cast<DWORD *>(image);
-		for (int y=0; y<height; y++) {
-			for (int x=0; x<width; x++) {
-				if ((x==0) || (x==width-1) || (y == 0) || (y == height-1)) {
-					pixels[y*width+x] = valOutline;
-				} else {
-					pixels[y*width+x] = valFill;
+			DWORD valEmpty = dwordFromBGRA(0,0,0,0);
+			DWORD valFill = dwordFromBGRA(
+				static_cast<byte>(GetBValue(fill.AsLong()) * alphaFill / 255),
+				static_cast<byte>(GetGValue(fill.AsLong()) * alphaFill / 255),
+				static_cast<byte>(GetRValue(fill.AsLong()) * alphaFill / 255),
+				static_cast<byte>(alphaFill));
+			DWORD valOutline = dwordFromBGRA(
+				static_cast<byte>(GetBValue(outline.AsLong()) * alphaOutline / 255),
+				static_cast<byte>(GetGValue(outline.AsLong()) * alphaOutline / 255),
+				static_cast<byte>(GetRValue(outline.AsLong()) * alphaOutline / 255),
+				static_cast<byte>(alphaOutline));
+			DWORD *pixels = reinterpret_cast<DWORD *>(image);
+			for (int y=0; y<height; y++) {
+				for (int x=0; x<width; x++) {
+					if ((x==0) || (x==width-1) || (y == 0) || (y == height-1)) {
+						pixels[y*width+x] = valOutline;
+					} else {
+						pixels[y*width+x] = valFill;
+					}
 				}
 			}
-		}
-		for (int c=0;c<cornerSize; c++) {
-			for (int x=0;x<c+1; x++) {
-				AllFour(pixels, width, height, x, c-x, valEmpty);
+			for (int c=0;c<cornerSize; c++) {
+				for (int x=0;x<c+1; x++) {
+					AllFour(pixels, width, height, x, c-x, valEmpty);
+				}
 			}
-		}
-		for (int x=1;x<cornerSize; x++) {
-			AllFour(pixels, width, height, x, cornerSize-x, valOutline);
-		}
+			for (int x=1;x<cornerSize; x++) {
+				AllFour(pixels, width, height, x, cornerSize-x, valOutline);
+			}
 
-		BLENDFUNCTION merge = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+			BLENDFUNCTION merge = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 
-		AlphaBlendFn(reinterpret_cast<HDC>(hdc), rc.left, rc.top, width, height, hMemDC, 0, 0, width, height, merge);
+			AlphaBlendFn(reinterpret_cast<HDC>(hdc), rc.left, rc.top, width, height, hMemDC, 0, 0, width, height, merge);
 
-		SelectBitmap(hMemDC, hbmOld);
-		::DeleteObject(hbmMem);
+			SelectBitmap(hMemDC, hbmOld);
+			::DeleteObject(hbmMem);
 		}
 		::DeleteDC(hMemDC);
 	} else {
@@ -841,26 +844,26 @@ void SurfaceGDI::DrawRGBAImage(PRectangle rc, int width, int height, const unsig
 		HBITMAP hbmMem = CreateDIBSection(reinterpret_cast<HDC>(hMemDC), &bpih,
 			DIB_RGB_COLORS, reinterpret_cast<void **>(&image), NULL, 0);
 		if (hbmMem) {
-		HBITMAP hbmOld = SelectBitmap(hMemDC, hbmMem);
+			HBITMAP hbmOld = SelectBitmap(hMemDC, hbmMem);
 		
-		for (int y=height-1; y>=0; y--) {
-			for (int x=0; x<width; x++) {
-				unsigned char *pixel = image + (y*width+x) * 4;
-				unsigned char alpha = pixelsImage[3];
-				// Input is RGBA, output is BGRA with premultiplied alpha
+			for (int y=height-1; y>=0; y--) {
+				for (int x=0; x<width; x++) {
+					unsigned char *pixel = image + (y*width+x) * 4;
+					unsigned char alpha = pixelsImage[3];
+					// Input is RGBA, output is BGRA with premultiplied alpha
 					pixel[2] = static_cast<unsigned char>((*pixelsImage++) * alpha / 255);
 					pixel[1] = static_cast<unsigned char>((*pixelsImage++) * alpha / 255);
 					pixel[0] = static_cast<unsigned char>((*pixelsImage++) * alpha / 255);
 					pixel[3] = static_cast<unsigned char>(*pixelsImage++);
+				}
 			}
-		}
 		
-		BLENDFUNCTION merge = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+			BLENDFUNCTION merge = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 
-		AlphaBlendFn(reinterpret_cast<HDC>(hdc), rc.left, rc.top, rc.Width(), rc.Height(), hMemDC, 0, 0, width, height, merge);
+			AlphaBlendFn(reinterpret_cast<HDC>(hdc), rc.left, rc.top, rc.Width(), rc.Height(), hMemDC, 0, 0, width, height, merge);
 
-		SelectBitmap(hMemDC, hbmOld);
-		::DeleteObject(hbmMem);
+			SelectBitmap(hMemDC, hbmOld);
+			::DeleteObject(hbmMem);
 		}
 		::DeleteDC(hMemDC);
 
@@ -1488,11 +1491,11 @@ void SurfaceD2D::AlphaRectangle(PRectangle rc, int cornerSize, ColourDesired fil
 		if (cornerSize == 0) {
 			// When corner size is zero, draw square rectangle to prevent blurry pixels at corners
 			D2D1_RECT_F rectFill = D2D1::RectF(RoundFloat(rc.left) + 1.0, rc.top + 1.0, RoundFloat(rc.right) - 1.0, rc.bottom - 1.0);
-		D2DPenColour(fill, alphaFill);
+			D2DPenColour(fill, alphaFill);
 			pRenderTarget->FillRectangle(rectFill, pBrush);
 
 			D2D1_RECT_F rectOutline = D2D1::RectF(RoundFloat(rc.left) + 0.5, rc.top + 0.5, RoundFloat(rc.right) - 0.5, rc.bottom - 0.5);
-		D2DPenColour(outline, alphaOutline);
+			D2DPenColour(outline, alphaOutline);
 			pRenderTarget->DrawRectangle(rectOutline, pBrush);
 		} else {
 			D2D1_ROUNDED_RECT roundedRectFill = D2D1::RoundedRect(
@@ -1505,9 +1508,9 @@ void SurfaceD2D::AlphaRectangle(PRectangle rc, int cornerSize, ColourDesired fil
 				D2D1::RectF(RoundFloat(rc.left) + 0.5, rc.top + 0.5, RoundFloat(rc.right) - 0.5, rc.bottom - 0.5),
 				cornerSize, cornerSize);
 			D2DPenColour(outline, alphaOutline);
-		pRenderTarget->DrawRoundedRectangle(roundedRect, pBrush);
+			pRenderTarget->DrawRoundedRectangle(roundedRect, pBrush);
+		}
 	}
-}
 }
 
 void SurfaceD2D::DrawRGBAImage(PRectangle rc, int width, int height, const unsigned char *pixelsImage) {
@@ -1885,10 +1888,10 @@ void Window::SetPositionRelative(PRectangle rc, Window w) {
 		RECT rcWork = RectFromMonitor(hMonitor);
 		
 		if (rcWork.left < rcWork.right) {
-		// Now clamp our desired rectangle to fit inside the work area
-		// This way, the menu will fit wholly on one screen. An improvement even
-		// if you don't have a second monitor on the left... Menu's appears half on
-		// one screen and half on the other are just U.G.L.Y.!
+			// Now clamp our desired rectangle to fit inside the work area
+			// This way, the menu will fit wholly on one screen. An improvement even
+			// if you don't have a second monitor on the left... Menu's appears half on
+			// one screen and half on the other are just U.G.L.Y.!
 			if (rc.right > rcWork.right)
 				rc.Move(rcWork.right - rc.right, 0);
 			if (rc.bottom > rcWork.bottom)
@@ -2459,20 +2462,22 @@ void ListBoxX::Draw(DRAWITEMSTRUCT *pDrawItem) {
 						);
 					ID2D1DCRenderTarget *pDCRT = 0;
 					HRESULT hr = pD2DFactory->CreateDCRenderTarget(&props, &pDCRT);
-					RECT rcWindow;
-					GetClientRect(pDrawItem->hwndItem, &rcWindow);
-					hr = pDCRT->BindDC(pDrawItem->hDC, &rcWindow);
 					if (SUCCEEDED(hr)) {
-						surfaceItem->Init(pDCRT, pDrawItem->hwndItem);
-						pDCRT->BeginDraw();
-						int left = pDrawItem->rcItem.left + ItemInset.x + ImageInset.x;
-						PRectangle rcImage(left, pDrawItem->rcItem.top,
-							left + images.GetWidth(), pDrawItem->rcItem.bottom);
-						surfaceItem->DrawRGBAImage(rcImage,
-							pimage->GetWidth(), pimage->GetHeight(), pimage->Pixels());
-						delete surfaceItem;
-						pDCRT->EndDraw();
-						pDCRT->Release();
+						RECT rcWindow;
+						GetClientRect(pDrawItem->hwndItem, &rcWindow);
+						hr = pDCRT->BindDC(pDrawItem->hDC, &rcWindow);
+						if (SUCCEEDED(hr)) {
+							surfaceItem->Init(pDCRT, pDrawItem->hwndItem);
+							pDCRT->BeginDraw();
+							int left = pDrawItem->rcItem.left + ItemInset.x + ImageInset.x;
+							PRectangle rcImage(left, pDrawItem->rcItem.top,
+								left + images.GetWidth(), pDrawItem->rcItem.bottom);
+							surfaceItem->DrawRGBAImage(rcImage,
+								pimage->GetWidth(), pimage->GetHeight(), pimage->Pixels());
+							delete surfaceItem;
+							pDCRT->EndDraw();
+							pDCRT->Release();
+						}
 					}
 #endif
 				}
