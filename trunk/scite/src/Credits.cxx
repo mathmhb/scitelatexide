@@ -14,6 +14,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <memory>
 
 #include "Scintilla.h"
 #include "ILexer.h"
@@ -343,6 +344,15 @@ const char *contributors[] = {
             "G. Hu",
             "Byron Hawkins",
             "Alpha",
+            "John Donoghue",
+            "kudah",
+            "Igor Shaula",
+            "Pavel Bulochkin",
+            "Yosef Or Boczko",
+            "Brian Griffin",
+            "\xc3\x96zg\xc3\xbcr Emir",
+            "Neomi",
+            "OmegaPhil",
         };
 
 // AddStyledText only called from About so static size buffer is OK
@@ -373,11 +383,12 @@ void SciTEBase::SetAboutMessage(GUI::ScintillaWindow &wsci, const char *appTitle
 	if (wsci.Created()) {
 		wsci.Send(SCI_SETSTYLEBITS, 7, 0);
 		wsci.Send(SCI_STYLERESETDEFAULT, 0, 0);
-		int fontSize = 15;
 #if defined(GTK)
 		wsci.Send(SCI_STYLESETFONT, STYLE_DEFAULT,
 		        reinterpret_cast<uptr_t>("!Serif"));
-		fontSize = 14;
+		int fontSize = 14;
+#else
+		int fontSize = 15;
 #endif
 
 		wsci.Send(SCI_SETCODEPAGE, SC_CP_UTF8, 0);

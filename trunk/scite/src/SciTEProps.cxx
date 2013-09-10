@@ -17,6 +17,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <algorithm>
 
 #include "Scintilla.h"
 #include "SciLexer.h"
@@ -659,6 +660,7 @@ static const char *propertiesToForward[] = {
 	"fold.d.explicit.start",
 	"fold.d.syntax.based",
 	"fold.directive",
+	"fold.haskell.imports",
 	"fold.html",
 	"fold.html.preprocessor",
 	"fold.hypertext.comment",
@@ -690,6 +692,11 @@ static const char *propertiesToForward[] = {
 	"lexer.errorlist.value.separate",
 	"lexer.flagship.styling.within.preprocessor",
 	"lexer.forth.no.interpretation",
+	"lexer.haskell.allow.hash",
+	"lexer.haskell.allow.questionmark",
+	"lexer.haskell.allow.quotes",
+	"lexer.haskell.cpp",
+	"lexer.haskell.import.safe",
 	"lexer.html.django",
 	"lexer.html.mako",
 	"lexer.metapost.comment.process",
@@ -900,6 +907,7 @@ void SciTEBase::ReadProperties() {
 
 	int tech = props.GetInt("technology");
 	wEditor.Call(SCI_SETTECHNOLOGY, tech);
+	wOutput.Call(SCI_SETTECHNOLOGY, tech);
 
 	codePage = props.GetInt("code.page");
 	if (CurrentBuffer()->unicodeMode != uni8Bit) {
@@ -935,6 +943,7 @@ void SciTEBase::ReadProperties() {
 	CallChildren(SCI_SETCARETFORE,
 	           ColourOfProperty(props, "caret.fore", ColourRGB(0, 0, 0)));
 
+	CallChildren(SCI_SETMOUSESELECTIONRECTANGULARSWITCH, props.GetInt("selection.rectangular.switch.mouse", 0));
 	CallChildren(SCI_SETMULTIPLESELECTION, props.GetInt("selection.multiple", 1));
 	CallChildren(SCI_SETADDITIONALSELECTIONTYPING, props.GetInt("selection.additional.typing", 1));
 	CallChildren(SCI_SETADDITIONALCARETSBLINK, props.GetInt("caret.additional.blinks", 1));
@@ -1181,9 +1190,11 @@ void SciTEBase::ReadProperties() {
 
 	bufferedDraw = props.GetInt("buffered.draw", 1);
 	wEditor.Call(SCI_SETBUFFEREDDRAW, bufferedDraw);
+	wOutput.Call(SCI_SETBUFFEREDDRAW, bufferedDraw);
 
 	twoPhaseDraw = props.GetInt("two.phase.draw", 1);
 	wEditor.Call(SCI_SETTWOPHASEDRAW, twoPhaseDraw);
+	wOutput.Call(SCI_SETTWOPHASEDRAW, twoPhaseDraw);
 
 	wEditor.Call(SCI_SETLAYOUTCACHE, props.GetInt("cache.layout", SC_CACHE_CARET));
 	wOutput.Call(SCI_SETLAYOUTCACHE, props.GetInt("output.cache.layout", SC_CACHE_CARET));
@@ -1513,6 +1524,10 @@ void SciTEBase::ReadFontProperties() {
 	// Set styles
 	// For each window set the global default style, then the language default style, then the other global styles, then the other language styles
 
+	int fontQuality = props.GetInt("font.quality");
+	wEditor.Call(SCI_SETFONTQUALITY, fontQuality);
+	wOutput.Call(SCI_SETFONTQUALITY, fontQuality);
+
 	wEditor.Call(SCI_STYLERESETDEFAULT, 0, 0);
 	wOutput.Call(SCI_STYLERESETDEFAULT, 0, 0);
 
@@ -1560,8 +1575,9 @@ void SciTEBase::ReadFontProperties() {
 	SetStyleFor(wEditor, "*");
 	SetStyleFor(wEditor, languageName);
 	if (props.GetInt("error.inline")) {
-		wEditor.Send(SCI_STYLESETFORE, diagnosticStyleEnd, 0);	// Ensure styles allocated
-		SetStyleBlock(wEditor, "error", diagnosticStyleStart, diagnosticStyleEnd);
+		wEditor.Call(SCI_RELEASEALLEXTENDEDSTYLES, 0, 0);
+		diagnosticStyleStart = wEditor.Call(SCI_ALLOCATEEXTENDEDSTYLES, diagnosticStyles, 0);
+		SetStyleBlock(wEditor, "error", diagnosticStyleStart, diagnosticStyleStart+diagnosticStyles-1);
 	}
 
 	// Turn grey while loading
@@ -1741,20 +1757,17 @@ void SciTEBase::ReadPropertiesInitial() {
 	// load the user defined short cut props
 	SString shortCutProp = props.GetNewExpand("user.shortcuts");
 	if (shortCutProp.length()) {
-		shortCutItems = 0;
-		for (unsigned int i = 0; i < shortCutProp.length(); i++) {
-			if (shortCutProp[i] == '|')
-				shortCutItems++;
-		}
-		shortCutItems /= 2;
-		shortCutItemList = new ShortcutItem[shortCutItems];
+		size_t pipes = std::count(shortCutProp.c_str(),
+			shortCutProp.c_str()+shortCutProp.length(), '|');
 		shortCutProp.substitute('|', '\0');
 		const char *sShortCutProp = shortCutProp.c_str();
-		for (int item = 0; item < shortCutItems; item++) {
-			shortCutItemList[item].menuKey = sShortCutProp;
+		for (size_t item = 0; item < pipes/2; item++) {
+			ShortcutItem sci;
+			sci.menuKey = sShortCutProp;
 			sShortCutProp += strlen(sShortCutProp) + 1;
-			shortCutItemList[item].menuCommand = sShortCutProp;
+			sci.menuCommand = sShortCutProp;
 			sShortCutProp += strlen(sShortCutProp) + 1;
+			shortCutItemList.push_back(sci);
 		}
 	}
 	// end load the user defined short cut props

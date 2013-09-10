@@ -26,7 +26,8 @@ void SciTEWin::SetFileProperties(
 		FILETIME lft;
 		::FileTimeToLocalFileTime(&ft, &lft);
 		SYSTEMTIME st;
-		::FileTimeToSystemTime(&lft, &st);
+		if (::FileTimeToSystemTime(&lft, &st) == 0)
+			memset(&st, 0, sizeof(st));
 		::GetTimeFormatA(LOCALE_USER_DEFAULT,
 		                0, &st,
 		                NULL, temp, TEMP_LEN);
@@ -206,7 +207,6 @@ void SciTEWin::Notify(SCNotification *notification) {
 	case TTN_GETDISPINFO:
 		// Ask for tooltip text
 		{
-			static GUI::gui_char ttt[MAX_PATH*2 + 1];
 //!			const GUI::gui_char *ttext = 0; //!-remove-[user.toolbar]
 			NMTTDISPINFOW *pDispInfo = (NMTTDISPINFOW *)notification;
 			// Toolbar tooltips
@@ -266,8 +266,8 @@ void SciTEWin::Notify(SCNotification *notification) {
 			SString stext;
 			if (ToolBarTips.Lookup(notification->nmhdr.idFrom, stext)) {
 				GUI::gui_string localised = localiser.Text(stext.c_str());
-				wcscpy(ttt, localised.c_str());
-				
+				StringCopy(tooltipText, localised.c_str());
+
 				//[mhb] 07/21/09 : allow showing tool shortcut in tooltip
 				int id=notification->nmhdr.idFrom;
 				int show_shortcut=props.GetInt("tooltip.show.shortcut");
@@ -313,7 +313,7 @@ void SciTEWin::Notify(SCNotification *notification) {
 					}
 					
 					//[mhb] 10/23/09 added: to show keys defined in prop user.shortcuts
-					for (int cut_i = 0; cut_i < shortCutItems; cut_i++) {
+					for (int cut_i = 0; cut_i < shortCutItemList.size(); cut_i++) {
 						int commandNum = SciTEBase::GetMenuCommandAsInt(shortCutItemList[cut_i].menuCommand);
 						if (commandNum == id) {
 							strcat(buf,"  ");
@@ -348,7 +348,7 @@ void SciTEWin::Notify(SCNotification *notification) {
                         } 
 					}
 				}
-				if (show_shortcut>0) {wcscat(ttt, GUI::StringFromUTF8(buf).c_str());}
+				if (show_shortcut>0) {StringCopy(tooltipText, GUI::StringFromUTF8(buf).c_str());}
 
 				//[mhb] 10/24/09 moved to here so as to show id number in any case
 				if (show_shortcut>1) {
@@ -357,7 +357,7 @@ void SciTEWin::Notify(SCNotification *notification) {
 					//[mhb] 10/24/09 refined: allow to show shortcut and id number together
 					char bbb[100];
 					sprintf(bbb,"  (#%d)",id);
-					wcscat(ttt,GUI::StringFromUTF8(bbb).c_str());
+					wcscat(tooltipText,GUI::StringFromUTF8(bbb).c_str());
 					
 				}
 				
@@ -365,7 +365,7 @@ void SciTEWin::Notify(SCNotification *notification) {
 				int show_command=props.GetInt("tooltip.show.command");
 				if (show_command>0) {
 					SString kkk;
-					wcscat(ttt,GUI_TEXT("\n"));
+					wcscat(tooltipText,GUI_TEXT("\n"));
 					if (id>=IDM_TOOLS && id<IDM_TOOLS + toolMax) {
 						sprintf(buf,"command.%d.",id-IDM_TOOLS);
 						kkk=props.GetNewExpand((const char*)buf,FileNameExt().AsUTF8().c_str());
@@ -383,10 +383,10 @@ void SciTEWin::Notify(SCNotification *notification) {
 							kkk=buf;
 						}
 					}
-					wcscat(ttt,GUI::StringFromUTF8(kkk.c_str()).c_str());
+					wcscat(tooltipText,GUI::StringFromUTF8(kkk.c_str()).c_str());
 				}
 
-				pDispInfo->lpszText = const_cast<GUI::gui_char *>(ttt);
+				pDispInfo->lpszText = tooltipText;
 			}
 			else {
 //!-end-[user.toolbar]
@@ -410,8 +410,8 @@ void SciTEWin::Notify(SCNotification *notification) {
 							path.insert(amp, GUI_TEXT("&"));
 							amp += 2;
 						}
-						wcscpy(ttt, path.c_str());
-						pDispInfo->lpszText = const_cast<GUI::gui_char *>(ttt);
+						StringCopy(tooltipText, path.c_str());
+						pDispInfo->lpszText = tooltipText;
 					}
 /*!
 				}
@@ -419,8 +419,9 @@ void SciTEWin::Notify(SCNotification *notification) {
 			}
 			if (ttext) {
 				GUI::gui_string localised = localiser.Text(GUI::UTF8FromString(ttext).c_str());
-				wcscpy(ttt, localised.c_str());
-				pDispInfo->lpszText = ttt;
+
+				StringCopy(tooltipText, localised.c_str());
+				pDispInfo->lpszText = tooltipText;
 */
 			}
 			break;
@@ -784,7 +785,7 @@ void SciTEWin::SetMenuItem(int menuNumber, int position, int itemID,
 		keycode = SciTEKeys::ParseKeyCode(GUI::UTF8FromString(mnemonic).c_str());
 		if (keycode) {
 			sTextMnemonic += GUI_TEXT("\t");
-			sTextMnemonic += LocaliseAccelerator(mnemonic, itemID);
+			sTextMnemonic += mnemonic;
 		}
 		// the keycode could be used to make a custom accelerator table
 		// but for now, the menu's item data is used instead for command
@@ -805,7 +806,7 @@ void SciTEWin::SetMenuItem(int menuNumber, int position, int itemID,
 		MENUITEMINFO mii;
 		mii.cbSize = sizeof(MENUITEMINFO);
 		mii.fMask = MIIM_DATA;
-		mii.dwItemData = reinterpret_cast<DWORD&>(keycode);
+		mii.dwItemData = keycode;
 		::SetMenuItemInfo(hmenu, itemID, FALSE, &mii);
 	}
 }
@@ -876,104 +877,6 @@ void SciTEWin::CheckMenus() {
 	                   CurrentBuffer()->unicodeMode + IDM_ENCODING_DEFAULT, 0);
 }
 
-void SciTEWin::MakeAccelerator(SString sAccelerator, ACCEL &Accel) {
-	SString s = sAccelerator;
-
-	if (s.contains("null")) {
-		Accel.key = 0;
-		return ;
-	}
-
-	if (s.contains("Ctrl+")) {
-		Accel.fVirt |= FCONTROL;
-		s.remove("Ctrl+");
-	}
-	if (s.contains("Shift+")) {
-		Accel.fVirt |= FSHIFT;
-		s.remove("Shift+");
-	}
-	if (s.contains("Alt+")) {
-		Accel.fVirt |= FALT;
-		s.remove("Alt+");
-	}
-	if (s.length() == 1) {
-		Accel.key = s[0];
-		Accel.fVirt |= FVIRTKEY;
-	} else if ((s.length() > 1) && (s[0] == 'F') && (isdigit(s[1]))) {
-		s.remove("F");
-		int keyNum = s.value();
-		Accel.key = static_cast<WORD>(keyNum + VK_F1 - 1);
-		Accel.fVirt |= FVIRTKEY;
-	} else if (s.contains("Del")) {
-		Accel.key = VK_DELETE;
-		Accel.fVirt |= FVIRTKEY;
-	} else if (s.contains("Space")) {
-		Accel.key = VK_SPACE;
-		Accel.fVirt |= FVIRTKEY;
-	} else if (s.contains("Enter")) {
-		Accel.key = VK_RETURN;
-		Accel.fVirt |= FVIRTKEY;
-	} else if (s.contains("Back")) {
-		Accel.key = VK_BACK;
-		Accel.fVirt |= FVIRTKEY;
-	} else if (s.contains("Tab")) {
-		Accel.key = VK_TAB;
-		Accel.fVirt |= FVIRTKEY;
-	} else if (s.contains("Num")) {
-		Accel.fVirt |= FVIRTKEY;
-		s.remove("Num");
-		if (isdigit(s[0])) {
-			int keyNum = s.value();
-			Accel.key = static_cast<WORD>(keyNum + VK_NUMPAD0);
-		} else {
-			switch (s[0]) {
-			case '*':
-				Accel.key = VK_MULTIPLY;
-				break;
-			case '+':
-				Accel.key = VK_ADD;
-				break;
-			case '-':
-				Accel.key = VK_SUBTRACT;
-				break;
-			case '/':
-				Accel.key = VK_DIVIDE;
-				break;
-			default:
-				Accel.key = 0;
-				break;
-			}
-		}
-	}
-}
-
-//SString SciTEWin::LocaliseAccelerator(const char *pAccelerator, int cmd) {
-GUI::gui_string SciTEWin::LocaliseAccelerator(const GUI::gui_char *pAccelerator, int) {
-#ifdef LOCALISE_ACCELERATORS_WORKED
-	SString translation = localiser.Text(pAccelerator, true);
-	int AccelCount = ::CopyAcceleratorTable(hAccTable, NULL, 0);
-	ACCEL *AccelTable = new ACCEL[AccelCount];
-	::CopyAcceleratorTable(hAccTable, AccelTable, AccelCount);
-	for (int i = 0; i < AccelCount; i++) {
-		if (AccelTable[i].cmd == cmd) {
-			MakeAccelerator(translation, AccelTable[i]);
-		}
-	}
-
-	::DestroyAcceleratorTable(hAccTable);
-	hAccTable = ::CreateAcceleratorTable(AccelTable, AccelCount);
-	delete []AccelTable;
-
-	if (translation.contains("null")) {
-		translation.clear();
-	}
-
-	return translation;
-#else
-	return pAccelerator;
-#endif
-}
-
 void SciTEWin::LocaliseMenu(HMENU hmenu) {
 	for (int i = 0; i <= ::GetMenuItemCount(hmenu); i++) {
 		GUI::gui_char buff[200];
@@ -1005,7 +908,7 @@ void SciTEWin::LocaliseMenu(HMENU hmenu) {
 					if (text.length()) {
 						if (accel != GUI_TEXT("")) {
 							text += GUI_TEXT("\t");
-							text += LocaliseAccelerator(accel.c_str(), mii.wID);
+							text += accel;
 						}
 						mii.dwTypeData = const_cast<GUI::gui_char *>(text.c_str());
 						::SetMenuItemInfoW(hmenu, i, TRUE, &mii);
@@ -1019,22 +922,6 @@ void SciTEWin::LocaliseMenu(HMENU hmenu) {
 void SciTEWin::LocaliseMenus() {
 	LocaliseMenu(::GetMenu(MainHWND()));
 	::DrawMenuBar(MainHWND());
-}
-
-void SciTEWin::LocaliseAccelerators() {
-	LocaliseAccelerator(GUI_TEXT("Alt+1"), IDM_BUFFER + 0);
-	LocaliseAccelerator(GUI_TEXT("Alt+2"), IDM_BUFFER + 1);
-	LocaliseAccelerator(GUI_TEXT("Alt+3"), IDM_BUFFER + 2);
-	LocaliseAccelerator(GUI_TEXT("Alt+4"), IDM_BUFFER + 3);
-	LocaliseAccelerator(GUI_TEXT("Alt+5"), IDM_BUFFER + 4);
-	LocaliseAccelerator(GUI_TEXT("Alt+6"), IDM_BUFFER + 5);
-	LocaliseAccelerator(GUI_TEXT("Alt+7"), IDM_BUFFER + 6);
-	LocaliseAccelerator(GUI_TEXT("Alt+8"), IDM_BUFFER + 7);
-	LocaliseAccelerator(GUI_TEXT("Alt+9"), IDM_BUFFER + 8);
-	LocaliseAccelerator(GUI_TEXT("Alt+0"), IDM_BUFFER + 9);
-
-	// todo read keymap from cfg
-	// AssignKey('Y', SCMOD_CTRL, SCI_LINECUT);
 }
 
 void SciTEWin::LocaliseControl(HWND w) {
@@ -1394,7 +1281,8 @@ void SciTEWin::Creation() {
 	InitCommonControlsEx(&icce);
 
 	WNDCLASS wndClass = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	GetClassInfo(NULL, WC_TABCONTROL, &wndClass);
+	if (::GetClassInfo(NULL, WC_TABCONTROL, &wndClass) == 0)
+		exit(FALSE);
 	stDefaultTabProc = wndClass.lpfnWndProc;
 	wndClass.lpfnWndProc = TabWndProc;
 	wndClass.style = wndClass.style | CS_DBLCLKS;
@@ -1421,7 +1309,8 @@ void SciTEWin::Creation() {
 
 	LOGFONT lfIconTitle;
 	ZeroMemory(&lfIconTitle, sizeof(lfIconTitle));
-	::SystemParametersInfo(SPI_GETICONTITLELOGFONT,sizeof(lfIconTitle),&lfIconTitle,FALSE);
+	if (::SystemParametersInfo(SPI_GETICONTITLELOGFONT,sizeof(lfIconTitle),&lfIconTitle,FALSE) == 0)
+		exit(FALSE);
 	fontTabs = ::CreateFontIndirect(&lfIconTitle);
 	::SendMessage(reinterpret_cast<HWND>(wTabBar.GetID()),
 	              WM_SETFONT,

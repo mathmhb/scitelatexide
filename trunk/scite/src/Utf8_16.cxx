@@ -82,7 +82,6 @@ size_t Utf8_16_Read::convert(char* buf, size_t len) {
 	size_t newSize = len + len / 2 + 1;
 	if (m_nBufSize != newSize) {
 		delete [] m_pNewBuf;
-		m_pNewBuf = NULL;
 		m_pNewBuf = new ubyte[newSize];
 		m_nBufSize = newSize;
 	}

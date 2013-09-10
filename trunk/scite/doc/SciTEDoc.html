@@ -31,6 +31,9 @@
         .osxonly {
             background: #FFE7E7;
         }
+        .windows-osx {
+            background: #FFF3FF;
+        }
         .example {
             color: #008000;
             font-weight: bold;
@@ -186,7 +189,7 @@ NameError: mistake
     </h3>
     <p>
     Tools can be executed in various modes by SciTE which are called "subsystems". Different
-    subsystems are supported on Windows and GTK+. The default subsystem is 0.
+    subsystems are supported on Windows, GTK+ and OS X. The default subsystem is 0.
     </p>
     <table class="windowsonly" cellpadding="0" cellspacing="0" border="1" summary="Command line commands">
     <thead><tr><td colspan="3">Windows</td></tr></thead>
@@ -202,12 +205,15 @@ NameError: mistake
     </td></tr>
     <tr><td>5</td><td>winhelp</td><td>Open with WinHelp function<br />
     Two part command similar to subsystem 4</td></tr>
+    <tr><td>7</td><td>immediate</td><td>Internal script that is executed immediately instead of being queued.</td></tr>
     </table>
     <br />
     <table class="gtkonly" cellpadding="0" cellspacing="0" border="1" summary="Command line commands">
-    <thead><tr><td colspan="3">GTK+</td></tr></thead>
+    <thead><tr><td colspan="3">GTK+ and OS X</td></tr></thead>
     <tr><td>0</td><td>console</td><td>Execute tool and wait for it to finish</td></tr>
     <tr><td>2</td><td>shellexec</td><td>Execute in background</td></tr>
+    <tr><td>3</td><td>lua<br />director</td><td>Internal extension or director extension</td></tr>
+    <tr><td>7</td><td>immediate</td><td>Internal script that is executed immediately instead of being queued.</td></tr>
     </table>
     <h3 id="CommandLineArguments">
        Command line arguments
@@ -740,7 +746,7 @@ NameError: mistake
       compile, build commands should work in the same manner in subdirectories of a project. The
       benefit is that local properties files in subdirectories can be replaced by one properties file
       which is located at the root of the project.
-      The evalution of the directory properties file is disabled by default and must be enabled by
+      The evaluation of the directory properties file is disabled by default and must be enabled by
       setting the variable properties.directory.enable to 1 in the user or global properties file.
     </p>
     <p>
@@ -945,7 +951,7 @@ NameError: mistake
         Values outside this range are clamped to be within the range.
         The default is 1 which turns off UI features concerned with buffers.<br />
         This value is read only once, early in the startup process and only from the
-        global properties files. So after changing it, restart SciTE to see the effect.
+        global and user properties files. So after changing it, restart SciTE to see the effect.
         </td>
       </tr>
       <tr id='property-buffers.zorder.switching'>
@@ -1109,7 +1115,7 @@ NameError: mistake
           margin.  Setting line.margin.visible to 1 makes this column visible at startup.
           The line.margin.width property controls how much space is reserved for the line
           numbers, in terms of the number of digits that can be displayed.  To specify that
-          the margin should expand if needed to accomodate larger line numbers, add a '+'
+          the margin should expand if needed to accommodate larger line numbers, add a '+'
           after the number of digits, e.g. <span class="example">line.margin.width=3+</span>.
         </td>
       </tr>
@@ -1372,6 +1378,18 @@ NameError: mistake
 	comments are selected).
         </td>
       </tr>
+      <tr class="osxonly" id='property-find.indicator'>
+        <td>
+         spell.ignore.<i>filepattern</i>
+        </td>
+        <td>
+          Specifies a list of words that should not be treated as spelling mistakes for a particular filepattern.
+          For example, in HTML, tag names that are not words are common so turn off the spelling highlight with:
+         <div class="example">
+         spell.ignore.*.html=br ul toc valign blockquote kbd thead tr th tbody colspan</div>
+         To turn spell checking completely off for a filepattern use the value *.
+        </td>
+      </tr>
       <tr class="gtkonly" id='property-rectangular.selection.modifier'>
         <td>
            rectangular.selection.modifier
@@ -1461,6 +1479,15 @@ NameError: mistake
           Sets the width of the caret in pixels. Only values of 1, 2, or 3 work.
         </td>
       </tr>
+      <tr id='property-selection.rectangular.switch.mouse'>
+        <td>
+          selection.rectangular.switch.mouse
+        </td>
+        <td>
+          Sets whether switching to rectangular selection mode while making a selection with the mouse is
+          allowed (1) or not (0). Default is 0.
+        </td>
+      </tr>
       <tr id='property-selection.multiple'>
         <td>
           <a name='property-selection.additional.typing'></a>
@@ -1470,7 +1497,7 @@ NameError: mistake
         <td>
 	Set selection.multiple to make multiple selections with the mouse by holding down the Ctrl key.<br />
 	Set selection.additional.typing to 1. to allow typing, backspace and delete to affect all selections including each line
-	of rectangular selections. When set to 0, typing only affectes the main selection.
+	of rectangular selections. When set to 0, typing only affects the main selection.
         </td>
       </tr>
       <tr id='property-virtual.space'>
@@ -1518,7 +1545,7 @@ NameError: mistake
           <p>If even is not set, instead of having symmetrical UZs,
           the left and bottom UZs are extended up to right and top UZs respectively.<br />
           This way, we favour the displaying of useful information: the begining of lines,
-          where most code reside, and the lines after the caret, eg. the body of a function.</p>
+          where most code reside, and the lines after the caret, e.g., the body of a function.</p>
           <p>See the table below to see how these settings interact.<br />
           Default: xslop, yslop, xeven, yeven=1, width=50, all others = 0.</p>
         </td>
@@ -1884,7 +1911,7 @@ NameError: mistake
         placed between the tags.
         </td>
       </tr>
-<!--++Autogenerated - run ../../scintilla/src/LexGen.py to regenerate -->
+<!--++Autogenerated - run ../scripts/RegenerateSource.py to regenerate -->
 <!--**\(\*\n\) -->
 	<tr id='property-asp.default.language'>
 	<td>asp.default.language</td>
@@ -1990,6 +2017,10 @@ NameError: mistake
 	<td>fold.d.syntax.based</td>
 	<td>Set this property to 0 to disable syntax based folding.</td>
 	</tr>
+	<tr id='property-fold.haskell.imports'>
+	<td>fold.haskell.imports</td>
+	<td>Set to 1 to enable folding of import declarations</td>
+	</tr>
 	<tr id='property-fold.html'>
 	<td>fold.html</td>
 	<td>Folding is turned on or off for HTML and XML files with this option. The fold option must also be on for folding to occur.</td>
@@ -2085,6 +2116,26 @@ NameError: mistake
 	<tr id='property-lexer.flagship.styling.within.preprocessor'>
 	<td>lexer.flagship.styling.within.preprocessor</td>
 	<td>For Harbour code, determines whether all preprocessor code is styled in the preprocessor style (0) or only from the initial # to the end of the command word(1, the default). It also determines how to present text, dump, and disabled code.</td>
+	</tr>
+	<tr id='property-lexer.haskell.allow.hash'>
+	<td>lexer.haskell.allow.hash</td>
+	<td>Set to 0 to disallow the '#' character at the end of identifiers and literals with the haskell lexer (GHC -XMagicHash extension)</td>
+	</tr>
+	<tr id='property-lexer.haskell.allow.questionmark'>
+	<td>lexer.haskell.allow.questionmark</td>
+	<td>Set to 1 to allow the '?' character at the start of identifiers with the haskell lexer (GHC & Hugs -XImplicitParams extension)</td>
+	</tr>
+	<tr id='property-lexer.haskell.allow.quotes'>
+	<td>lexer.haskell.allow.quotes</td>
+	<td>Set to 0 to disable highlighting of Template Haskell name quotations and promoted constructors (GHC -XTemplateHaskell and -XDataKinds extensions)</td>
+	</tr>
+	<tr id='property-lexer.haskell.cpp'>
+	<td>lexer.haskell.cpp</td>
+	<td>Set to 0 to disable C-preprocessor highlighting (-XCPP extension)</td>
+	</tr>
+	<tr id='property-lexer.haskell.import.safe'>
+	<td>lexer.haskell.import.safe</td>
+	<td>Set to 0 to disallow "safe" keyword in imports (GHC -XSafe, -XTrustworthy, -XUnsafe extensions)</td>
 	</tr>
 	<tr id='property-lexer.html.django'>
 	<td>lexer.html.django</td>
@@ -2539,6 +2590,7 @@ Prev File|IDM_PREVFILE|<br/>
           Controls the animated golden match indicator on OS X.
 	The default value, 1, shows and animates the find indicator then fades it away so surrounding text can be seen clearly.
 	Use the value 0 to disable the find indicator and the value 2 to keep the find indicator displayed.
+          This setting is not available on OS X 10.6.
         </td>
       </tr>
       <tr id='property-find.command'>
@@ -2918,6 +2970,23 @@ imports.include=fortran lisp
            A * can be used instead of a lexer to indicate a global style setting.
         </td>
       </tr>
+      <tr class="windows-osx" id='property-font.quality'>
+        <td>
+          font.quality
+        </td>
+        <td>
+        This setting allows choosing different ways of drawing text on Windows and OS X.
+        The appearance will depend on platform settings and, on Windows, the technology setting.
+        This setting does not currently have any effect on GTK+.
+	  <table>
+	  <thead><tr><th>Value</th><th>Meaning</th></tr></thead>
+	  <tr><td>0</td><td>Default</td></tr>
+	  <tr><td>1</td><td>Non-antialiased</td></tr>
+	  <tr><td>2</td><td>Antialiased</td></tr>
+	  <tr><td>3</td><td>LCD Optimized</td></tr>
+	  </table>
+        </td>
+      </tr>
        <tr id='property-braces.check'>
         <td>
           <a name='property-braces.sloppy'></a>
@@ -3052,7 +3121,7 @@ filter - accepts keyword arguments yes and no<br />
 quiet - accepts keyword arguments yes and no<br />
 replaceselection - accepts yes, no, and auto<br />
 savebefore - accepts yes, no, and prompt<br />
-subsystem - console, windows, shellexec, lua, director, winhelp, htmlhelp<br />
+subsystem - console, windows, shellexec, lua, director, winhelp, htmlhelp, immediate<br />
 groupundo - yes or no
 </div>
         Currently, all of these except groupundo are based on individual properties with
@@ -3624,7 +3693,7 @@ groupundo - yes or no
 		<div class="example">
 		menukey.menu_title.menu_name=&lt;modifier&gt;key
 		</div>
-		For example, the File | Exit command accelerator could be specifed as follows:
+		For example, the File | Exit command accelerator could be specified as follows:
 		<div class="example">
 		menukey.file.exit=&lt;control&gt;Q
 		</div>
@@ -3700,7 +3769,7 @@ groupundo - yes or no
           is active.  Functions and objects defined through ext.lua.startup.script are
           still accessible, unless they are overridden.
           <br />
-          The extension property can also define behavior that is specific to a given
+          The extension property can also define behaviour that is specific to a given
           directory.  If a bare filename (no path) is specified in the extension
           property, SciTE looks for the file in the standard property file locations,
           starting with the local directory.  This can be very useful in combination

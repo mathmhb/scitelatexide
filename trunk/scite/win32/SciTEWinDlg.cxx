@@ -199,7 +199,7 @@ int SciTEWin::DoDialog(HINSTANCE hInst, const TCHAR *resName, HWND hWnd, DLGPROC
 	if (result == -1) {
 		GUI::gui_string errorNum = GUI::StringFromInteger(::GetLastError());
 		GUI::gui_string msg = LocaliseMessage("Failed to create dialog box: ^0.", errorNum.c_str());
-		//~ [qhs] change from ::MessageBoxW(hWnd, msg.c_str(), appName, MB_OK | MB_SETFOREGROUND);
+		//~[qhs] change from ::MessageBoxW(hWnd, msg.c_str(), appName, MB_OK | MB_SETFOREGROUND);
 		::MessageBoxW(hWnd, msg.c_str(), appName.c_str(), MB_OK | MB_SETFOREGROUND);
 	}
 
@@ -238,7 +238,8 @@ bool SciTEWin::OpenDialog(FilePath directory, const GUI::gui_char *filter) {
 	GUI::gui_string openFilter = DialogFilterFromProperty(filter);
 
 	if (!openWhat[0]) {
-		wcscpy(openWhat, localiser.Text("Custom Filter").c_str());
+		StringCopy(openWhat, localiser.Text("Custom Filter").c_str());
+		openWhat[ELEMENTS(openWhat)-2] = L'\0';
 		// 2 NULs as there are 2 strings here: the display string and the filter string
 		openWhat[wcslen(openWhat) + 1] = L'\0';
 	}
@@ -279,11 +280,11 @@ bool SciTEWin::OpenDialog(FilePath directory, const GUI::gui_char *filter) {
 		if (wcslen(openName) > static_cast<size_t>(ofn.nFileOffset)) {
 			Open(openName);
 		} else {
-			FilePath directory(openName);
+			FilePath directoryOpen(openName);
 			GUI::gui_char *p = openName + wcslen(openName) + 1;
 			while (*p) {
 				// make path+file, add it to the list
-				Open(FilePath(directory, FilePath(p)));
+				Open(FilePath(directoryOpen, FilePath(p)));
 				// goto next char pos after \0
 				p += wcslen(p) + 1;
 			}
@@ -298,7 +299,7 @@ FilePath SciTEWin::ChooseSaveName(FilePath directory, const char *title, const G
 		GUI::gui_char saveName[MAX_PATH] = GUI_TEXT("");
 		FilePath savePath = SaveName(ext);
 		if (!savePath.IsUntitled()) {
-			wcscpy(saveName, savePath.AsInternal());
+			StringCopy(saveName, savePath.AsInternal());
 		}
 		OPENFILENAMEW ofn;
 		memset(&ofn, 0, sizeof(ofn));
@@ -400,7 +401,7 @@ void SciTEWin::LoadSessionDialog() {
 
 void SciTEWin::SaveSessionDialog() {
 	GUI::gui_char saveName[MAX_PATH] = GUI_TEXT("\0");
-	wcscpy(saveName, GUI_TEXT("SciTE.session"));
+	StringCopy(saveName, GUI_TEXT("SciTE.session"));
 	OPENFILENAMEW ofn;
 	memset(&ofn, 0, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
@@ -647,13 +648,12 @@ void SciTEWin::Print(
 	}
 	// Print each page
 	int pageNum = 1;
-	bool printPage;
 	PropSetFile propsPrint;
 	propsPrint.superPS = &props;
 	SetFileProperties(propsPrint);
 
 	while (lengthPrinted < lengthDoc) {
-		printPage = (!(pdlg.Flags & PD_PAGENUMS) ||
+		bool printPage = (!(pdlg.Flags & PD_PAGENUMS) ||
 		             ((pageNum >= pdlg.nFromPage) && (pageNum <= pdlg.nToPage)));
 
 		char pageString[32];
@@ -1654,7 +1654,7 @@ bool SciTEWin::ParametersDialog(bool modal) {
 
 int SciTEWin::WindowMessageBox(GUI::Window &w, const GUI::gui_string &msg, int style) {
 	dialogsOnScreen++;
-	//~ [qhs] change from int ret = ::MessageBoxW(reinterpret_cast<HWND>(w.GetID()), msg.c_str(), appName, style | MB_SETFOREGROUND);
+	//~[qhs] change from int ret = ::MessageBoxW(reinterpret_cast<HWND>(w.GetID()), msg.c_str(), appName, style | MB_SETFOREGROUND);
 	int ret = ::MessageBoxW(reinterpret_cast<HWND>(w.GetID()), msg.c_str(), appName.c_str(), style | MB_SETFOREGROUND);
 	dialogsOnScreen--;
 	return ret;

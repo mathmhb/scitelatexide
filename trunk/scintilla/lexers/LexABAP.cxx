@@ -17,7 +17,6 @@
 #include "Scintilla.h"
 #include "SciLexer.h"
 
-#include "PropSetSimple.h"
 #include "WordList.h"
 #include "LexAccessor.h"
 #include "Accessor.h"
@@ -66,7 +65,7 @@ static bool InMultiWordsList( WordList &wl,
 							  const char *s,
 							  const char marker,
 							  bool &eq,
-							  bool &begin ) {
+							  bool &begin) {
 	eq = begin = false;
 	if (0 == wl.words || !*s) {
 		return false;

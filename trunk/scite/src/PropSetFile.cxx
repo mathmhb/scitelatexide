@@ -33,6 +33,7 @@
 #include "GUI.h"
 
 #include "SString.h"
+#include "StringHelpers.h"
 #include "FilePath.h"
 #include "PropSetFile.h"
 
@@ -51,13 +52,11 @@ inline bool IsASpace(unsigned int ch) {
 }
 
 static std::set<std::string> FilterFromString(std::string values) {
+	std::vector<std::string> vsFilter = StringSplit(values, ' ');
 	std::set<std::string> fs;
-	std::istringstream isValues(values);
-	while (!isValues.eof()) {
-		std::string sValue;
-		isValues >> sValue;
-		if (!sValue.empty())
-			fs.insert(sValue);
+	for (std::vector<std::string>::const_iterator it=vsFilter.begin(); it != vsFilter.end(); ++it) {
+		if (!it->empty())
+			fs.insert(*it);
 	}
 	return fs;
 }
@@ -129,16 +128,6 @@ void PropSetFile::Unset(const char *key, int lenKey) {
 	mapss::iterator keyPos = props.find(std::string(key, lenKey));
 	if (keyPos != props.end())
 		props.erase(keyPos);
-}
-
-void PropSetFile::SetMultiple(const char *s) {
-	const char *eol = strchr(s, '\n');
-	while (eol) {
-		Set(s);
-		s = eol + 1;
-		eol = strchr(s, '\n');
-	}
-	Set(s);
 }
 
 bool PropSetFile::Exists(const char *key) const {
@@ -797,12 +786,11 @@ SString::SString(double d, int precision) : sizeGrowth(sizeGrowthDefault) {
 	sSize = sLen = (s) ? strlen(s) : 0;
 }
 
-bool SString::grow(lenpos_t lenNew) {
+void SString::grow(lenpos_t lenNew) {
 	while (sizeGrowth * 6 < lenNew) {
 		sizeGrowth *= 2;
 	}
 	char *sNew = new char[lenNew + sizeGrowth + 1];
-	if (sNew) {
 		if (s) {
 			memcpy(sNew, s, sLen);
 			delete []s;
@@ -811,8 +799,6 @@ bool SString::grow(lenpos_t lenNew) {
 		s[sLen] = '\0';
 		sSize = lenNew + sizeGrowth;
 	}
-	return sNew != 0;
-}
 
 SString &SString::assign(const char *sOther, lenpos_t sSize_) {
 	if (!sOther) {
@@ -906,7 +892,9 @@ SString &SString::append(const char *sOther, lenpos_t sLenOther, char sep) {
 	}
 	lenpos_t lenNew = sLen + sLenOther + lenSep;
 	// Conservative about growing the buffer: don't do it, unless really needed
-	if ((lenNew < sSize) || (grow(lenNew))) {
+	if (lenNew >= sSize) {
+		grow(lenNew);
+	}
 		if (lenSep) {
 			s[sLen] = sep;
 			sLen++;
@@ -915,7 +903,6 @@ SString &SString::append(const char *sOther, lenpos_t sLenOther, char sep) {
 		memcpy(&s[sLen], sOther, sLenOther);
 		sLen += sLenOther;
 		s[sLen] = '\0';
-	}
 	return *this;
 }
 
@@ -928,14 +915,15 @@ SString &SString::insert(lenpos_t pos, const char *sOther, lenpos_t sLenOther) {
 	}
 	lenpos_t lenNew = sLen + sLenOther;
 	// Conservative about growing the buffer: don't do it, unless really needed
-	if ((lenNew < sSize) || grow(lenNew)) {
+	if (lenNew >= sSize) {
+		grow(lenNew);
+	}
 		lenpos_t moveChars = sLen - pos + 1;
 		for (lenpos_t i = moveChars; i > 0; i--) {
 			s[pos + sLenOther + i - 1] = s[pos + i - 1];
 		}
 		memcpy(s + pos, sOther, sLenOther);
 		sLen = lenNew;
-	}
 	return *this;
 }
 
@@ -966,14 +954,6 @@ bool SString::startswith(const char *prefix) {
 		return false;
 	}
 	return strncmp(s, prefix, lenPrefix) == 0;
-}
-
-bool SString::endswith(const char *suffix) {
-	lenpos_t lenSuffix = strlen(suffix);
-	if (lenSuffix > sLen) {
-		return false;
-	}
-	return strncmp(s + sLen - lenSuffix, suffix, lenSuffix) == 0;
 }
 
 int SString::search(const char *sFind, lenpos_t start) const {
@@ -1030,10 +1010,8 @@ char *SContainer::StringAllocate(const char *sValue, lenpos_t len) {
 		len = strlen(sValue);
 	}
 	char *sNew = new char[len + 1];
-	if (sNew) {
 		memcpy(sNew, sValue, len);
 		sNew[len] = '\0';
-	}
 	return sNew;
 }
 

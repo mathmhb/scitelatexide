@@ -9,8 +9,8 @@
 #define SCITE_H
 
 // Version numbers and dates
-#define VERSION_SCITE "3.2.5 .99"
-#define VERSION_WORDS 3, 2, 5, 99
+#define VERSION_SCITE "3.3.5"
+#define VERSION_WORDS 3, 3, 5, 0
 #define COPYRIGHT_DATES "December 1998-February 2013"
 #define COPYRIGHT_YEARS "1998-2013"
 

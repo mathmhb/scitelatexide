@@ -478,12 +478,15 @@ void SciTEBase::TextWritten(FileWorker *pFileWorker) {
 				buffers.RemoveInvisible(iBuffer);
 			}
 			if (iBuffer == buffers.Current()) {
-				wEditor.Call(SCI_SETSAVEPOINT);
 				wEditor.Call(SCI_SETREADONLY, CurrentBuffer()->isReadOnly);
+				if (pathSaved.SameNameAs(CurrentBuffer()->AsInternal())) {
+					wEditor.Call(SCI_SETSAVEPOINT);
+				}
 				if (extender)
 					extender->OnSave(buffers.buffers[iBuffer].AsUTF8().c_str());
 			} else {
 				buffers.buffers[iBuffer].isDirty = false;
+				buffers.buffers[iBuffer].failedSave = false;
 				// Need to make writable and set save point when next receive focus.
 				buffers.AddFuture(iBuffer, Buffer::fdFinishSave);
 				SetBuffersMenu();
@@ -578,6 +581,7 @@ bool SciTEBase::Open(FilePath file, OpenFlags of) {
 	if (buffers.size == buffers.length) {
 		AddFileToStack(filePath, GetSelectedRange(), GetCurrentScrollPosition());
 		ClearDocument();
+		CurrentBuffer()->lifeState = Buffer::open;
 		if (extender)
 			extender->InitBuffer(buffers.Current());
 	} else {
@@ -861,7 +865,7 @@ void SciTEBase::Activate(bool activeApp) {
 	}
 }
 
-FilePath SciTEBase::SaveName(const char *ext) {
+FilePath SciTEBase::SaveName(const char *ext) const {
 	GUI::gui_string savePath = filePath.AsInternal();
 	if (ext) {
 		int dot = static_cast<int>(savePath.length() - 1);
@@ -1046,12 +1050,12 @@ bool SciTEBase::SaveBuffer(FilePath saveName, SaveFlags sf) {
 			if (!(sf & sfSynchronous)) {
 				wEditor.Call(SCI_SETREADONLY, 1);
 				const char *documentBytes = reinterpret_cast<const char *>(wEditor.CallReturnPointer(SCI_GETCHARACTERPOINTER));
-				CurrentBuffer()->pFileWorker = new FileStorer(this, documentBytes, filePath, lengthDoc, fp, CurrentBuffer()->unicodeMode, (sf & sfProgressVisible));
+				CurrentBuffer()->pFileWorker = new FileStorer(this, documentBytes, saveName, lengthDoc, fp, CurrentBuffer()->unicodeMode, (sf & sfProgressVisible));
 				CurrentBuffer()->pFileWorker->sleepTime = props.GetInt("asynchronous.sleep");
 				if (PerformOnNewThread(CurrentBuffer()->pFileWorker)) {
 			retVal = true;
 			} else {
-					GUI::gui_string msg = LocaliseMessage("Failed to save file '^0' as thread could not be started.", filePath.AsInternal());
+					GUI::gui_string msg = LocaliseMessage("Failed to save file '^0' as thread could not be started.", saveName.AsInternal());
 					WindowMessageBox(wSciTE, msg, MB_OK | MB_ICONWARNING);
 				}
 			} else {
@@ -1082,7 +1086,7 @@ bool SciTEBase::SaveBuffer(FilePath saveName, SaveFlags sf) {
 	}
 	}
 
-	if (retVal && extender) {
+	if (retVal && extender && (sf & sfSynchronous)) {
 		extender->OnSave(saveName.AsUTF8().c_str());
 	}
 	UpdateStatusBar(true);
@@ -1154,6 +1158,7 @@ bool SciTEBase::Save(SaveFlags sf) {
 			}
 			}
 		} else {
+			CurrentBuffer()->failedSave = true;
 			msg = LocaliseMessage(
 			            "Could not save file '^0'. Save under a different name?", filePath.AsInternal());
 			decision = WindowMessageBox(wSciTE, msg, MB_YESNO | MB_ICONWARNING);
@@ -1274,13 +1279,13 @@ void SciTEBase::OpenFromStdin(bool UseOutputPane) {
 
 void SciTEBase::OpenFilesFromStdin() {
 	char data[blockSize];
-	char *pNL;
 
 	/* if stdin is blocked, do not execute this method */
 	if (IsStdinBlocked())
 		return;
 
 	while (fgets(data, sizeof(data) - 1, stdin)) {
+		char *pNL;
 		if ((pNL = strchr(data, '\n')) != NULL)
 			* pNL = '\0';
 		Open(GUI::StringFromUTF8(data).c_str(), ofQuiet);
@@ -1324,7 +1329,7 @@ public:
 		}
 		fp = NULL;
 	}
-	bool Exhausted() {
+	bool Exhausted() const {
 		return exhausted;
 	}
 	int NextByte() {
