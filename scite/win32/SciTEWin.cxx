@@ -58,20 +58,23 @@ const GUI::gui_string appName = GUI::StringFromUTF8(const_cast<char*>(APPNAME));
 
 static GUI::gui_string GetErrorMessage(DWORD nRet) {
 	LPWSTR lpMsgBuf = NULL;
-	::FormatMessage(
-	    FORMAT_MESSAGE_ALLOCATE_BUFFER |
-	    FORMAT_MESSAGE_FROM_SYSTEM |
-	    FORMAT_MESSAGE_IGNORE_INSERTS,
-	    NULL,
-	    nRet,
-	    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),   // Default language
-	    reinterpret_cast<LPWSTR>(&lpMsgBuf),
-	    0,
-	    NULL
-	);
-	GUI::gui_string s= lpMsgBuf;
-	::LocalFree(lpMsgBuf);
-	return s;
+	if (::FormatMessage(
+		    FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		    FORMAT_MESSAGE_FROM_SYSTEM |
+		    FORMAT_MESSAGE_IGNORE_INSERTS,
+		    NULL,
+		    nRet,
+		    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),   // Default language
+		    reinterpret_cast<LPWSTR>(&lpMsgBuf),
+		    0,
+		    NULL
+		) != 0) {
+		GUI::gui_string s= lpMsgBuf;
+		::LocalFree(lpMsgBuf);
+		return s;
+	} else {
+		return TEXT("");
+	}
 }
 //!-start-[GetApplicationProps]
 SciTEBase *SciTEBase::GetApplicationInstance() {
@@ -179,10 +182,6 @@ long SciTEKeys::ParseKeyCode(const char *mnemonic) {
 }
 
 bool SciTEKeys::MatchKeyCode(long parsedKeyCode, int keyval, int modifiers) {
-	// TODO: are the 0x11 and 0x10 special cases needed, or are they
-	// just short-circuits?  If not needed, this test could removed.
-	if (keyval == 0x11 || keyval == 0x10)
-		return false;
 	return parsedKeyCode && !(0xFFFF0000 & (keyval | modifiers)) && (parsedKeyCode == (keyval | (modifiers<<16)));
 }
 
@@ -209,11 +208,15 @@ SciTEWin::SciTEWin(Extension *ext) : SciTEBase(ext) {
 	fontTabs = 0;
 	wFocus = 0;
 
+	memset(&winPlace, 0, sizeof(winPlace));
 	winPlace.length = 0;
+	memset(&rcWorkArea, 0, sizeof(rcWorkArea));
 
 	openWhat[0] = '\0';
+	tooltipText[0] = '\0';
 	modalParameters = false;
 	filterDefault = 1;
+	staticBuild = false;
 	menuSource = 0;
 
 	hWriteSubProcess = NULL;
@@ -429,7 +432,8 @@ static FilePath GetSciTEPath(FilePath home) {
 		return FilePath(home);
 	} else {
 		GUI::gui_char path[MAX_PATH];
-		::GetModuleFileNameW(0, path, ELEMENTS(path));
+		if (::GetModuleFileNameW(0, path, ELEMENTS(path)) == 0)
+			return FilePath();
 		// Remove the SciTE.exe
 		GUI::gui_char *lastSlash = wcsrchr(path, pathSepChar);
 		if (lastSlash)
@@ -715,7 +719,7 @@ void SciTEWin::Command(WPARAM wParam, LPARAM lParam) {
 // from ScintillaWin.cxx
 static UINT CodePageFromCharSet(DWORD characterSet, UINT documentCodePage) {
 	CHARSETINFO ci = { 0, 0, { { 0, 0, 0, 0 }, { 0, 0 } } };
-	BOOL bci = ::TranslateCharsetInfo((DWORD*)characterSet,
+	BOOL bci = ::TranslateCharsetInfo(reinterpret_cast<DWORD*>(static_cast<uptr_t>(characterSet)),
 	                                  &ci, TCI_SRCCHARSET);
 
 	UINT cp;
@@ -1178,10 +1182,10 @@ void SciTEWin::ShellExec(const SString &cmd, const char *dir) {
 			// the cmd is surrounded by ", so it can contain spaces, but we must
 			// strip the " for ShellExec
 			mycmd = mycmdcopy + 1;
-			char *s = strchr(mycmdcopy + 1, '"');
-			if (s != NULL) {
-				*s = '\0';
-				mycmd_end = s + 1;
+			char *sm = strchr(mycmdcopy + 1, '"');
+			if (sm != NULL) {
+				*sm = '\0';
+				mycmd_end = sm + 1;
 			}
 		}
 	}
@@ -1419,7 +1423,6 @@ void SciTEWin::CreateUI() {
 		RestorePosition();
 
 	LocaliseMenus();
-	LocaliseAccelerators();
 	SString pageSetup = props.Get("print.margins");
 	char val[32];
 	char *ps = StringDup(pageSetup.c_str());
@@ -1648,7 +1651,7 @@ bool SciTEWin::PreOpenCheck(const GUI::gui_char *arg) {
 	HANDLE hFFile;
 	WIN32_FIND_DATA ffile;
 	DWORD fileattributes = ::GetFileAttributes(arg);
-	GUI::gui_char filename[MAX_PATH];
+	GUI::gui_char filename[MAX_PATH] = L"";
 	int nbuffers = props.GetInt("buffers");
 
 	if (fileattributes != (DWORD) -1) {	// arg is an existing directory or filename
@@ -1683,7 +1686,7 @@ bool SciTEWin::PreOpenCheck(const GUI::gui_char *arg) {
 		if ((lastslash && lastdot && lastslash == lastdot - 1) || (!lastslash && lastdot == arg)) {
 			isHandled = true;
 
-			GUI::gui_char dir[MAX_PATH];
+			GUI::gui_char dir[MAX_PATH] = L"";
 			if (lastslash) { // the arg contains a path, so copy that part to dirName
 				wcsncpy(dir, arg, lastslash - arg + 1);
 				dir[lastslash - arg + 1] = '\0';
@@ -1770,7 +1773,7 @@ void SciTEWin::MinimizeToTray() {
 	nid.uCallbackMessage = SCITE_TRAY;
 	nid.hIcon = static_cast<HICON>(
 	                ::LoadImage(hInstance, TEXT("SCITE"), IMAGE_ICON, 16, 16, LR_DEFAULTSIZE));
-	lstrcpy(nid.szTip, n);
+	StringCopy(nid.szTip, n);
 	::ShowWindow(MainHWND(), SW_MINIMIZE);
 	if (::Shell_NotifyIcon(NIM_ADD, &nid)) {
 		::ShowWindow(MainHWND(), SW_HIDE);
@@ -1863,7 +1866,7 @@ LRESULT SciTEWin::KeyDown(WPARAM wParam) {
 		mii.cbSize = sizeof(MENUITEMINFO);
 		mii.fMask = MIIM_DATA;
 		if (::GetMenuItemInfo(hToolsMenu, IDM_TOOLS+tool_i, FALSE, &mii) && mii.dwItemData) {
-			if (SciTEKeys::MatchKeyCode(reinterpret_cast<long&>(mii.dwItemData), static_cast<int>(wParam), modifiers)) {
+			if (SciTEKeys::MatchKeyCode(static_cast<long>(mii.dwItemData), static_cast<int>(wParam), modifiers)) {
 				SciTEBase::MenuCommand(IDM_TOOLS+tool_i);
 				return 1l;
 			}
@@ -1872,7 +1875,7 @@ LRESULT SciTEWin::KeyDown(WPARAM wParam) {
 
 	// loop through the keyboard short cuts defined by user.. if found
 	// exec it the command defined
-	for (int cut_i = 0; cut_i < shortCutItems; cut_i++) {
+	for (size_t cut_i = 0; cut_i < shortCutItemList.size(); cut_i++) {
 		if (KeyMatch(shortCutItemList[cut_i].menuKey, static_cast<int>(wParam), modifiers)) {
 			int commandNum = SciTEBase::GetMenuCommandAsInt(shortCutItemList[cut_i].menuCommand);
 			if (commandNum != -1) {
@@ -2650,7 +2653,8 @@ void Strip::SetTheme() {
 
 static bool HideKeyboardCues() {
 	BOOL b=FALSE;
-	::SystemParametersInfo(SPI_GETKEYBOARDCUES, 0, &b, 0);
+	if (::SystemParametersInfo(SPI_GETKEYBOARDCUES, 0, &b, 0) == 0)
+		return FALSE;
 	return !b;
 }
 
@@ -2685,8 +2689,11 @@ LRESULT Strip::CustomDraw(NMHDR *pnmh) {
 
 		RECT rcButton = pcd->rc;
 		rcButton.bottom--;
-		::GetThemeBackgroundContentRect(hThemeButton, pcd->hdc, TP_BUTTON,
+		HRESULT hr = ::GetThemeBackgroundContentRect(hThemeButton, pcd->hdc, TP_BUTTON,
 			buttonAppearence, &pcd->rc, &rcButton);
+		if (!SUCCEEDED(hr)) {
+			return CDRF_DODEFAULT;
+		}
 
 		HBITMAP hBitmap = reinterpret_cast<HBITMAP>(::SendMessage(
 			pnmh->hwndFrom, BM_GETIMAGE, IMAGE_BITMAP, 0));
@@ -2813,7 +2820,7 @@ LRESULT Strip::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 				for (size_t i=0; toggles[i].label; i++) {
 					if (toggles[i].id == idButton) {
 						GUI::gui_string localised = localiser->Text(toggles[i].label);
-						wcscpy(pnmtdi->szText, localised.c_str());
+						StringCopy(pnmtdi->szText, localised.c_str());
 					}
 				}
 				return 0;
@@ -3629,6 +3636,16 @@ void ReplaceStrip::Show() {
 
 void UserStrip::Creation() {
 	Strip::Creation();
+	// Combo boxes automatically size to a reasonable height so create a temporary and measure
+	HWND wComboTest = ::CreateWindowEx(0, TEXT("ComboBox"), TEXT("Aby"),
+		WS_CHILD | WS_TABSTOP | WS_CLIPSIBLINGS | CBS_DROPDOWN | CBS_AUTOHSCROLL,
+		50, 2, 300, 80,
+		Hwnd(), 0, ::GetModuleHandle(NULL), 0);
+	::SendMessage(wComboTest, WM_SETFONT, reinterpret_cast<WPARAM>(fontText), 0);
+	RECT rc;
+	::GetWindowRect(reinterpret_cast<HWND>(wComboTest), &rc);
+	::DestroyWindow(wComboTest);
+	lineHeight = rc.bottom - rc.top + 3;
 }
 
 void UserStrip::Destruction() {
@@ -3786,7 +3803,7 @@ LRESULT UserStrip::WndProc(UINT iMessage, WPARAM wParam, LPARAM lParam) {
 	return 0l;
 }
 
-int UserStrip::Lines() {
+int UserStrip::Lines() const {
 	return psd ? static_cast<int>(psd->controls.size()) : 1;
 }
 
@@ -3835,7 +3852,7 @@ void UserStrip::SetDescription(const char *description) {
 				puc->w = ::CreateWindowEx(0, TEXT("Button"), puc->text.c_str(),
 					WS_CHILD | WS_TABSTOP | WS_CLIPSIBLINGS |
 					((puc->controlType == UserControl::ucDefaultButton) ? BS_DEFPUSHBUTTON : BS_PUSHBUTTON),
-					60 * control, line * lineHeight + 2, puc->widthDesired, 25,
+					60 * control, line * lineHeight + 2, puc->widthDesired, lineHeight-1,
 					Hwnd(), reinterpret_cast<HMENU>(controlID), ::GetModuleHandle(NULL), 0);
 				break;
 
@@ -3843,7 +3860,7 @@ void UserStrip::SetDescription(const char *description) {
 				puc->widthDesired = WidthText(fontText, puc->text.c_str());
 				puc->w = ::CreateWindowEx(0, TEXT("Static"), puc->text.c_str(),
 					WS_CHILD | WS_CLIPSIBLINGS | ES_RIGHT,
-					60 * control, line * lineHeight + 2, puc->widthDesired, 21,
+					60 * control, line * lineHeight + 2, puc->widthDesired, lineHeight - 5,
 					Hwnd(), reinterpret_cast<HMENU>(controlID), ::GetModuleHandle(NULL), 0);
 				break;
 			}

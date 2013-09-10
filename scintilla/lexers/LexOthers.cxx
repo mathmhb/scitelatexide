@@ -41,7 +41,7 @@ static bool Is1To9(char ch) {
 }
 
 static bool IsAlphabetic(int ch) {
-	return isascii(ch) && isalpha(ch);
+	return IsASCII(ch) && isalpha(ch);
 }
 
 static inline bool AtEOL(Accessor &styler, unsigned int i) {

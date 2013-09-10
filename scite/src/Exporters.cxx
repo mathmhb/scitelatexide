@@ -182,18 +182,18 @@ void SciTEBase::SaveToRTF(FilePath saveName, int start, int end) {
 
 	FILE *fp = saveName.Open(GUI_TEXT("wt"));
 	if (fp) {
-		char styles[STYLE_DEFAULT + 1][MAX_STYLEDEF];
-		char fonts[STYLE_DEFAULT + 1][MAX_FONTDEF];
-		char colors[STYLE_DEFAULT + 1][MAX_COLORDEF];
+		char styles[STYLE_MAX + 1][MAX_STYLEDEF];
+		char fonts[STYLE_MAX + 1][MAX_FONTDEF];
+		char colors[STYLE_MAX + 1][MAX_COLORDEF];
 		char lastStyle[MAX_STYLEDEF], deltaStyle[MAX_STYLEDEF];
 		int fontCount = 1, colorCount = 2, i;
 		fputs(RTF_HEADEROPEN RTF_FONTDEFOPEN, fp);
-		strncpy(fonts[0], defaultStyle.font.c_str(), MAX_FONTDEF);
+		StringCopy(fonts[0], defaultStyle.font.c_str());
 		fprintf(fp, RTF_FONTDEF, 0, characterset, defaultStyle.font.c_str());
-		strncpy(colors[0], defaultStyle.fore.c_str(), MAX_COLORDEF);
-		strncpy(colors[1], defaultStyle.back.c_str(), MAX_COLORDEF);
+		StringCopy(colors[0], defaultStyle.fore.c_str());
+		StringCopy(colors[1], defaultStyle.back.c_str());
 
-		for (int istyle = 0; istyle < STYLE_DEFAULT; istyle++) {
+		for (int istyle = 0; istyle <= STYLE_MAX; istyle++) {
 			sprintf(key, "style.*.%0d", istyle);
 			char *valdef = StringDup(props.GetExpanded(key).c_str());
 			sprintf(key, "style.%s.%0d", language.c_str(), istyle);
@@ -208,7 +208,7 @@ void SciTEBase::SaveToRTF(FilePath saveName, int start, int end) {
 						if (EqualCaseInsensitive(sd.font.c_str(), fonts[i]))
 							break;
 					if (i >= fontCount) {
-						strncpy(fonts[fontCount++], sd.font.c_str(), MAX_FONTDEF);
+						StringCopy(fonts[fontCount++], sd.font.c_str());
 						fprintf(fp, RTF_FONTDEF, i, characterset, sd.font.c_str());
 					}
 					sprintf(lastStyle, RTF_SETFONTFACE "%d", i);
@@ -224,7 +224,7 @@ void SciTEBase::SaveToRTF(FilePath saveName, int start, int end) {
 						if (EqualCaseInsensitive(sd.fore.c_str(), colors[i]))
 							break;
 					if (i >= colorCount)
-						strncpy(colors[colorCount++], sd.fore.c_str(), MAX_COLORDEF);
+						StringCopy(colors[colorCount++], sd.fore.c_str());
 					sprintf(lastStyle + strlen(lastStyle), RTF_SETCOLOR "%d", i);
 				} else {
 					strcat(lastStyle, RTF_SETCOLOR "0");	// Default fore
@@ -239,7 +239,7 @@ void SciTEBase::SaveToRTF(FilePath saveName, int start, int end) {
 						if (EqualCaseInsensitive(sd.back.c_str(), colors[i]))
 							break;
 					if (i >= colorCount)
-						strncpy(colors[colorCount++], sd.back.c_str(), MAX_COLORDEF);
+						StringCopy(colors[colorCount++], sd.back.c_str());
 					sprintf(lastStyle + strlen(lastStyle), RTF_SETBACKGROUND "%d", i);
 				} else {
 					strcat(lastStyle, RTF_SETBACKGROUND "1");	// Default back
@@ -254,7 +254,7 @@ void SciTEBase::SaveToRTF(FilePath saveName, int start, int end) {
 				} else {
 					strcat(lastStyle, defaultStyle.italics ? RTF_ITALIC_ON : RTF_ITALIC_OFF);
 				}
-				strncpy(styles[istyle], lastStyle, MAX_STYLEDEF);
+				StringCopy(styles[istyle], lastStyle);
 			} else {
 				sprintf(styles[istyle], RTF_SETFONTFACE "0" RTF_SETFONTSIZE "%d"
 				        RTF_SETCOLOR "0" RTF_SETBACKGROUND "1"
@@ -280,7 +280,7 @@ void SciTEBase::SaveToRTF(FilePath saveName, int start, int end) {
 		for (i = start; i < end; i++) {
 			char ch = acc[i];
 			int style = acc.StyleAt(i);
-			if (style > STYLE_DEFAULT)
+			if (style > STYLE_MAX)
 				style = 0;
 			if (style != styleCurrent) {
 				GetRTFStyleChange(deltaStyle, lastStyle, styles[style]);
@@ -853,7 +853,7 @@ void SciTEBase::SaveToPDF(FilePath saveName) {
 			delete []segStyle;
 		}
 		//
-		double fontToPoints(int thousandths) {
+		double fontToPoints(int thousandths) const {
 			return (double)fontSize * thousandths / 1000.0;
 		}
 		void setStyle(char *buff, int style_) {

@@ -15,13 +15,14 @@ ifndef CYGWIN
 DEL = del /q
 COPY = copy
 else
-DEL = rm
-COPY = cp
+DEL = $(if $(wildcard $(dir $(SHELL))rm.exe), $(dir $(SHELL))rm.exe -f, del)
+COPY = xcopy /y
 endif
+VER = cmd /c ver
 
 # Discover Windows version by running 'VER' command and parsing output
 # For Windows 2000 looks like:Microsoft Windows 2000 [Version 5.00.2195]
-WINVERWORDS:=$(wordlist 1,2,$(subst ., ,$(lastword $(shell ver))))
+WINVERWORDS:=$(wordlist 1,2,$(subst ., ,$(lastword $(shell $(VER)))))
 WINVER:=$(firstword $(WINVERWORDS)).$(lastword $(WINVERWORDS))
 # Windows NT 4 and Windows 2000 do not support themes so turn off
 ifeq '$(WINVER)' '4.0'
@@ -136,20 +137,23 @@ ALL:	$(PROG) $(PROGSTATIC)
 clean:
 	$(DEL) *.exe *.o *.obj *.dll *.res *.map
 
+analyze:
+	clang --analyze $(CXXFLAGS) *.cxx ../src/*.cxx
+
 deps:
 	$(CC) -MM $(CXXFLAGS) *.cxx ../src/*.cxx ../lua/src/*.c ../lua/src/lib/*.c >deps.mak
 
 embedded: ..\src\Embedded.properties
 
 ..\bin\Scintilla.dll:	..\..\scintilla\bin\Scintilla.dll
-	$(COPY) ..\..\scintilla\bin\Scintilla.dll $@
+	$(COPY) $^ $(@D)
 
 ..\bin\SciLexer.dll:	..\..\scintilla\bin\SciLexer.dll
-	$(COPY) ..\..\scintilla\bin\SciLexer.dll $@
+	$(COPY) $^ $(@D)
 
 # Using '/' rather than '\' as that allows make to match the next rule
 ../bin/%.properties:	../src/%.properties
-	$(COPY) $(subst /,\,$^) $(subst /,\,$@)
+	$(COPY) $(subst /,\, $< $(@D))
 
 # Normally distributed rather than built as may not have grep on all machines
 # Copy all non-comment lines from all the properties files into one combined file
@@ -165,7 +169,8 @@ OBJSSTATIC = Sc1.o SciTEWinBar.o SciTEWinDlg.o MultiplexExtension.o \
 	ScintillaBaseL.o Editor.o Catalogue.o Accessor.o WordList.o CharacterSet.o \
 	LexerModule.o LexerSimple.o LexerBase.o \
 	ExternalLexer.o StyleContext.o Lexers.a PropSetSimple.o RunStyles.o \
-	ContractionState.o CharClassify.o Decoration.o Document.o CellBuffer.o CallTip.o Sc1Res.o PlatWin.o \
+	ContractionState.o CharClassify.o Decoration.o Document.o CellBuffer.o \
+        CharacterCategory.o CallTip.o CaseConvert.o CaseFolder.o Sc1Res.o PlatWin.o \
 	PositionCache.o UniConversion.o Utf8_16.o GUIWin.o KeyMap.o Indicator.o LineMarker.o RESearch.o Selection.o Style.o \
 	ViewStyle.o AutoComplete.o IFaceTable.o DirectorExtension.o MultiplexExtension.o XPM.o PerLine.o \
 	JobQueue.o WinMutex.o $(LUA_OBJS)

@@ -110,6 +110,7 @@ public:
 	sptr_t doc;
 	bool isDirty;
 	bool isReadOnly;
+	bool failedSave;
 	bool useMonoFont;
 	enum { empty, reading, readAll, open } lifeState;
 	UniMode unicodeMode;
@@ -124,7 +125,7 @@ public:
 	PropSetFile props;
 	enum FutureDo { fdNone=0, fdFinishSave=1 } futureDo;
 	Buffer() :
-			RecentFile(), doc(0), isDirty(false), isReadOnly(false), useMonoFont(false), lifeState(empty),
+			RecentFile(), doc(0), isDirty(false), isReadOnly(false), failedSave(false), useMonoFont(false), lifeState(empty),
 			unicodeMode(uni8Bit), fileModTime(0), fileModLastAsk(0), documentModTime(0),
 			findMarks(fmNone), pFileWorker(0), futureDo(fdNone) {}
 
@@ -132,6 +133,7 @@ public:
 		RecentFile::Init();
 		isDirty = false;
 		isReadOnly = false;
+		failedSave = false;
 		useMonoFont = false;
 		lifeState = empty;
 		unicodeMode = uni8Bit;
@@ -150,6 +152,7 @@ public:
 		fileModTime = ModifiedTime();
 		fileModLastAsk = fileModTime;
 		documentModTime = fileModTime;
+		failedSave = false;
 	}
 //!-start-[OpenNonExistent]
 	bool DocumentNotSaved() const {
@@ -158,7 +161,7 @@ public:
 //!-end-[OpenNonExistent]
 
 	void DocumentModified();
-	bool NeedsSave(int delayBeforeSave);
+	bool NeedsSave(int delayBeforeSave) const;
 
 	void CompleteLoading();
 	void CompleteStoring();
@@ -211,7 +214,7 @@ public:
 	bool SingleBuffer() const;
 	BackgroundActivities CountBackgroundActivities() const;
 	bool SavingInBackground() const;
-	bool GetVisible(int index);
+	bool GetVisible(int index) const;
 	void SetVisible(int index, bool visible);
 	void AddFuture(int index, Buffer::FutureDo fd);
 	void FinishedFuture(int index, Buffer::FutureDo fd);
@@ -293,8 +296,8 @@ struct StyleAndWords {
 	SString words;
 	StyleAndWords() : styleNumber(0) {
 	}
-	bool IsEmpty() { return words.length() == 0; }
-	bool IsSingleChar() { return words.length() == 1; }
+	bool IsEmpty() const { return words.length() == 0; }
+	bool IsSingleChar() const { return words.length() == 1; }
 };
 
 struct CurrentWordHighlight {
@@ -422,8 +425,7 @@ protected:
 	int languageItems;
 
 	// an array of short cut items that are defined by the user in the properties file.
-	ShortcutItem *shortCutItemList; // array
-	int shortCutItems; // length of array
+	std::vector<ShortcutItem> shortCutItemList;
 
 	int codePage;
 	int characterSet;
@@ -434,7 +436,8 @@ protected:
 	SString apisFileNames;
 	SString functionDefinition;
 
-	enum { diagnosticStyleStart=256, diagnosticStyleEnd=diagnosticStyleStart+4-1};
+	int diagnosticStyleStart;
+	enum { diagnosticStyles=4};
 
 	bool indentOpening;
 	bool indentClosing;
@@ -587,7 +590,7 @@ protected:
 	void SwitchDocumentAt(int index, sptr_t pdoc);
 	int AddBuffer();
 	void UpdateBuffersCurrent();
-	bool IsBufferAvailable();
+	bool IsBufferAvailable() const;
 	bool CanMakeRoom(bool maySaveIfDirty = true);
 	void SetDocumentAt(int index, bool updateStack = true);
 	Buffer *CurrentBuffer() {
@@ -622,7 +625,7 @@ protected:
 	int GetCaretInLine();
 	void GetLine(char *text, int sizeText, int line = -1);
 	SString GetLine(int line = -1);
-	void GetRange(GUI::ScintillaWindow &win, int start, int end, char *text);
+	static void GetRange(GUI::ScintillaWindow &win, int start, int end, char *text);
 	int IsLinePreprocessorCondition(char *line);
 	bool FindMatchingPreprocessorCondition(int &curLine, int direction, int condEnd1, int condEnd2);
 	bool FindMatchingPreprocCondPosition(bool isForward, int &mppcAtCaret, int &mppcMatch);
@@ -652,7 +655,7 @@ protected:
 	void RestoreState(const Buffer &buffer, bool restoreBookmarks);
 	void Close(bool updateUI = true, bool loadingSession = false, bool makingRoomForNew = false);
 	bool IsAbsolutePath(const char *path);
-	bool Exists(const GUI::gui_char *dir, const GUI::gui_char *path, FilePath *resultPath);
+	static bool Exists(const GUI::gui_char *dir, const GUI::gui_char *path, FilePath *resultPath);
 	void DiscoverEOLSetting();
 	void DiscoverIndentSetting();
 	SString DiscoverLanguage();
@@ -681,7 +684,7 @@ protected:
 	bool Open(FilePath file, OpenFlags of = ofNone);
 	bool OpenSelected();
 	void Revert();
-	FilePath SaveName(const char *ext);
+	FilePath SaveName(const char *ext) const;
 	int SaveIfUnsure(bool forceQuestion = false);
 	int SaveIfUnsureAll(bool forceQuestion = false);
 	int SaveIfUnsureForBuilt();
@@ -718,7 +721,7 @@ protected:
 	FilePath GetLocalPropertiesFileName();
 	FilePath GetAbbrevPropertiesFileName();
 	void OpenProperties(int propsFile);
-	int GetMenuCommandAsInt(SString commandName);
+	static int GetMenuCommandAsInt(SString commandName);
 	virtual void Print(bool) {}
 	virtual void PrintSetup() {}
 	virtual void UserStripShow(const char * /* description */) {}
@@ -729,16 +732,13 @@ protected:
 	Sci_CharacterRange GetSelection();
 	SelectedRange GetSelectedRange();
 	void SetSelection(int anchor, int currentPos);
-	//	void SelectionExtend(char *sel, int len, char *notselchar);
 	SString GetCTag();
-	SString GetRange(GUI::ScintillaWindow &win, int selStart, int selEnd);
+	static SString GetRange(GUI::ScintillaWindow &win, int selStart, int selEnd);
 	virtual SString GetRangeInUIEncoding(GUI::ScintillaWindow &win, int selStart, int selEnd);
-	SString GetLine(GUI::ScintillaWindow &win, int line);
+	static SString GetLine(GUI::ScintillaWindow &win, int line);
 	SString RangeExtendAndGrab(GUI::ScintillaWindow &wCurrent, int &selStart, int &selEnd,
 	        bool (SciTEBase::*ischarforsel)(char ch), bool stripEol = true);
 	SString SelectionExtend(bool (SciTEBase::*ischarforsel)(char ch), bool stripEol = true);
-	void FindWordAtCaret(int &start, int &end);
-	bool SelectWordAtCaret();
 	SString SelectionWord(bool stripEol = true);
 	SString SelectionFilename();
 	void SelectionIntoProperties();
@@ -773,7 +773,7 @@ protected:
 	virtual void ParamGrab() = 0;
 	virtual bool ParametersDialog(bool modal) = 0;
 	bool HandleXml(char ch);
-	SString FindOpenXmlTag(const char sel[], int nSize);
+	static SString FindOpenXmlTag(const char sel[], int nSize);
 	void GoMatchingBrace(bool select);
 	void GoMatchingPreprocCond(int direction, bool select);
 	virtual void FindReplace(bool replace) = 0;
@@ -838,7 +838,7 @@ protected:
 	void FoldAll();
 	void ToggleFoldRecursive(int line, int level);
 	void EnsureAllChildrenVisible(int line, int level);
-	void EnsureRangeVisible(GUI::ScintillaWindow &win, int posStart, int posEnd, bool enforcePolicy = true);
+	static void EnsureRangeVisible(GUI::ScintillaWindow &win, int posStart, int posEnd, bool enforcePolicy = true);
 	void GotoLineEnsureVisible(int line);
 	bool MarginClick(int position, int modifiers);
 	void NewLineInOutput();
@@ -874,7 +874,6 @@ protected:
 
 	void DeleteFileStackMenu();
 	void SetFileStackMenu();
-	void DropFileStackTop();
 //!-start-[SubMenu]
 	virtual MenuEx GetToolsMenu() = 0;
 //!-end-[SubMenu]
@@ -896,8 +895,8 @@ protected:
 	void RemoveToolsMenu();
 	void SetMenuItemLocalised(int menuNumber, int position, int itemID,
 	        const char *text, const char *mnemonic);
+	bool ToolIsImmediate(int item);
 	void SetToolsMenu();
-	JobSubsystem SubsystemType(char c);
 	JobSubsystem SubsystemType(const char *cmd, int item = -1);
 	void ToolsMenu(int item);
 
@@ -917,7 +916,7 @@ protected:
 	void SetOverrideLanguage(int cmdID);
 	StyleAndWords GetStyleAndWords(const char *base);
 	SString ExtensionFileName();
-	const char *GetNextPropItem(const char *pStart, char *pPropItem, int maxLen);
+	static const char *GetNextPropItem(const char *pStart, char *pPropItem, int maxLen);
 	void ForwardPropertyToEditor(const char *key);
 	void DefineMarker(int marker, int markerType, Colour fore, Colour back, Colour backSelected);
 	void ReadAPI(const SString &fileNameForExtension);
@@ -1039,7 +1038,6 @@ private:
 #endif
 
 int ControlIDOfCommand(unsigned long);
-std::vector<GUI::gui_string> ListFromString(const GUI::gui_string &args);
 long ColourOfProperty(PropSetFile &props, const char *key, Colour colourDefault);
 void WindowSetFocus(GUI::ScintillaWindow &w);
 

@@ -77,9 +77,9 @@ void Buffer::DocumentModified() {
 	documentModTime = time(0);
 }
 
-bool Buffer::NeedsSave(int delayBeforeSave) {
+bool Buffer::NeedsSave(int delayBeforeSave) const {
 	time_t now = time(0);
-	return now && documentModTime && isDirty && !pFileWorker && (now-documentModTime > delayBeforeSave) && !IsUntitled();
+	return now && documentModTime && isDirty && !pFileWorker && (now-documentModTime > delayBeforeSave) && !IsUntitled() && !failedSave;
 }
 
 void Buffer::CompleteLoading() {
@@ -361,7 +361,7 @@ bool BufferList::SavingInBackground() const {
 	return false;
 }
 
-bool BufferList::GetVisible(int index) {
+bool BufferList::GetVisible(int index) const {
 	return index < lengthVisible;
 }
 
@@ -518,7 +518,7 @@ void SciTEBase::UpdateBuffersCurrent() {
 	}
 }
 
-bool SciTEBase::IsBufferAvailable() {
+bool SciTEBase::IsBufferAvailable() const {
 	return buffers.size > 1 && buffers.length < buffers.size;
 }
 
@@ -911,6 +911,7 @@ void SciTEBase::New() {
 	UpdateBuffersCurrent();
 	SetBuffersMenu();
 	CurrentBuffer()->isDirty = false;
+	CurrentBuffer()->failedSave = false;
 	CurrentBuffer()->lifeState = Buffer::open;
 	jobQueue.isBuilding = false;
 	jobQueue.isBuilt = false;
@@ -1298,14 +1299,6 @@ void SciTEBase::SetFileStackMenu() {
 	}
 }
 
-void SciTEBase::DropFileStackTop() {
-	DeleteFileStackMenu();
-	for (int stackPos = 0; stackPos < fileStackMax - 1; stackPos++)
-		recentFileStack[stackPos] = recentFileStack[stackPos + 1];
-	recentFileStack[fileStackMax - 1].Init();
-	SetFileStackMenu();
-}
-
 bool SciTEBase::AddFileToBuffer(const BufferState &bufferState) {
 	// Return whether file loads successfully
 	bool opened = false;
@@ -1470,6 +1463,21 @@ void SciTEBase::SetMenuItemLocalised(int menuNumber, int position, int itemID,
 	SetMenuItem(menuNumber, position, itemID, localised.c_str(), GUI::StringFromUTF8(mnemonic).c_str());
 }
 
+bool SciTEBase::ToolIsImmediate(int item) {
+	SString itemSuffix = item;
+	itemSuffix += '.';
+
+	SString propName = "command.";
+	propName += itemSuffix;
+
+	SString command = props.GetWild(propName.c_str(), FileNameExt().AsUTF8().c_str());
+	if (command.length()) {
+		JobMode jobMode(props, item, FileNameExt().AsUTF8().c_str());
+		return jobMode.jobType == jobImmediate;
+	}
+	return false;
+}
+
 /*!
 void SciTEBase::SetToolsMenu() {
 	//command.name.0.*.py=Edit in PythonWin
@@ -1597,20 +1605,6 @@ void SciTEBase::SetToolsMenu() {
 }
 //!-end-[SubMenu]
 
-JobSubsystem SciTEBase::SubsystemType(char c) {
-	if (c == '1')
-		return jobGUI;
-	else if (c == '2')
-		return jobShell;
-	else if (c == '3')
-		return jobExtension;
-	else if (c == '4')
-		return jobHelp;
-	else if (c == '5')
-		return jobOtherHelp;
-	return jobCLI;
-}
-
 JobSubsystem SciTEBase::SubsystemType(const char *cmd, int item) {
 	SString subsysprefix = cmd;
 	if (item >= 0) {
@@ -1618,180 +1612,34 @@ JobSubsystem SciTEBase::SubsystemType(const char *cmd, int item) {
 		subsysprefix += ".";
 	}
 	SString subsystem = props.GetNewExpand(subsysprefix.c_str(), FileNameExt().AsUTF8().c_str());
-	return SubsystemType(subsystem[0]);
+	return SubsystemFromChar(subsystem[0]);
 }
 
 void SciTEBase::ToolsMenu(int item) {
 	SelectionIntoProperties();
 
-	SString itemSuffix = item;
-	itemSuffix += '.';
-
-	SString propName = "command.";
-	propName += itemSuffix;
-
-	SString command = props.GetWild(propName.c_str(), FileNameExt().AsUTF8().c_str());
+	const std::string itemSuffix = StdStringFromInteger(item) + ".";
+	const std::string propName = std::string("command.") + itemSuffix;
+	std::string command(props.GetWild(propName.c_str(), FileNameExt().AsUTF8().c_str()).c_str());
 	if (command.length()) {
-		int saveBefore = 0;
-
-		JobSubsystem jobType = jobCLI;
-		bool isFilter = false;
-		bool quiet = false;
-		int repSel = 0;
-		bool groupUndo = false;
-
-		propName = "command.mode.";
-		propName += itemSuffix;
-		SString modeVal = props.GetNewExpand(propName.c_str(), FileNameExt().AsUTF8().c_str());
-		modeVal.remove(" ");
-		if (modeVal.length()) {
-			char *modeTags = modeVal.detach();
-
-			// copy/paste from style selectors.
-			char *opt = modeTags;
-			while (opt) {
-				// Find attribute separator
-				char *cpComma = strchr(opt, ',');
-				if (cpComma) {
-					// If found, we terminate the current attribute (opt) string
-					*cpComma = '\0';
-				}
-				// Find attribute name/value separator
-				char *colon = strchr(opt, ':');
-				if (colon) {
-					// If found, we terminate the current attribute name and point on the value
-					*colon++ = '\0';
-				}
-
-				if (0 == strcmp(opt, "subsystem") && colon) {
-					if (colon[0] == '0' || 0 == strcmp(colon, "console"))
-						jobType = jobCLI;
-					else if (colon[0] == '1' || 0 == strcmp(colon, "windows"))
-						jobType = jobGUI;
-					else if (colon[0] == '2' || 0 == strcmp(colon, "shellexec"))
-						jobType = jobShell;
-					else if (colon[0] == '3' || 0 == strcmp(colon, "lua") || 0 == strcmp(colon, "director"))
-						jobType = jobExtension;
-					else if (colon[0] == '4' || 0 == strcmp(colon, "htmlhelp"))
-						jobType = jobHelp;
-					else if (colon[0] == '5' || 0 == strcmp(colon, "winhelp"))
-						jobType = jobOtherHelp;
-				}
-
-				if (0 == strcmp(opt, "quiet")) {
-					if (!colon || colon[0] == '1' || 0 == strcmp(colon, "yes"))
-						quiet = true;
-					else if (colon[0] == '0' || 0 == strcmp(colon, "no"))
-						quiet = false;
-				}
-
-				if (0 == strcmp(opt, "savebefore")) {
-					if (!colon || colon[0] == '1' || 0 == strcmp(colon, "yes"))
-						saveBefore = 1;
-					else if (colon[0] == '0' || 0 == strcmp(colon, "no"))
-						saveBefore = 2;
-					else if (0 == strcmp(colon, "prompt"))
-						saveBefore = 0;
-				}
-
-				if (0 == strcmp(opt, "filter")) {
-					if (!colon || colon[0] == '1' || 0 == strcmp(colon, "yes"))
-						isFilter = true;
-					else if (colon[1] == '0' || 0 == strcmp(colon, "no"))
-						isFilter = false;
-				}
-
-				if (0 == strcmp(opt, "replaceselection")) {
-					if (!colon || colon[0] == '1' || 0 == strcmp(colon, "yes"))
-						repSel = 1;
-					else if (colon[0] == '0' || 0 == strcmp(colon, "no"))
-						repSel = 0;
-					else if (0 == strcmp(colon, "auto"))
-						repSel = 2;
-				}
-
-				if (0 == strcmp(opt, "groupundo")) {
-					if (!colon || colon[0] == '1' || 0 == strcmp(colon, "yes"))
-						groupUndo = true;
-					else if (colon[0] == '0' || 0 == strcmp(colon, "no"))
-						groupUndo = false;
-				}
-//!-start-[clearbefore]
-				if (0 == strcmp(opt, "clearbefore")) {
-					if (!colon || colon[0] == '1' || 0 == strcmp(colon, "yes"))
-						jobQueue.clearBeforeExecute = true;
-					else if (colon[0] == '0' || 0 == strcmp(colon, "no"))
-						jobQueue.clearBeforeExecute = false;
-				}
-//!-end-[clearbefore]
-
-				opt = cpComma ? cpComma + 1 : 0;
-			}
-			delete []modeTags;
-		}
-
-		// The mode flags also have classic properties with similar effect.
-		// If the classic property is specified, it overrides the mode.
-		// To see if the property is absent (as opposed to merely evaluating
-		// to nothing after variable expansion), use GetWild for the
-		// existence check.  However, for the value check, use getNewExpand.
-
-		propName = "command.save.before.";
-		propName += itemSuffix;
-		if (props.GetWild(propName.c_str(), FileNameExt().AsUTF8().c_str()).length())
-			saveBefore = props.GetNewExpand(propName.c_str(), FileNameExt().AsUTF8().c_str()).value();
-
-//!		if (saveBefore == 2 || (saveBefore == 1 && (!(CurrentBuffer()->isDirty) || Save())) || SaveIfUnsure() != IDCANCEL) {
-		if (saveBefore == 2 || (saveBefore == 1 && (!(CurrentBuffer()->DocumentNotSaved()) || Save())) || SaveIfUnsure() != IDCANCEL) { //!-change-[OpenNonExistent]
-			int flags = 0;
-
-			propName = "command.is.filter.";
-			propName += itemSuffix;
-			if (props.GetWild(propName.c_str(), FileNameExt().AsUTF8().c_str()).length())
-				isFilter = (props.GetNewExpand(propName.c_str(), FileNameExt().AsUTF8().c_str())[0] == '1');
-			if (isFilter)
+		JobMode jobMode(props, item, FileNameExt().AsUTF8().c_str());
+		if (jobQueue.IsExecuting() && (jobMode.jobType != jobImmediate))
+			// Busy running a tool and running a second can cause failures.
+			return;
+		if (jobMode.saveBefore == 2 || (jobMode.saveBefore == 1 && (!(CurrentBuffer()->isDirty) || Save())) || SaveIfUnsure() != IDCANCEL) {
+			if (jobMode.isFilter)
 				CurrentBuffer()->fileModTime -= 1;
-
-			propName = "command.subsystem.";
-			propName += itemSuffix;
-			if (props.GetWild(propName.c_str(), FileNameExt().AsUTF8().c_str()).length()) {
-				SString subsystemVal = props.GetNewExpand(propName.c_str(), FileNameExt().AsUTF8().c_str());
-				jobType = SubsystemType(subsystemVal[0]);
-			}
-
-			propName = "command.input.";
-			propName += itemSuffix;
-			SString input;
-			if (props.GetWild(propName.c_str(), FileNameExt().AsUTF8().c_str()).length()) {
-				input = props.GetNewExpand(propName.c_str(), FileNameExt().AsUTF8().c_str());
-				flags |= jobHasInput;
-			}
-
-			propName = "command.quiet.";
-			propName += itemSuffix;
-			if (props.GetWild(propName.c_str(), FileNameExt().AsUTF8().c_str()).length())
-				quiet = (props.GetNewExpand(propName.c_str(), FileNameExt().AsUTF8().c_str()).value() == 1);
-			if (quiet)
-				flags |= jobQuiet;
-
-			propName = "command.replace.selection.";
-			propName += itemSuffix;
-			if (props.GetWild(propName.c_str(), FileNameExt().AsUTF8().c_str()).length())
-				repSel = props.GetNewExpand(propName.c_str(), FileNameExt().AsUTF8().c_str()).value();
-
-			if (repSel == 1)
-				flags |= jobRepSelYes;
-			else if (repSel == 2)
-				flags |= jobRepSelAuto;
-
-			if (groupUndo)
-				flags |= jobGroupUndo;
-
-			AddCommand(command, "", jobType, input, flags);
+			if (jobMode.jobType == jobImmediate) {
+				if (extender) {
+					extender->OnExecute(command.c_str());
+				}
+			} else {
+				AddCommand(command.c_str(), "", jobMode.jobType, jobMode.input, jobMode.flags);
 			if (jobQueue.HasCommandToRun())
 				Execute();
 		}
 	}
+}
 }
 
 inline bool isdigitchar(int ch) {
@@ -1822,6 +1670,7 @@ int DecodeMessage(const char *cdoc, char *sourcePath, int format, int &column) {
 					return sourceNumber;
 				}
 			}
+			break;
 		}
 	case SCE_ERR_GCC:
 	case SCE_ERR_GCC_INCLUDED_FROM: {
@@ -1859,6 +1708,7 @@ int DecodeMessage(const char *cdoc, char *sourcePath, int format, int &column) {
 				start++;
 			}
 			const char *endPath = strchr(start, '(');
+			if (endPath) {
 			ptrdiff_t length = endPath - start;
 			if ((length > 0) && (length < MAX_PATH)) {
 				strncpy(sourcePath, start, length);
@@ -1866,6 +1716,8 @@ int DecodeMessage(const char *cdoc, char *sourcePath, int format, int &column) {
 			}
 			endPath++;
 			return atoi(endPath) - 1;
+		}
+			break;
 		}
 	case SCE_ERR_BORLAND: {
 			// Borland
@@ -1954,7 +1806,7 @@ int DecodeMessage(const char *cdoc, char *sourcePath, int format, int &column) {
 				// Lua 5.1 error looks like: lua.exe: test1.lua:3: syntax error
 				// reuse the GCC error parsing code above!
 				const char* colon = strstr(cdoc, ": ");
-				if (cdoc)
+				if (colon)
 					return DecodeMessage(colon + 2, sourcePath, SCE_ERR_GCC, column);
 			}
 			break;
@@ -1976,6 +1828,7 @@ int DecodeMessage(const char *cdoc, char *sourcePath, int format, int &column) {
 					return 0;
 				}
 			}
+			break;
 		}
 	case SCE_ERR_PHP: {
 			// PHP error look like: Fatal error: Call to undefined function:  foo() in example.php on line 11
@@ -2031,8 +1884,9 @@ int DecodeMessage(const char *cdoc, char *sourcePath, int format, int &column) {
 			 * These are trapped by the MS handler, and are identified OK, so no problem...
 			 */
 			const char *line = strchr(cdoc, '(');
+			if (line) {
 			const char *file = strchr(line, ':');
-			if (line && file) {
+				if (file) {
 				file++;
 				const char *endfile = strchr(file, ')');
 				size_t length = endfile - file;
@@ -2040,6 +1894,7 @@ int DecodeMessage(const char *cdoc, char *sourcePath, int format, int &column) {
 				sourcePath[length] = '\0';
 				line++;
 				return atoi(line) - 1;
+			}
 			}
 			break;
 		}
@@ -2154,7 +2009,7 @@ static void Chomp(SString &s, int ch) {
 }
 
 void SciTEBase::ShowMessages(int line) {
-	wEditor.Call(SCI_ANNOTATIONSETSTYLEOFFSET, 256);
+	wEditor.Call(SCI_ANNOTATIONSETSTYLEOFFSET, diagnosticStyleStart);
 	wEditor.Call(SCI_ANNOTATIONSETVISIBLE, ANNOTATION_BOXED);
 	wEditor.Call(SCI_ANNOTATIONCLEARALL);
 	TextReader acc(wOutput);

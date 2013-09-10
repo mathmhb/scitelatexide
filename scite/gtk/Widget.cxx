@@ -27,7 +27,7 @@
 #define GKEY_Void GDK_VoidSymbol
 #endif
 
-WBase::operator GtkWidget*() {
+WBase::operator GtkWidget*() const {
 	return GTK_WIDGET(GetID());
 }
 
@@ -37,10 +37,6 @@ GtkWidget* WBase::Pointer() {
 
 bool WBase::Sensitive() {
 	return IS_WIDGET_SENSITIVE(Pointer());
-}
-
-void WBase::SetSensitive(bool sensitive) {
-	gtk_widget_set_sensitive(Pointer(), sensitive);
 }
 
 void WStatic::Create(GUI::gui_string text) {
@@ -586,13 +582,6 @@ void Dialog::SignalDestroy(GtkWidget *, Dialog *d) {
 	}
 }
 
-void DestroyDialog(GtkWidget *, gpointer *window) {
-	if (window) {
-		GUI::Window *pwin = reinterpret_cast<GUI::Window *>(window);
-		*(pwin) = 0;
-	}
-}
-
 void Strip::Creation(GtkWidget *) {
 	g_signal_connect(G_OBJECT(GetID()), "button-press-event", G_CALLBACK(ButtonsPress), this);
 }
@@ -678,7 +667,7 @@ gboolean Strip::FocusSignal(GtkWidget */*widget*/, GtkDirectionType direction, S
 	return pStrip->Focus(direction);
 }
 
-bool Strip::VisibleHasFocus() {
+bool Strip::VisibleHasFocus() const {
 	return visible && childHasFocus;
 }
 

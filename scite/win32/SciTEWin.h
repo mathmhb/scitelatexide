@@ -341,7 +341,7 @@ public:
 	virtual int Height() {
 		return lineHeight * Lines() + 1;
 	}
-	int Lines();
+	int Lines() const;
 	void SetDescription(const char *description);
 	void SetExtender(Extension *extender_);
 	void SetSciTE(SciTEWin *pSciTEWin_);
@@ -391,6 +391,7 @@ protected:
 	WINDOWPLACEMENT winPlace;
 	RECT rcWorkArea;
 	GUI::gui_char openWhat[200];
+	GUI::gui_char tooltipText[MAX_PATH*2 + 1];
 	bool modalParameters;
 	int filterDefault;
 	bool staticBuild;
@@ -416,7 +417,6 @@ protected:
 	HMODULE hMM;
 
 	// Tab Bar
-	TCITEM tie;
 	HFONT fontTabs;
 
 	/// Preserve focus during deactivation
@@ -456,8 +456,6 @@ protected:
 	virtual void EnableAMenuItem(int wIDCheckItem, bool val);
 	virtual void CheckMenus();
 
-	void LocaliseAccelerators();
-	GUI::gui_string LocaliseAccelerator(const GUI::gui_char *Accelerator, int cmd);
 	void LocaliseMenu(HMENU hmenu);
 	void LocaliseMenus();
 	void LocaliseControl(HWND w);
@@ -492,7 +490,7 @@ protected:
 	void DropFiles(HDROP hdrop);
 	void MinimizeToTray();
 	void RestoreFromTray();
-	GUI::gui_string ProcessArgs(const GUI::gui_char *cmdLine);
+	static GUI::gui_string ProcessArgs(const GUI::gui_char *cmdLine);
 	virtual void QuitProgram();
 
 	virtual FilePath GetDefaultDirectory();
@@ -568,8 +566,6 @@ protected:
 	static BOOL CALLBACK AboutDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 	void AboutDialogWithBuild(int staticBuild);
 
-	void MakeAccelerator(SString sKey, ACCEL &Accel);
-
 	void RestorePosition();
 
 public:
@@ -577,7 +573,7 @@ public:
 	SciTEWin(Extension *ext = 0);
 	~SciTEWin();
 
-	bool DialogHandled(GUI::WindowID id, MSG *pmsg);
+	static bool DialogHandled(GUI::WindowID id, MSG *pmsg);
 	bool ModelessHandler(MSG *pmsg);
 
 	void CreateUI();

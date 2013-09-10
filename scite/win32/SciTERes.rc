@@ -10,8 +10,8 @@
 #include "SciTE.h"
 
 SciTE ICON SciBall.ico
-// SciTEfile ICON "SciTE-file.ico" //!-add-[NewIcons]
-// SciTEses ICON "SciTE-ses.ico" //!-add-[NewIcons]
+//~ SciTEfile ICON "SciTE-file.ico" //!-add-[NewIcons]
+//~ SciTEses ICON "SciTE-ses.ico" //!-add-[NewIcons]
 
 1 RT_MANIFEST SciTE.exe.manifest
 

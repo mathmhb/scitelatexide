@@ -125,6 +125,7 @@ SciTEBase::SciTEBase(Extension *ext) : apis(true), extender(ext) {
 	lexLanguage = SCLEX_CPP;
 	lexLPeg = -1;
 	functionDefinition = 0;
+	diagnosticStyleStart = 0;
 	indentOpening = true;
 	indentClosing = true;
 	indentMaintain = false;
@@ -196,9 +197,6 @@ SciTEBase::SciTEBase(Extension *ext) : apis(true), extender(ext) {
 	languageMenu = 0;
 	languageItems = 0;
 
-	shortCutItemList = 0;
-	shortCutItems = 0;
-
 	macrosEnabled = false;
 	recording = false;
 
@@ -226,7 +224,6 @@ SciTEBase::~SciTEBase() {
 	if (extender)
 		extender->Finalise();
 	delete []languageMenu;
-	delete []shortCutItemList;
 //!	popup.Destroy(); //!-remove-[ExtendedContextMenu]
 }
 //!-start-[OnSendEditor]
@@ -584,13 +581,13 @@ bool SciTEBase::FindMatchingPreprocessorCondition(
 
 	bool isInside = false;
 	char line[800];	// No need for full line
-	int status, level = 0;
+	int level = 0;
 	int maxLines = wEditor.Call(SCI_GETLINECOUNT) - 1;
 
 	while (curLine < maxLines && curLine > 0 && !isInside) {
 		curLine += direction;	// Increment or decrement
 		GetLine(line, sizeof(line), curLine);
-		status = IsLinePreprocessorCondition(line);
+		int status = IsLinePreprocessorCondition(line);
 
 		if ((direction == 1 && status == ppcStart) || (direction == -1 && status == ppcEnd)) {
 			level++;
@@ -1056,25 +1053,6 @@ SString SciTEBase::SelectionExtend(
 	return RangeExtendAndGrab(wCurrent, selStart, selEnd, ischarforsel, stripEol);
 }
 
-void SciTEBase::FindWordAtCaret(int &start, int &end) {
-
-//!	GUI::ScintillaWindow &wCurrent = wOutput.HasFocus() ? wOutput : wEditor;
-	GUI::ScintillaWindow &wCurrent = wOutput.HasFocus() ? wOutput : reinterpret_cast<GUI::ScintillaWindow&>(wEditor); //!-change-[OnSendEditor]
-
-	start = wCurrent.Call(SCI_GETSELECTIONSTART);
-	end = wCurrent.Call(SCI_GETSELECTIONEND);
-	// Call just to update start & end
-	RangeExtendAndGrab(wCurrent, start, end, &SciTEBase::iswordcharforsel, false);
-}
-
-bool SciTEBase::SelectWordAtCaret() {
-	int selStart = 0;
-	int selEnd = 0;
-	FindWordAtCaret(selStart, selEnd);
-	SetSelection(selStart, selEnd);
-	return selStart != selEnd;
-}
-
 SString SciTEBase::SelectionWord(bool stripEol /*=true*/) {
 	return SelectionExtend(&SciTEBase::islexerwordcharforsel, stripEol);
 }
@@ -1304,7 +1282,12 @@ int SciTEBase::FindNext(bool reverseDirection, bool showWarnings, bool allowRegE
 		havefound = true;
 		int start = wEditor.Call(SCI_GETTARGETSTART);
 		int end = wEditor.Call(SCI_GETTARGETEND);
+		// Ensure found text is styled so that caret will be made visible.
+		int endStyled = wEditor.Call(SCI_GETENDSTYLED);
+		if (endStyled < end)
+			wEditor.Call(SCI_COLOURISE, endStyled, end);
 		EnsureRangeVisible(wEditor, start, end);
+		wEditor.Call(SCI_SCROLLRANGE, start, end);
 		SetSelection(start, end);
 		if (!replacing && closeFind) {
 			DestroyFindReplace();
@@ -1773,9 +1756,8 @@ bool SciTEBase::StartCallTip() {
 	SString line = GetLine();
 	int current = GetCaretInLine();
 	int pos = wEditor.Call(SCI_GETCURRENTPOS);
-	int braces;
 	do {
-		braces = 0;
+		int braces = 0;
 		while (current > 0 && (braces || !calltipParametersStart.contains(line[current - 1]))) {
 			if (calltipParametersStart.contains(line[current - 1]))
 				braces--;
@@ -3354,7 +3336,8 @@ void SciTEBase::SetLineNumberWidth() {
 				lineNumWidth = lineNumbersWidth;
 			}
 		}
-
+		if (lineNumWidth < 0)
+			lineNumWidth = 0;
 		// The 4 here allows for spacing: 1 pixel on left and 3 on right.
 		std::string nNines(lineNumWidth, '9');
 		int pixelWidth = 4 + wEditor.CallString(SCI_TEXTWIDTH, STYLE_LINENUMBER, nNines.c_str());
@@ -4017,7 +4000,7 @@ void SciTEBase::MenuCommand(int cmdID, int source) {
 	case IDM_HELP_SCITE: {
 			SelectionIntoProperties();
 			AddCommand(props.Get("command.scite.help"), "",
-			        SubsystemType(props.Get("command.scite.help.subsystem")[0]));
+					SubsystemFromChar(props.Get("command.scite.help.subsystem")[0]));
 			if (jobQueue.HasCommandToRun()) {
 				jobQueue.isBuilding = true;
 				Execute();
@@ -4055,7 +4038,7 @@ void SciTEBase::MenuCommand(int cmdID, int source) {
 					//simply invoke compiling current file if corresponding command.compilemain is empty
 					MenuCommand(IDM_COMPILE);
 				} else {
-					AddCommand(do_cmd,do_dir,SubsystemType(do_subsys[0]));
+					AddCommand(do_cmd,do_dir,SubsystemFromChar(do_subsys[0]));
 					if (jobQueue.HasCommandToRun() > 0) {
 						jobQueue.isBuilding = true;
 						Execute();
@@ -4653,7 +4636,7 @@ void SciTEBase::CheckMenus() {
 	        props.GetWild("command.go.", FileNameExt().AsUTF8().c_str()).size() != 0);
 	EnableAMenuItem(IDM_OPENDIRECTORYPROPERTIES, props.GetInt("properties.directory.enable") != 0);
 	for (int toolItem = 0; toolItem < toolMax; toolItem++)
-		EnableAMenuItem(IDM_TOOLS + toolItem, !jobQueue.IsExecuting());
+		EnableAMenuItem(IDM_TOOLS + toolItem, ToolIsImmediate(toolItem) || !jobQueue.IsExecuting());
 	EnableAMenuItem(IDM_STOPEXECUTE, jobQueue.IsExecuting());
 	if (buffers.size > 0) {
 		TabSelect(buffers.Current());
@@ -4924,7 +4907,7 @@ void SciTEBase::TimerEnd(int /* mask */) {
 }
 
 void SciTEBase::OnTimer() {
-	if (delayBeforeAutoSave) {
+	if (delayBeforeAutoSave && (0 == dialogsOnScreen)) {
 		// First save the visible buffer to avoid any switching if not needed
 		if (CurrentBuffer()->NeedsSave(delayBeforeAutoSave)) {
 			Save(sfNone);
@@ -5325,26 +5308,6 @@ void SciTEBase::ExecuteMacroCommand(const char *command) {
 	delete []tbuff;
 }
 
-std::vector<GUI::gui_string> ListFromString(const GUI::gui_string &args) {
-	// Split on \n
-	std::vector<GUI::gui_string> vs;
-	GUI::gui_string s;
-	bool lastNewLine = false;
-	for (size_t i=0; i<args.size(); i++) {
-		lastNewLine = args[i] == '\n';
-		if (lastNewLine) {
-			vs.push_back(s);
-			s = GUI::gui_string();
-		} else {
-			s += args[i];
-		}
-	}
-	if ((s.size() > 0) || lastNewLine) {
-		vs.push_back(s);
-	}
-	return vs;
-}
-
 /**
  * Process all the command line arguments.
  * Arguments that start with '-' (also '/' on Windows) are switches or commands with
@@ -5386,7 +5349,7 @@ bool SciTEBase::ProcessCommandLine(GUI::gui_string &args, int phase) {
 				if (wlArgs[i+1][3] == 'b')
 					gf = static_cast<GrepFlags>(gf | grepBinary);
 				char unquoted[1000];
-				strcpy(unquoted, GUI::UTF8FromString(wlArgs[i+3].c_str()).c_str());
+				StringCopy(unquoted, GUI::UTF8FromString(wlArgs[i+3].c_str()).c_str());
 				UnSlash(unquoted);
 				sptr_t originalEnd = 0;
 				InternalGrep(gf, FilePath::GetWorkingDirectory().AsInternal(), wlArgs[i+2].c_str(), unquoted, originalEnd);
@@ -5417,9 +5380,11 @@ bool SciTEBase::ProcessCommandLine(GUI::gui_string &args, int phase) {
 			else
 				evaluate = true;
 
+			if (!buffers.initialised) {
 			InitialiseBuffers();
 			if (props.GetInt("save.recent"))
 				RestoreRecentMenu();
+			}
 
 			if (!PreOpenCheck(arg))
 				Open(arg, static_cast<OpenFlags>(ofQuiet|ofSynchronous));
@@ -5462,13 +5427,10 @@ char *SciTEBase::Range(Pane p, int start, int end) {
 }
 
 void SciTEBase::Remove(Pane p, int start, int end) {
-	// Should have a scintilla call for this
 	if (p == paneEditor) {
-		wEditor.Call(SCI_SETSEL, start, end);
-		wEditor.Call(SCI_CLEAR);
+		wEditor.Call(SCI_DELETERANGE, start, end-start);
 	} else {
-		wOutput.Call(SCI_SETSEL, start, end);
-		wOutput.Call(SCI_CLEAR);
+		wOutput.Call(SCI_DELETERANGE, start, end-start);
 	}
 }
 

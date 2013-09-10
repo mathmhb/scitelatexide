@@ -11,6 +11,11 @@ import sys
 sys.path.append(os.path.join("..", "ScintillaEdit"))
 import WidgetGen
 
+scintillaDirectory = "../.."
+scintillaScriptsDirectory = os.path.join(scintillaDirectory, "scripts")
+sys.path.append(scintillaScriptsDirectory)
+from FileGenerator import GenerateFile
+
 # Decide up front which platform, treat anything other than Windows or OS X as Linux
 PLAT_WINDOWS = platform.system() == "Windows"
 PLAT_DARWIN = platform.system() == "Darwin"
@@ -56,8 +61,7 @@ def usage():
 	print("-u --underscore-names  use method_names consistent with GTK+ standards")
 
 modifyFunctionElement = """		<modify-function signature="%s">%s
-		</modify-function>
-"""
+		</modify-function>"""
 
 injectCode = """
 			<inject-code class="target" position="beginning">%s
@@ -72,9 +76,13 @@ injectCheckN = """
 def methodSignature(name, v, options):
 	argTypes = ""
 	p1Type = WidgetGen.cppAlias(v["Param1Type"])
+	if p1Type == "int":
+		p1Type = "uptr_t"
 	if p1Type:
 		argTypes = argTypes + p1Type
 	p2Type = WidgetGen.cppAlias(v["Param2Type"])
+	if p2Type == "int":
+		p2Type = "sptr_t"
 	if p2Type and v["Param2Type"] != "stringresult":
 		if p1Type:
 			argTypes = argTypes + ", "
@@ -83,7 +91,8 @@ def methodSignature(name, v, options):
 	constDeclarator = " const" if v["FeatureType"] == "get" else ""
 	return methodName + "(" + argTypes + ")" + constDeclarator
 
-def printTypeSystemFile(f,out, options):
+def printTypeSystemFile(f, options):
+	out = []
 	for name in f.order:
 		v = f.features[name]
 		if v["Category"] != "Deprecated":
@@ -99,9 +108,10 @@ def printTypeSystemFile(f,out, options):
 						checks = checks + (injectCheckN % 1)
 				if checks:
 					inject = injectCode % checks
-					out.write(modifyFunctionElement % (methodSignature(name, v, options), inject))
+					out.append(modifyFunctionElement % (methodSignature(name, v, options), inject))
 				#if v["Param1Type"] == "string":
-				#	out.write("<string-xml>" + name + "</string-xml>\n")
+				#	out.append("<string-xml>" + name + "</string-xml>\n")
+	return out
 
 def doubleBackSlashes(s):
 	# Quote backslashes so qmake does not produce warnings
@@ -193,7 +203,8 @@ class SepBuilder:
 		f = WidgetGen.readInterface(False)
 		os.chdir(os.path.join("..", "ScintillaEditPy"))
 		options = {"qtStyle": self.qtStyleInterface}
-		WidgetGen.Generate("typesystem_ScintillaEdit.xml.template", "typesystem_ScintillaEdit.xml", printTypeSystemFile, f, options)
+		GenerateFile("typesystem_ScintillaEdit.xml.template", "typesystem_ScintillaEdit.xml", 
+			"<!-- ", True, printTypeSystemFile(f, options))
 
 	def runGenerator(self):
 		generatorrunner = "shiboken"

@@ -66,9 +66,8 @@ static bool followsReturnKeyword(StyleContext &sc, LexAccessor &styler) {
 	int pos = (int) sc.currentPos;
 	int currentLine = styler.GetLine(pos);
 	int lineStartPos = styler.LineStart(currentLine);
-	char ch;
 	while (--pos > lineStartPos) {
-		ch = styler.SafeGetCharAt(pos);
+		char ch = styler.SafeGetCharAt(pos);
 		if (ch != ' ' && ch != '\t') {
 			break;
 		}
@@ -154,7 +153,7 @@ public:
 	bool IsInactive() const {
 		return state != 0;
 	}
-	bool CurrentIfTaken() {
+	bool CurrentIfTaken() const {
 		return (ifTaken & maskLevel()) != 0;
 	}
 	void StartSection(bool on) {
@@ -189,7 +188,7 @@ public:
 class PPStates {
 	std::vector<LinePPState> vlls;
 public:
-	LinePPState ForLine(int line) {
+	LinePPState ForLine(int line) const {
 		if ((line > 0) && (vlls.size() > static_cast<size_t>(line))) {
 			return vlls[line];
 		} else {
@@ -456,9 +455,9 @@ int SCI_METHOD LexerCPP::WordListSet(int n, const char *wl) {
 			if (n == 4) {
 				// Rebuild preprocessorDefinitions
 				preprocessorDefinitionsStart.clear();
-				for (int nDefinition = 0; nDefinition < ppDefinitions.len; nDefinition++) {
-					char *cpDefinition = ppDefinitions.words[nDefinition];
-					char *cpEquals = strchr(cpDefinition, '=');
+				for (int nDefinition = 0; nDefinition < ppDefinitions.Length(); nDefinition++) {
+					const char *cpDefinition = ppDefinitions.WordAt(nDefinition);
+					const char *cpEquals = strchr(cpDefinition, '=');
 					if (cpEquals) {
 						std::string name(cpDefinition, cpEquals - cpDefinition);
 						std::string val(cpEquals+1);
@@ -493,6 +492,8 @@ void SCI_METHOD LexerCPP::Lex(unsigned int startPos, int length, int initStyle, 
 	CharacterSet setDoxygen(CharacterSet::setAlpha, "$@\\&<>#{}[]");
 
 	CharacterSet setWordStart(CharacterSet::setAlpha, "_", 0x80, true);
+
+	CharacterSet setInvalidRawFirst(CharacterSet::setNone, " )\\\t\v\f\n");
 
 	if (options.identifiersAllowDollars) {
 		setWordStart.Add('$');
@@ -655,7 +656,7 @@ const WordClassifier &classifierIdentifiers = subStyles.Classifier(SCE_C_IDENTIF
 					const bool literalString = sc.ch == '\"';
 					if (literalString || sc.ch == '\'') {
 						size_t lenS = strlen(s);
-						const bool raw = literalString && sc.chPrev == 'R';
+						const bool raw = literalString && sc.chPrev == 'R' && !setInvalidRawFirst.Contains(sc.chNext);
 						if (raw)
 							s[lenS--] = '\0';
 						bool valid =
@@ -683,7 +684,11 @@ const WordClassifier &classifierIdentifiers = subStyles.Classifier(SCE_C_IDENTIF
 					if ((isIncludePreprocessor && sc.Match('<')) || sc.Match('\"')) {
 						isStringInPreprocessor = true;
 					} else if (sc.Match('/', '*')) {
+						if (sc.Match("/**") || sc.Match("/*!")) {
+							sc.SetState(SCE_C_PREPROCESSORCOMMENTDOC|activitySet);
+						} else {
 						sc.SetState(SCE_C_PREPROCESSORCOMMENT|activitySet);
+						}
 						sc.Forward();	// Eat the *
 					} else if (sc.Match('/', '/')) {
 						sc.SetState(SCE_C_DEFAULT|activitySet);
@@ -691,6 +696,7 @@ const WordClassifier &classifierIdentifiers = subStyles.Classifier(SCE_C_IDENTIF
 				}
 				break;
 			case SCE_C_PREPROCESSORCOMMENT:
+			case SCE_C_PREPROCESSORCOMMENTDOC:
 				if (sc.Match('*', '/')) {
 					sc.Forward();
 					sc.ForwardSetState(SCE_C_PREPROCESSOR|activitySet);
@@ -1042,6 +1048,7 @@ void SCI_METHOD LexerCPP::Fold(unsigned int startPos, int length, int initStyle,
 
 	unsigned int endPos = startPos + length;
 	int visibleChars = 0;
+	bool inLineComment = false;
 	int lineCurrent = styler.GetLine(startPos);
 	int levelCurrent = SC_FOLDLEVELBASE;
 	if (lineCurrent > 0)
@@ -1060,10 +1067,12 @@ void SCI_METHOD LexerCPP::Fold(unsigned int startPos, int length, int initStyle,
 		style = styleNext;
 		styleNext = MaskActive(styler.StyleAt(i + 1));
 		bool atEOL = i == (lineStartNext-1);
-		if (options.foldComment && options.foldCommentMultiline && IsStreamCommentStyle(style)) {
-			if (!IsStreamCommentStyle(stylePrev) && (stylePrev != SCE_C_COMMENTLINEDOC)) {
+		if ((style == SCE_C_COMMENTLINE) || (style == SCE_C_COMMENTLINEDOC))
+			inLineComment = true;
+		if (options.foldComment && options.foldCommentMultiline && IsStreamCommentStyle(style) && !inLineComment) {
+			if (!IsStreamCommentStyle(stylePrev)) {
 				levelNext++;
-			} else if (!IsStreamCommentStyle(styleNext) && (styleNext != SCE_C_COMMENTLINEDOC) && !atEOL) {
+			} else if (!IsStreamCommentStyle(styleNext) && !atEOL) {
 				// Comments don't end at end of line and the next character may be unstyled.
 				levelNext--;
 			}
@@ -1139,6 +1148,7 @@ void SCI_METHOD LexerCPP::Fold(unsigned int startPos, int length, int initStyle,
 				styler.SetLevel(lineCurrent, (levelCurrent | levelCurrent << 16) | SC_FOLDLEVELWHITEFLAG);
 			}
 			visibleChars = 0;
+			inLineComment = false;
 		}
 	}
 }

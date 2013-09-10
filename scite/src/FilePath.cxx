@@ -310,10 +310,7 @@ FilePath FilePath::NormalizePath() const {
 	strcpy(path, AsInternal());
 #ifdef WIN32
 	// Convert unix path separators to Windows
-	for (GUI::gui_char *cp = path; *cp; cp++) {
-		if (*cp == '/')
-			*cp = pathSepChar;
-	}
+	std::replace(path, path+strlen(path), L'/', pathSepChar);
 #endif
 	GUI::gui_char *absPath = new GUI::gui_char[fileName.length() + 1];
 	GUI::gui_char *cur = absPath;
@@ -621,7 +618,6 @@ void FilePath::FixName() {
 
 std::string CommandExecute(const GUI::gui_char *command, const GUI::gui_char *directoryForRun) {
 	std::string output;
-	char buffer[16 * 1024];
 #ifdef _WIN32
 	SECURITY_ATTRIBUTES sa = {sizeof(SECURITY_ATTRIBUTES), 0, 0};
 	sa.bInheritHandle = TRUE;
@@ -682,6 +678,7 @@ std::string CommandExecute(const GUI::gui_char *command, const GUI::gui_char *di
 		
 		DWORD bytesRead = 0;
 		DWORD bytesAvail = 0;
+		char buffer[16 * 1024];
 
 		if (::PeekNamedPipe(hPipeRead, buffer, sizeof(buffer), &bytesRead, &bytesAvail, NULL)) {
 			if (bytesAvail > 0) {
@@ -711,6 +708,7 @@ std::string CommandExecute(const GUI::gui_char *command, const GUI::gui_char *di
 	FilePath(directoryForRun).SetWorkingDirectory();
 	FILE *fp = popen(command, "r");
 	if (fp) {
+		char buffer[16 * 1024];
 		size_t lenData = fread(buffer, 1, sizeof(buffer), fp);
 		while (lenData > 0) {
 			output.append(buffer, buffer+lenData);
