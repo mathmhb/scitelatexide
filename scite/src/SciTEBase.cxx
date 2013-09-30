@@ -5512,6 +5512,8 @@ int SciTEBase::LoadFontFiles(const char *arg,int recursive) {
 
 	GUI::gui_string s=GUI::StringFromUTF8(arg);
 	GUI::gui_char *filename=s.c_str();
+	if (!filename) {return 0;}
+	if (!filename[0]) {return 0;}
 	if (AddFontResource(filename)) {return 1;}
 
 	int num=0;
@@ -5526,14 +5528,14 @@ int SciTEBase::LoadFontFiles(const char *arg,int recursive) {
 	else
 		lastslash++;
 
-	// if (MessageBoxW(NULL,/*"Error!"*/ filename,L"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+	// if (MessageBoxW(NULL,filename,L"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
 
 	if ( (hFFile = ::FindFirstFile(filename, &ffile)) != INVALID_HANDLE_VALUE) {
 		do {
 			if (!(ffile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {	// Skip directories
 				wcscpy(lastslash, ffile.cFileName);
 					
-				// if (MessageBoxW(NULL,/*"Error!"*/ filename,L"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
+				// if (MessageBoxW(NULL,filename,L"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
 					
 				if (AddFontResourceW(filename))	{
 					num++;
@@ -5543,10 +5545,13 @@ int SciTEBase::LoadFontFiles(const char *arg,int recursive) {
 		::FindClose(hFFile);
 	}
 	return num;
+
+//return 0;
 }
 
 int SciTEBase::LoadFonts(const char *dirs,int recursive) {
 	char *d=strdup(dirs),*p=d;
+	if (!d) return 0;
 	while(*p) {
 		if ((*p)=='/') {*p='\\';}
 		p++;
@@ -5559,5 +5564,6 @@ int SciTEBase::LoadFonts(const char *dirs,int recursive) {
 	};
 	free(d);
 	return num;
+// return 0;
 }
 
