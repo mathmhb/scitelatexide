@@ -5,6 +5,8 @@
 // Copyright 1998-2011 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
+#include <tchar.h> //[mhb] 10/01/13 
+
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -5509,16 +5511,16 @@ int SciTEBase::LoadFontFiles(const char *arg,int recursive) {
 	// char buf[MAX_PATH];
 	// strcpy(buf,arg);
 	// MultiByteToWideChar(CP_ACP,0,buf,strlen(buf),filename,MAX_PATH);
-
+#if 1
 	GUI::gui_string s=GUI::StringFromUTF8(arg);
-	GUI::gui_char *filename=s.c_str();
-	if (!filename) {return 0;}
+	GUI::gui_char filename[MAX_PATH];
+	wcscpy(filename,s.c_str());
 	if (!filename[0]) {return 0;}
 	if (AddFontResource(filename)) {return 1;}
 
 	int num=0;
 	WIN32_FIND_DATA ffile;
-	DWORD fileattributes = ::GetFileAttributesA(arg);
+	//DWORD fileattributes = ::GetFileAttributesA(arg);
 	HANDLE hFFile;
 	
 
@@ -5528,15 +5530,10 @@ int SciTEBase::LoadFontFiles(const char *arg,int recursive) {
 	else
 		lastslash++;
 
-	// if (MessageBoxW(NULL,filename,L"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
-
 	if ( (hFFile = ::FindFirstFile(filename, &ffile)) != INVALID_HANDLE_VALUE) {
 		do {
 			if (!(ffile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {	// Skip directories
 				wcscpy(lastslash, ffile.cFileName);
-					
-				// if (MessageBoxW(NULL,filename,L"DEBUG",MB_ABORTRETRYIGNORE)==IDABORT) {abort();}//[mhb]
-					
 				if (AddFontResourceW(filename))	{
 					num++;
 				}
@@ -5545,8 +5542,9 @@ int SciTEBase::LoadFontFiles(const char *arg,int recursive) {
 		::FindClose(hFFile);
 	}
 	return num;
-
-//return 0;
+#else
+	return 0;
+#endif
 }
 
 int SciTEBase::LoadFonts(const char *dirs,int recursive) {
